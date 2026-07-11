@@ -2,7 +2,11 @@
 
 int main() {
     Game game;
-    game.start();
+
+    if (!game.start()) {
+        return 1;
+    }
+
     game.gameLoop();
 
     return 0;
