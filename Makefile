@@ -1,14 +1,16 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -std=c++17
+CXXFLAGS = -Wall -Wextra -std=c++17 -Iinclude -DSDL_MAIN_HANDLED
 LDFLAGS =
 LDLIBS = -lSDL2
 
 APP = MarioEvolution
-SRC = src/main.cpp
+SRC = $(wildcard src/*.cpp src/*/*.cpp)
 OBJDIR = builds
 OBJ = $(SRC:src/%.cpp=$(OBJDIR)/%.o)
 
-.PHONY: create run clean 
+.PHONY: all create run clean
+
+all: create
 
 create: $(APP)
 $(APP): $(OBJ)
