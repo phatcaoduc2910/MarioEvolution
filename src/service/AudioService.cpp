@@ -1,13 +1,20 @@
 #include "service/AudioService.h"
 
+#include <algorithm>
+
 void SoundManager::play(const std::string& track) {
-    (void)track;
+    if (!track.empty()) {
+        tracks[track] = "playing";
+    }
 }
 
 void SoundManager::pause(const std::string& track) {
-    (void)track;
+    const auto found = tracks.find(track);
+    if (found != tracks.end()) {
+        found->second = "paused";
+    }
 }
 
 void SoundManager::setVolume(int volume) {
-    this->volume = volume;
+    this->volume = std::clamp(volume, 0, 100);
 }
