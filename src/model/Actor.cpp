@@ -7,11 +7,11 @@ constexpr double kGravity = 0.45;
 constexpr double kMaxFallSpeed = 12.0;
 
 /**
- * Checks whether two axis-aligned rectangles overlap.
+ * Kiểm tra hai hình chữ nhật song song trục có chồng lên nhau không.
  *
- * @param a First rectangle.
- * @param b Second rectangle.
- * @return true when the rectangles intersect; false otherwise.
+ * @param a Hình chữ nhật thứ nhất.
+ * @param b Hình chữ nhật thứ hai.
+ * @return true nếu hai hình chữ nhật giao nhau; ngược lại là false.
  */
 bool intersects(const Rectangle& a, const Rectangle& b) {
     return a.x < b.x + b.width &&
@@ -37,10 +37,10 @@ Direction Actor::getDirection() const {
 }
 
 /**
- * Applies the current velocity to the actor position.
+ * Áp dụng vận tốc hiện tại vào vị trí của actor.
  *
- * The horizontal velocity also updates the facing direction so render and
- * gameplay systems can know whether the actor is moving left or right.
+ * Vận tốc ngang cũng cập nhật hướng nhìn để hệ thống render và gameplay biết
+ * actor đang di chuyển sang trái hay phải.
  */
 void Actor::move() {
     x += velocityX;
@@ -54,23 +54,23 @@ void Actor::move() {
 }
 
 /**
- * Applies vertical gravity to the actor.
+ * Áp dụng trọng lực theo chiều dọc cho actor.
  *
- * Fall speed is capped to avoid very large per-frame movement that could make
- * collision resolution unstable.
+ * Tốc độ rơi được giới hạn để tránh bước di chuyển mỗi frame quá lớn làm xử lý
+ * va chạm mất ổn định.
  */
 void Actor::applyGravity() {
     velocityY = std::min(velocityY + kGravity, kMaxFallSpeed);
 }
 
 /**
- * Resolves collision against a solid game object using AABB overlap.
+ * Xử lý va chạm với game object rắn bằng độ chồng lấp AABB.
  *
- * This method only performs generic physical separation. Game-specific
- * decisions such as item pickup, enemy damage, score, or flag capture should
- * stay in CollisionSystem or the relevant gameplay class.
+ * Hàm này chỉ thực hiện tách vật lý chung. Các quyết định riêng của game như
+ * nhặt item, sát thương kẻ địch, điểm số hoặc chạm cờ nên nằm trong
+ * CollisionSystem hoặc lớp gameplay liên quan.
  *
- * @param object Object to separate this actor from.
+ * @param object Object cần tách khỏi actor này.
  */
 void Actor::resolveCollision(GameObject& object) {
     const Rectangle self = getBounds();

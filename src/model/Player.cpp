@@ -14,9 +14,9 @@ namespace {
     std::unordered_map<const Player*, int> invincibleTimers;
 
     /**
-     * Starts a short invincibility window after the player takes damage.
+     * Bắt đầu một khoảng bất tử ngắn sau khi người chơi nhận sát thương.
      *
-     * @param player Player instance that should receive temporary invincibility.
+     * @param player Instance người chơi cần nhận bất tử tạm thời.
      */
     void startInvincibility(Player* player) {
         invincibleTimers[player] = kInvincibleFrames;
@@ -44,11 +44,10 @@ bool Player::isInvincible() const {
 }
 
 /**
- * Makes the player jump when the player is alive and not already moving
- * vertically.
+ * Cho người chơi nhảy khi còn sống và chưa di chuyển theo chiều dọc.
  *
- * The current model does not expose an onGround flag yet, so near-zero vertical
- * velocity is used as the temporary jump guard.
+ * Model hiện tại chưa có cờ onGround, nên vận tốc dọc gần bằng 0 được dùng làm
+ * điều kiện chặn nhảy tạm thời.
  */
 void Player::jump() {
     if (alive && state != PlayerState::Dead && std::abs(velocityY) < kMinVelocity) {
@@ -57,9 +56,9 @@ void Player::jump() {
 }
 
 /**
- * Applies an item effect to the player and marks the item as collected.
+ * Áp dụng hiệu ứng item cho người chơi và đánh dấu item đã được nhặt.
  *
- * @param item Item touched by the player.
+ * @param item Item mà người chơi chạm vào.
  */
 void Player::collect(Item& item) {
     if (!alive || state == PlayerState::Dead || item.isCollected()) { return; }
@@ -79,10 +78,10 @@ void Player::collect(Item& item) {
 }
 
 /**
- * Applies damage to the player according to the current state.
+ * Gây sát thương cho người chơi theo trạng thái hiện tại.
  *
- * FIRE downgrades to BIG, BIG downgrades to SMALL, and SMALL changes to DEAD.
- * Downgrade states grant a short invincibility period.
+ * FIRE giảm xuống BIG, BIG giảm xuống SMALL, còn SMALL chuyển thành DEAD.
+ * Các lần giảm cấp sẽ cấp một khoảng bất tử ngắn.
  */
 void Player::takeDamage() {
     if (!alive || state == PlayerState::Dead || invincible) {
@@ -111,12 +110,12 @@ void Player::takeDamage() {
 }
 
 /**
- * Handles reaching the level flag.
+ * Xử lý khi người chơi chạm cờ cuối màn.
  *
- * The player stops moving, snaps horizontally to the flag, and delegates the
- * completion state to the flag object.
+ * Người chơi dừng di chuyển, căn ngang vào cờ và giao trạng thái hoàn thành cho
+ * object cờ.
  *
- * @param flag Flag touched by the player.
+ * @param flag Cờ mà người chơi chạm vào.
  */
 void Player::captureFlag(Flag& flag) {
     if (!alive || state == PlayerState::Dead) {
@@ -131,17 +130,17 @@ void Player::captureFlag(Flag& flag) {
 }
 
 /**
- * Fires a projectile when the fire power-up system is available.
+ * Bắn đạn khi hệ thống power-up lửa sẵn sàng.
  *
- * This is intentionally empty until the project defines a Fireball entity and
- * projectile manager.
+ * Hàm này cố ý để trống cho đến khi project định nghĩa entity Fireball và bộ
+ * quản lý đạn.
  */
 void Player::shootFireball() {
-    //@todo: update Fireball.cpp to code this function
+    //@todo: cập nhật Fireball.cpp để viết hàm này
 }
 
 /**
- * Updates the player physics and temporary invincibility timer.
+ * Cập nhật vật lý người chơi và bộ đếm bất tử tạm thời.
  */
 void Player::update() {
     if (!alive || state == PlayerState::Dead) {
@@ -163,9 +162,9 @@ void Player::update() {
 }
 
 /**
- * Renders the player.
+ * Render người chơi.
  *
- * Rendering is currently handled by the view layer, so the model render hook is
- * intentionally empty.
+ * Việc render hiện do tầng view xử lý, nên hook render trong model được cố ý để
+ * trống.
  */
 void Player::render() {}
