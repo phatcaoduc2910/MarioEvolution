@@ -11,5 +11,7 @@ bool StaticObject::isSolid() const {
 }
 
 void StaticObject::onCollision(Actor& actor) {
-    (void)actor;
+    if (solid) {
+        actor.resolveCollision(*this);
+    }
 }
