@@ -1,5 +1,43 @@
 #include "core/Game.h"
 
+namespace {
+bool mapKey(SDL_Keycode keycode, Key& key) {
+    switch (keycode) {
+        case SDLK_LEFT:
+        case SDLK_a:
+            key = Key::Left;
+            return true;
+        case SDLK_RIGHT:
+        case SDLK_d:
+            key = Key::Right;
+            return true;
+        case SDLK_UP:
+        case SDLK_w:
+            key = Key::Up;
+            return true;
+        case SDLK_DOWN:
+        case SDLK_s:
+            key = Key::Down;
+            return true;
+        case SDLK_SPACE:
+            key = Key::Jump;
+            return true;
+        case SDLK_f:
+            key = Key::Fire;
+            return true;
+        case SDLK_p:
+        case SDLK_ESCAPE:
+            key = Key::Pause;
+            return true;
+        case SDLK_RETURN:
+            key = Key::Enter;
+            return true;
+        default:
+            return false;
+    }
+}
+}
+
 Game::Game()
     : currentScreen(std::make_unique<StartScreen>()),
       audioService(std::make_unique<SoundManager>()) {}
@@ -41,13 +79,24 @@ bool Game::start() {
         return false;
     }
 
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     running = true;
     return true;
 }
 
-void Game::pause() {}
+void Game::pause() {
+    if (playing && currentScreen == nullptr) {
+        currentScreen = std::make_unique<PauseScreen>();
+        audioService->pause("theme");
+    }
+}
 
-void Game::resume() {}
+void Game::resume() {
+    if (playing && dynamic_cast<PauseScreen*>(currentScreen.get()) != nullptr) {
+        currentScreen.reset();
+        audioService->play("theme");
+    }
+}
 
 void Game::gameLoop() {
     SDL_Event event;
@@ -56,11 +105,65 @@ void Game::gameLoop() {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
+                continue;
             }
+
+            if (event.type != SDL_KEYDOWN && event.type != SDL_KEYUP) {
+                continue;
+            }
+
+            Key key = Key::Enter;
+            if (!mapKey(event.key.keysym.sym, key)) {
+                continue;
+            }
+
+            if (event.type == SDL_KEYUP) {
+                inputHandler.release(key);
+                continue;
+            }
+
+            if (event.key.repeat != 0) {
+                continue;
+            }
+
+            inputHandler.press(key);
+
+            if (auto* startScreen = dynamic_cast<StartScreen*>(currentScreen.get())) {
+                startScreen->handleInput(inputHandler);
+                if (key == Key::Enter) {
+                    if (startScreen->getSelectedOption() == 0) {
+                        playing = true;
+                        currentScreen.reset();
+                        audioService->play("theme");
+                    } else {
+                        running = false;
+                    }
+                }
+            } else if (auto* pauseScreen = dynamic_cast<PauseScreen*>(currentScreen.get())) {
+                pauseScreen->handleInput(inputHandler);
+                if (!pauseScreen->isPaused()) {
+                    resume();
+                }
+            } else if (playing && key == Key::Pause) {
+                pause();
+            }
+        }
+
+        if (!running) {
+            break;
         }
 
         SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
         SDL_RenderClear(renderer);
+
+        if (currentScreen != nullptr) {
+            currentScreen->render(renderer);
+        } else if (playing) {
+            world.update();
+            collisionSystem.resolve(world);
+            world.render();
+        }
+
         SDL_RenderPresent(renderer);
     }
 }

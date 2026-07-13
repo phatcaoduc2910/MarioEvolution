@@ -28,6 +28,7 @@ private:
     std::unique_ptr<AudioService> audioService;
     InputHandler inputHandler;
     CollisionSystem collisionSystem;
+    bool playing{false};
     bool running{false};
     SDL_Window* window{nullptr};
     SDL_Renderer* renderer{nullptr};
