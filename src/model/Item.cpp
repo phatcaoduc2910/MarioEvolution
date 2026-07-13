@@ -14,7 +14,9 @@ void Item::applyTo(Player& player) {
     (void)player;
 }
 
-void Item::collect() {}
+void Item::collect() {
+    collected = true;
+}
 
 Coin::Coin(double x, double y, int value)
     : Item(x, y, 16, 16),
