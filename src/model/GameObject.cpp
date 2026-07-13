@@ -4,9 +4,9 @@ GameObject::GameObject(double x, double y, int width, int height)
     : x(x), y(y), width(width), height(height) {}
 
 /**
- * Builds the collision rectangle from the object's current position and size.
+ * Tạo hình chữ nhật va chạm từ vị trí và kích thước hiện tại của object.
  *
- * @return Rectangle used by collision checks.
+ * @return Hình chữ nhật dùng cho kiểm tra va chạm.
  */
 Rectangle GameObject::getBounds() const {
     return {x, y, width, height};
@@ -29,16 +29,16 @@ int GameObject::getHeight() const {
 }
 
 /**
- * Default update hook for game objects.
+ * Hook cập nhật mặc định cho game object.
  *
- * Subclasses override this when they need per-frame behavior.
+ * Lớp con override hàm này khi cần hành vi theo từng frame.
  */
 void GameObject::update() {}
 
 /**
- * Default render hook for game objects.
+ * Hook render mặc định cho game object.
  *
- * Rendering is implemented by subclasses or view systems that have access to
- * renderer resources.
+ * Việc render được triển khai bởi lớp con hoặc hệ thống view có quyền truy cập
+ * tài nguyên renderer.
  */
 void GameObject::render() {}

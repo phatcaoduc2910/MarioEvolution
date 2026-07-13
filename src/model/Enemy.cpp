@@ -15,10 +15,10 @@ Enemy::Enemy(double x, double y, int width, int height)
       state(EnemyState::Walking) {}
 
 /**
- * Moves the enemy in its current facing direction.
+ * Di chuyển kẻ địch theo hướng hiện tại.
  *
- * Direction changes caused by walls or platform edges should be coordinated by
- * the collision or level system.
+ * Việc đổi hướng do tường hoặc mép nền nên được điều phối bởi hệ thống va chạm
+ * hoặc hệ thống màn chơi.
  */
 void Enemy::patrol() {
     if (!alive || state == EnemyState::Dead) {
@@ -30,7 +30,7 @@ void Enemy::patrol() {
 }
 
 /**
- * Marks the enemy as dead and stops all movement.
+ * Đánh dấu kẻ địch đã chết và dừng toàn bộ chuyển động.
  */
 void Enemy::die() {
     state = EnemyState::Dead;
@@ -40,9 +40,9 @@ void Enemy::die() {
 }
 
 /**
- * Damages the player when this enemy is active.
+ * Gây sát thương cho người chơi khi kẻ địch này đang hoạt động.
  *
- * @param player Player that collided with the enemy.
+ * @param player Người chơi va chạm với kẻ địch.
  */
 void Enemy::damagePlayer(Player& player) {
     if (alive && state != EnemyState::Dead) {
@@ -56,14 +56,14 @@ Goomba::Goomba(double x, double y)
 }
 
 /**
- * Uses the base enemy patrol behavior for Goomba.
+ * Dùng hành vi tuần tra cơ bản của kẻ địch cho Goomba.
  */
 void Goomba::patrol() {
     Enemy::patrol();
 }
 
 /**
- * Uses the base enemy death behavior for Goomba.
+ * Dùng hành vi chết cơ bản của kẻ địch cho Goomba.
  */
 void Goomba::die() {
     Enemy::die();
@@ -76,7 +76,7 @@ Koopa::Koopa(double x, double y)
 }
 
 /**
- * Switches Koopa into shell mode without horizontal movement.
+ * Chuyển Koopa sang chế độ mai rùa mà không di chuyển ngang.
  */
 void Koopa::hideInShell() {
     if (!alive) {
@@ -89,7 +89,7 @@ void Koopa::hideInShell() {
 }
 
 /**
- * Kicks Koopa's shell in its current facing direction.
+ * Đá mai rùa của Koopa theo hướng hiện tại.
  */
 void Koopa::kick() {
     if (!alive) {
@@ -103,10 +103,10 @@ void Koopa::kick() {
 }
 
 /**
- * Updates Koopa patrol behavior.
+ * Cập nhật hành vi tuần tra của Koopa.
  *
- * In normal mode Koopa walks like a regular enemy. In shell mode it only moves
- * while the shell has a non-zero horizontal velocity.
+ * Ở chế độ thường, Koopa đi như kẻ địch thông thường. Ở chế độ mai rùa, Koopa
+ * chỉ di chuyển khi mai có vận tốc ngang khác 0.
  */
 void Koopa::patrol() {
     if (!alive || state == EnemyState::Dead) {

@@ -1,15 +1,15 @@
 #include "view/AssetRenderer.h"
 
 /**
- * Renders a texture region into a destination rectangle.
+ * Vẽ một vùng texture vào hình chữ nhật đích.
  *
- * Invalid renderer, texture, or destination rectangle pointers are ignored.
+ * Bỏ qua renderer, texture hoặc con trỏ hình chữ nhật đích không hợp lệ.
  *
- * @param renderer SDL renderer used for drawing.
- * @param texture Texture to draw.
- * @param srcRect Optional source rectangle; nullptr renders the whole texture.
- * @param dstRect Destination rectangle in screen coordinates.
- * @param flip Flip mode applied during rendering.
+ * @param renderer SDL renderer dùng để vẽ.
+ * @param texture Texture cần vẽ.
+ * @param srcRect Hình chữ nhật nguồn tùy chọn; nullptr sẽ vẽ toàn bộ texture.
+ * @param dstRect Hình chữ nhật đích theo tọa độ màn hình.
+ * @param flip Chế độ lật áp dụng khi vẽ.
  */
 void AssetRenderer::render(SDL_Renderer* renderer, SDL_Texture* texture, const SDL_Rect* srcRect, const SDL_Rect* dstRect, SDL_RendererFlip flip) {
     if (renderer == nullptr || texture == nullptr || dstRect == nullptr) { return; }
@@ -17,16 +17,16 @@ void AssetRenderer::render(SDL_Renderer* renderer, SDL_Texture* texture, const S
 }
 
 /**
- * Renders a texture at a position with optional destination size.
+ * Vẽ texture tại một vị trí với kích thước đích tùy chọn.
  *
- * Missing or non-positive dimensions fall back to the texture's native size.
+ * Kích thước bị thiếu hoặc không dương sẽ dùng kích thước gốc của texture.
  *
- * @param renderer SDL renderer used for drawing.
- * @param texture Texture to draw.
- * @param x Destination x coordinate.
- * @param y Destination y coordinate.
- * @param width Destination width; uses texture width when non-positive.
- * @param height Destination height; uses texture height when non-positive.
+ * @param renderer SDL renderer dùng để vẽ.
+ * @param texture Texture cần vẽ.
+ * @param x Tọa độ x đích.
+ * @param y Tọa độ y đích.
+ * @param width Chiều rộng đích; dùng chiều rộng texture khi không dương.
+ * @param height Chiều cao đích; dùng chiều cao texture khi không dương.
  */
 void AssetRenderer::render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height) {
     if (!(renderer && texture)) { return; }
