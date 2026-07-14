@@ -1,5 +1,17 @@
 #pragma once
 
+#include <cstdint>
+
+/**
+ * Mã số xác định một tile địa hình trong lưới map.
+ */
+using TileId = std::uint16_t;
+
+/**
+ * Mã tile dành riêng cho một ô trống trong lưới map.
+ */
+inline constexpr TileId kEmptyTileId = 0;
+
 struct Rectangle {
     double x;
     double y;
