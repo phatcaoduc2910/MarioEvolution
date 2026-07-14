@@ -4,36 +4,19 @@
 
 class InputHandler;
 
+// Kết quả mà một màn hình gửi về cho Game sau khi xử lý đầu vào.
+// Screen chỉ mô tả ý định; Game chịu trách nhiệm chuyển trạng thái thực tế.
+enum class ScreenAction {
+    None,
+    StartGame,
+    ExitGame,
+    ResumeGame
+};
+
 class Screen {
 public:
     virtual ~Screen() = default;
 
-    virtual void render(SDL_Renderer* renderer);
-    virtual void handleInput(InputHandler& input);
-};
-
-class StartScreen : public Screen {
-public:
-    StartScreen();
-
-    int getSelectedOption() const;
-    void displayMenu(SDL_Renderer* renderer);
-    void render(SDL_Renderer* renderer) override;
-    void handleInput(InputHandler& input) override;
-
-private:
-    int selectedOption;
-};
-
-class PauseScreen : public Screen {
-public:
-    PauseScreen();
-
-    bool isPaused() const;
-    void display(SDL_Renderer* renderer);
-    void render(SDL_Renderer* renderer) override;
-    void handleInput(InputHandler& input) override;
-
-private:
-    bool paused;
+    virtual void render(SDL_Renderer* renderer) const = 0;
+    virtual ScreenAction handleInput(InputHandler& input) = 0;
 };
