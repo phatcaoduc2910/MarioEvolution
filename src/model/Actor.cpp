@@ -21,19 +21,55 @@ bool intersects(const Rectangle& a, const Rectangle& b) {
 }
 }
 
+/**
+ * Khởi tạo actor với vị trí, kích thước và trạng thái vật lý ban đầu.
+ *
+ * @param x Tọa độ x ban đầu.
+ * @param y Tọa độ y ban đầu.
+ * @param width Chiều rộng collision box.
+ * @param height Chiều cao collision box.
+ */
 Actor::Actor(double x, double y, int width, int height)
     : GameObject(x, y, width, height),
       velocityX(0.0),
       velocityY(0.0),
       direction(Direction::Right),
-      alive(true) {}
+      alive(true),
+      onGround(false) {}
 
+/**
+ * @return true nếu actor còn hoạt động; ngược lại là false.
+ */
 bool Actor::isAlive() const {
     return alive;
 }
 
+/**
+ * @return true nếu actor đang đứng trên mặt va chạm.
+ */
+bool Actor::isOnGround() const {
+    return onGround;
+}
+
+/**
+ * @return Hướng nhìn hiện tại của actor.
+ */
 Direction Actor::getDirection() const {
     return direction;
+}
+
+/**
+ * @return Vận tốc theo trục x.
+ */
+double Actor::getVelocityX() const {
+    return velocityX;
+}
+
+/**
+ * @return Vận tốc theo trục y.
+ */
+double Actor::getVelocityY() const {
+    return velocityY;
 }
 
 /**
@@ -60,6 +96,7 @@ void Actor::move() {
  * va chạm mất ổn định.
  */
 void Actor::applyGravity() {
+    onGround = false;
     velocityY = std::min(velocityY + kGravity, kMaxFallSpeed);
 }
 
@@ -97,7 +134,13 @@ void Actor::resolveCollision(GameObject& object) {
         x += (selfCenterX < otherCenterX) ? -overlapX : overlapX;
         velocityX = 0.0;
     } else {
-        y += (selfCenterY < otherCenterY) ? -overlapY : overlapY;
+        if (selfCenterY < otherCenterY) {
+            y -= overlapY;
+            onGround = true;
+        } else {
+            y += overlapY;
+        }
+
         velocityY = 0.0;
     }
 }

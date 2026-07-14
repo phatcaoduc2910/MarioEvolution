@@ -8,7 +8,10 @@ public:
     ~Actor() override = default;
 
     bool isAlive() const;
+    bool isOnGround() const;
     Direction getDirection() const;
+    double getVelocityX() const;
+    double getVelocityY() const;
 
     virtual void move();
     virtual void applyGravity();
@@ -19,4 +22,5 @@ protected:
     double velocityY;
     Direction direction;
     bool alive;
+    bool onGround;
 };

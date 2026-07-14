@@ -24,6 +24,7 @@ Fireball::Fireball(double x, double y, Direction dir)
  */
 void Fireball::update() {
     if (!alive) { return; }
+    applyGravity();
     move();
 }
 
@@ -32,4 +33,6 @@ void Fireball::update() {
  */
 void Fireball::destroy() {
     alive = false;
+    velocityX = 0.0;
+    velocityY = 0.0;
 }
