@@ -1,5 +1,8 @@
 #include "core/Game.h"
 
+#include "view/PauseScreen.h"
+#include "view/StartScreen.h"
+
 Game::Game()
     : currentScreen(std::make_unique<StartScreen>()),
       audioService(std::make_unique<SoundManager>()) {}
