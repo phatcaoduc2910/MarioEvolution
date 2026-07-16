@@ -1,4 +1,4 @@
-#include "MapEditor.h"
+#include "service/MapEditorService.h"
 
 #include <SDL2/SDL.h>
 
@@ -26,8 +26,8 @@ int main() {
 
     int exitCode = 0;
     {
-        MapEditor editor(kMapWidth, kMapHeight, kTileSize,
-                         kWindowWidth, kWindowHeight);
+        MapEditorService editor(kMapWidth, kMapHeight, kTileSize,
+                                kWindowWidth, kWindowHeight);
         if (!editor.start()) {
             exitCode = 1;
         } else {

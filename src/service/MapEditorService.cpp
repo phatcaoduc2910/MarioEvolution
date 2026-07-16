@@ -1,4 +1,4 @@
-#include "MapEditor.h"
+#include "service/MapEditorService.h"
 
 #include <algorithm>
 #include <array>
@@ -57,8 +57,8 @@ SDL_Color tileColor(TileId tileId) {
  * @param windowWidth Chiều rộng cửa sổ editor.
  * @param windowHeight Chiều cao cửa sổ editor.
  */
-MapEditor::MapEditor(int mapWidth, int mapHeight, int tileSize,
-                     int windowWidth, int windowHeight)
+MapEditorService::MapEditorService(int mapWidth, int mapHeight, int tileSize,
+                                   int windowWidth, int windowHeight)
     : level(mapWidth, mapHeight, tileSize),
       windowWidth(windowWidth),
       windowHeight(windowHeight),
@@ -79,7 +79,7 @@ MapEditor::MapEditor(int mapWidth, int mapHeight, int tileSize,
 /**
  * Giải phóng SDL renderer và cửa sổ thuộc sở hữu của editor.
  */
-MapEditor::~MapEditor() {
+MapEditorService::~MapEditorService() {
     if (renderer != nullptr) {
         SDL_DestroyRenderer(renderer);
     }
@@ -96,7 +96,7 @@ MapEditor::~MapEditor() {
  *
  * @return true nếu editor khởi tạo thành công; ngược lại là false.
  */
-bool MapEditor::start() {
+bool MapEditorService::start() {
     window = SDL_CreateWindow(
         "MarioEvolution Tile Editor",
         SDL_WINDOWPOS_CENTERED,
@@ -133,7 +133,7 @@ bool MapEditor::start() {
 /**
  * Chạy vòng lặp input, camera và render của editor.
  */
-void MapEditor::run() {
+void MapEditorService::run() {
     if (renderer == nullptr) {
         return;
     }
@@ -169,7 +169,7 @@ void MapEditor::run() {
  *
  * @param event Sự kiện SDL cần xử lý.
  */
-void MapEditor::handleEvent(const SDL_Event& event) {
+void MapEditorService::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_QUIT) {
         running = false;
         return;
@@ -217,7 +217,7 @@ void MapEditor::handleEvent(const SDL_Event& event) {
 /**
  * Cập nhật camera từ các phím WASD hoặc phím mũi tên đang được giữ.
  */
-void MapEditor::updateCamera() {
+void MapEditorService::updateCamera() {
     const Uint8* keys = SDL_GetKeyboardState(nullptr);
 
     if (keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_A]) {
@@ -251,8 +251,8 @@ void MapEditor::updateCamera() {
  * @param row Biến nhận chỉ số hàng tile.
  * @return true nếu ô nằm trong map; ngược lại là false.
  */
-bool MapEditor::screenToCell(int screenX, int screenY,
-                             int& column, int& row) const {
+bool MapEditorService::screenToCell(int screenX, int screenY,
+                                    int& column, int& row) const {
     if (screenX < 0 || screenY < 0 ||
         screenX >= windowWidth || screenY >= windowHeight) {
         return false;
@@ -270,7 +270,7 @@ bool MapEditor::screenToCell(int screenX, int screenY,
  * Nếu ô đầu tiên đã chứa selectedTile, toàn bộ nét kéo sẽ xóa. Nếu không,
  * toàn bộ nét kéo sẽ đặt selectedTile giống hành vi brush trong tutorial.
  */
-void MapEditor::beginStroke() {
+void MapEditorService::beginStroke() {
     if (!editorEnabled) {
         return;
     }
@@ -291,7 +291,7 @@ void MapEditor::beginStroke() {
 /**
  * Gán brush của nét hiện tại vào ô dưới con trỏ chuột.
  */
-void MapEditor::paintStroke() {
+void MapEditorService::paintStroke() {
     int column = 0;
     int row = 0;
     if (screenToCell(mouseX, mouseY, column, row)) {
@@ -302,7 +302,7 @@ void MapEditor::paintStroke() {
 /**
  * Chọn mã tile đang nằm dưới con trỏ làm brush hiện tại.
  */
-void MapEditor::pickTile() {
+void MapEditorService::pickTile() {
     int column = 0;
     int row = 0;
     if (screenToCell(mouseX, mouseY, column, row)) {
@@ -318,7 +318,7 @@ void MapEditor::pickTile() {
  *
  * @param key Nhóm brush từ 1 đến 4.
  */
-void MapEditor::selectNextBrush(int key) {
+void MapEditorService::selectNextBrush(int key) {
     std::size_t currentIndex = kBrushTiles.size() - 1;
     for (std::size_t index = 0; index < kBrushTiles.size(); ++index) {
         if (kBrushTiles[index] == selectedTile) {
@@ -343,7 +343,7 @@ void MapEditor::selectNextBrush(int key) {
  * Cột trái, cột phải và hàng dưới dùng tile tường. Hàng trên dùng một tile
  * biên riêng để giữ cấu trúc generate level tương tự tutorial.
  */
-void MapEditor::generateLevel() {
+void MapEditorService::generateLevel() {
     strokeActive = false;
 
     for (int row = 0; row < level.getHeight(); ++row) {
@@ -365,7 +365,7 @@ void MapEditor::generateLevel() {
 /**
  * Vẽ toàn bộ trạng thái hiện tại của editor.
  */
-void MapEditor::render() {
+void MapEditorService::render() {
     setDrawColor(renderer, {18, 19, 22, 255});
     SDL_RenderClear(renderer);
 
@@ -378,7 +378,7 @@ void MapEditor::render() {
 /**
  * Chỉ vẽ các tile đang nằm trong vùng camera.
  */
-void MapEditor::renderGrid() {
+void MapEditorService::renderGrid() {
     const int tileSize = level.getTileSize();
     const int firstColumn = cameraX / tileSize;
     const int firstRow = cameraY / tileSize;
@@ -412,7 +412,7 @@ void MapEditor::renderGrid() {
 /**
  * Vẽ brush trong suốt tại ô đang nằm dưới con trỏ chuột.
  */
-void MapEditor::renderBrushCursor() {
+void MapEditorService::renderBrushCursor() {
     if (!editorEnabled) {
         return;
     }
