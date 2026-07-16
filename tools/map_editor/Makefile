@@ -8,7 +8,7 @@ LDFLAGS = -L$(SDL2_ROOT)/lib
 LDLIBS = -lSDL2
 
 APP = $(ROOT)/builds/map_editor/MapEditor.exe
-SRC = main.cpp MapEditor.cpp $(ROOT)/src/model/LevelData.cpp
+SRC = main.cpp $(ROOT)/src/service/MapEditorService.cpp $(ROOT)/src/model/LevelData.cpp
 
 .PHONY: all create run clean
 

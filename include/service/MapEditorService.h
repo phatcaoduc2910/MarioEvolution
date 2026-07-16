@@ -12,14 +12,14 @@
  *
  * @todo Kết nối level codec để lưu và mở LevelData từ file.
  */
-class MapEditor {
+class MapEditorService {
 public:
-    MapEditor(int mapWidth, int mapHeight, int tileSize,
-              int windowWidth, int windowHeight);
-    ~MapEditor();
+    MapEditorService(int mapWidth, int mapHeight, int tileSize,
+                     int windowWidth, int windowHeight);
+    ~MapEditorService();
 
-    MapEditor(const MapEditor&) = delete;
-    MapEditor& operator=(const MapEditor&) = delete;
+    MapEditorService(const MapEditorService&) = delete;
+    MapEditorService& operator=(const MapEditorService&) = delete;
 
     bool start();
     void run();
