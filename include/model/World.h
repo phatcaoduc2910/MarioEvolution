@@ -8,6 +8,7 @@
 #include <vector>
 
 class Actor;
+struct SDL_Renderer;
 
 class World {
 public:
@@ -27,7 +28,7 @@ public:
     bool isGameOver() const;
 
     void update();
-    void render();
+    void render(SDL_Renderer* renderer) const;
 
 private:
     Player player;
