@@ -13,7 +13,7 @@ void InputHandler::release(Key key) {
     pressedKeys.erase(key);
 }
 
-bool mapKey(SDL_Keycode keycode, Key& key) {
+bool InputHandler::mapKey(SDL_Keycode keycode, Key& key) {
     switch (keycode) {
         case SDLK_LEFT:
         case SDLK_a:
