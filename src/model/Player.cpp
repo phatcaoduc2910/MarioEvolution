@@ -8,11 +8,11 @@
 
 namespace {
     constexpr double kJumpVelocity = -10.0;
+    constexpr double kMoveSpeed = 4.0;
     constexpr double kMinVelocity = 0.001;
     constexpr int kInvincibleFrames = 90;
 
     std::unordered_map<const Player*, int> invincibleTimers;
-
     /**
      * Bắt đầu một khoảng bất tử ngắn sau khi người chơi nhận sát thương.
      *
@@ -22,14 +22,14 @@ namespace {
         invincibleTimers[player] = kInvincibleFrames;
     }
 }
-
+// Set vị trí ban đầu của player.
 Player::Player(double x, double y)
     : Actor(x, y, 32, 48),
     powerUp(PowerUpType::None),
     state(PlayerState::Small),
     invincible(false) {
-        SDL_Log("Player created at x=%.2f, y=%.2f", x, y);
-    }
+    SDL_Log("Player created at x=%.2f, y=%.2f", x, y);
+}
 
 PowerUpType Player::getPowerUp() const {
     return powerUp;
@@ -43,18 +43,29 @@ bool Player::isInvincible() const {
     return invincible;
 }
 
-/**
- * Cho người chơi nhảy khi còn sống và chưa di chuyển theo chiều dọc.
- *
- * Model hiện tại chưa có cờ onGround, nên vận tốc dọc gần bằng 0 được dùng làm
- * điều kiện chặn nhảy tạm thời.
- */
 void Player::jump() {
     if (alive && state != PlayerState::Dead && std::abs(velocityY) < kMinVelocity) {
         velocityY = kJumpVelocity;
     }
 }
 
+/**
+ * Cập nhật vận tốc ngang của người chơi dựa trên input. (Hàm Phát thêm)
+ */
+void Player::setMoveDirection(int direction) {
+    if (!alive || state == PlayerState::Dead) {
+        velocityX = 0.0;
+        return;
+    }
+
+    if (direction < 0) {
+        velocityX = -kMoveSpeed;
+    } else if (direction > 0) {
+        velocityX = kMoveSpeed;
+    } else {
+        velocityX = 0.0;
+    }
+}
 /**
  * Áp dụng hiệu ứng item cho người chơi và đánh dấu item đã được nhặt.
  *
