@@ -91,23 +91,27 @@ void Game::gameLoop() {
             inputHandler.press(key);
 
             if (auto* startScreen = dynamic_cast<StartScreen*>(currentScreen.get())) {
-                startScreen->handleInput(inputHandler);
-                if (key == Key::Enter) {
-                    if (startScreen->getSelectedOption() == 0) {
-                        playing = true;
-                        currentScreen.reset();
-                        audioService->play("theme");
-                    } else {
-                        running = false;
-                    }
+                const ScreenAction action = startScreen->handleInput(inputHandler);
+
+                if (action == ScreenAction::StartGame) {
+                    playing = true;
+                    currentScreen.reset();
+                    audioService->play("theme");
+                } else if (action == ScreenAction::ExitGame) {
+                    running = false;
                 }
             } else if (auto* pauseScreen = dynamic_cast<PauseScreen*>(currentScreen.get())) {
-                pauseScreen->handleInput(inputHandler);
-                if (!pauseScreen->isPaused()) {
+                const ScreenAction action = pauseScreen->handleInput(inputHandler);
+
+                if (action == ScreenAction::ResumeGame) {
                     resume();
                 }
-            } else if (playing && key == Key::Pause) {
-                pause();
+            } else if (playing) {
+                if (key == Key::Pause) {
+                    pause();
+                } else if (key == Key::Jump) {
+                    world.getPlayer().jump();
+                }
             }
         }
 
@@ -121,9 +125,18 @@ void Game::gameLoop() {
         if (currentScreen != nullptr) {
             currentScreen->render(renderer);
         } else if (playing) {
+            int horizontalInput = 0;
+            if (inputHandler.isPressed(Key::Left)) {
+                --horizontalInput;
+            }
+            if (inputHandler.isPressed(Key::Right)) {
+                ++horizontalInput;
+            }
+            world.getPlayer().setMoveDirection(horizontalInput);
+
             world.update();
             collisionSystem.resolve(world);
-            world.render();
+            world.render(renderer);
         }
 
         SDL_RenderPresent(renderer);
