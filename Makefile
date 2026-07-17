@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -Wall -Wextra -std=c++17 -Iinclude -DSDL_MAIN_HANDLED
 LDFLAGS =
-LDLIBS = -lSDL2
+LDLIBS = -lSDL2 -lSDL2_image
 
 APP = MarioEvolution
 SRC = $(wildcard src/*.cpp src/*/*.cpp)
