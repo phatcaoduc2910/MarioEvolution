@@ -2,12 +2,24 @@
 
 #include "model/Actor.h"
 
+#include <SDL2/SDL.h>
 #include <utility>
 
 World::World()
-    : player(0.0, 0.0),
+    : player(100.0, 502.0),
       score(0),
-      gameOver(false) {}
+      gameOver(false) {
+    // Nền đất
+    addObject(std::make_unique<StaticObject>(
+        0.0, 550.0, 800, 50
+    ));
+
+    // Bệ 
+    addObject(std::make_unique<StaticObject>(
+        320.0, 500.0, 160, 32
+    ));
+}
+
 
 Player& World::getPlayer() {
     return player;
@@ -49,6 +61,50 @@ bool World::isGameOver() const {
     return gameOver;
 }
 
-void World::update() {}
+void World::update() {
+    player.update();
 
-void World::render() {}
+    for (auto& actor : actors) {
+        if (actor->isAlive()) {
+            actor->update();
+        }
+    }
+
+    for (auto& item : items) {
+        item->update();
+    }
+
+    // Player rơi khỏi màn hình.
+    if (player.getY() > 600.0) {
+        gameOver = true;
+    }
+}
+
+// Viết tạm hàm renderer để thay cho việc render trong view. Sau này sẽ xóa.
+void World::render(SDL_Renderer* renderer) const {
+    if (renderer == nullptr) {
+        return;
+    }
+
+    // Render nền đất và bệ.
+    SDL_SetRenderDrawColor(renderer, 139, 90, 43, 255);
+    for (const auto& object : objects) {
+        const SDL_Rect destination{
+            static_cast<int>(object->getX()),
+            static_cast<int>(object->getY()),
+            object->getWidth(),
+            object->getHeight()
+        };
+        SDL_RenderFillRect(renderer, &destination);
+    }
+
+    // Render player.
+    const SDL_Rect playerDestination{
+        static_cast<int>(player.getX()),
+        static_cast<int>(player.getY()),
+        player.getWidth(),
+        player.getHeight()
+    };
+    SDL_SetRenderDrawColor(renderer, 220, 45, 45, 255);
+    SDL_RenderFillRect(renderer, &playerDestination);
+}

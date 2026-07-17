@@ -14,6 +14,7 @@ public:
     bool isInvincible() const;
 
     void jump();
+    void setMoveDirection(int direction);
     void collect(Item& item);
     void takeDamage();
     void captureFlag(Flag& flag);
