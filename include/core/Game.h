@@ -6,7 +6,6 @@
 #include "model/World.h"
 #include "service/AudioService.h"
 #include "view/Screen.h"
-#include "view/WorldRenderer.h"
 
 #include <memory>
 
@@ -29,10 +28,8 @@ private:
     std::unique_ptr<AudioService> audioService;
     InputHandler inputHandler;
     CollisionSystem collisionSystem;
-    WorldRenderer worldRenderer;
     bool playing{false};
     bool running{false};
     SDL_Window* window{nullptr};
     SDL_Renderer* renderer{nullptr};
-    SDL_Texture* worldTiles{nullptr};
 };
