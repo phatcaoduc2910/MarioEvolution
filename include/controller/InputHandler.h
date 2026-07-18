@@ -5,6 +5,9 @@
 #include <SDL2/SDL.h>
 #include <set>
 
+/**
+ * Chuyển phím SDL thành hành động logic và lưu các phím đang được giữ.
+ */
 class InputHandler {
 public:
     bool isPressed(Key key) const;
