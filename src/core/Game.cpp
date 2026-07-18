@@ -3,19 +3,28 @@
 #include "view/PauseScreen.h"
 #include "view/StartScreen.h"
 
+#include <SDL2/SDL_image.h>
+
 Game::Game()
     : currentScreen(std::make_unique<StartScreen>()),
       audioService(std::make_unique<SoundManager>()) {}
 
 Game::~Game() {
+    SDL_DestroyTexture(worldTiles);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    IMG_Quit();
     SDL_Quit();
 }
 
 bool Game::start() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("SDL initialization failed: %s", SDL_GetError());
+        return false;
+    }
+
+    if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) == 0) {
+        SDL_Log("SDL_image initialization failed: %s", IMG_GetError());
         return false;
     }
 
@@ -44,6 +53,26 @@ bool Game::start() {
         return false;
     }
 
+
+    SDL_Surface* worldSurface = IMG_Load("assets/WorldTiles.png");
+    if (worldSurface == nullptr) {
+        SDL_Log("World texture loading failed: %s", IMG_GetError());
+        return false;
+    }
+
+    SDL_SetColorKey(
+        worldSurface,
+        SDL_TRUE,
+        SDL_MapRGB(worldSurface->format, 0, 0, 0)
+    );
+    worldTiles = SDL_CreateTextureFromSurface(renderer, worldSurface);
+    SDL_FreeSurface(worldSurface);
+
+    if (worldTiles == nullptr) {
+        SDL_Log("World texture creation failed: %s", SDL_GetError());
+        return false;
+    }
+
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     running = true;
     return true;
@@ -57,7 +86,8 @@ void Game::pause() {
 }
 
 void Game::resume() {
-    if (playing && dynamic_cast<PauseScreen*>(currentScreen.get()) != nullptr) {
+    // Khi playing là true, màn hình duy nhất có thể đang mở là PauseScreen.
+    if (playing && currentScreen != nullptr) {
         currentScreen.reset();
         audioService->play("theme");
     }
@@ -67,26 +97,32 @@ void Game::gameLoop() {
     SDL_Event event;
 
     while (running) {
+        // Xử lý hết sự kiện đang chờ trước khi cập nhật và vẽ khung hình mới.
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
-                continue;
+                break;
             }
 
+            // Chỉ giải quyết sự kiện bàn phím.
             if (event.type != SDL_KEYDOWN && event.type != SDL_KEYUP) {
                 continue;
             }
 
+            // Chuyển phím SDL thành phím trừu tượng của game.
+            // Ví dụ: A hoặc <- chuyển thành Key::Left
             Key key = Key::Enter;
             if (!inputHandler.mapKey(event.key.keysym.sym, key)) {
                 continue;
             }
 
+            // Nếu thả phím, xóa phím đó khỏi tập phím đang giữ.
             if (event.type == SDL_KEYUP) {
                 inputHandler.release(key);
                 continue;
             }
 
+            // Tránh trường hợp giữ phím làm thay đổi lựa chọn liên tục.
             if (event.key.repeat != 0) {
                 continue;
             }
@@ -116,16 +152,23 @@ void Game::gameLoop() {
                     world.getPlayer().jump();
                 }
             }
+
+            if (!running) {
+                break;
+            }
         }
 
         if (!running) {
             break;
         }
 
+        // Xóa frame cũ.
         SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
         SDL_RenderClear(renderer);
 
+        // Render screen hoặc cập nhật gameplay.
         if (currentScreen != nullptr) {
+            // Menu và màn hình tạm dừng không cập nhật thế giới game.
             currentScreen->render(renderer);
         } else if (playing) {
             int horizontalInput = 0;
@@ -140,6 +183,7 @@ void Game::gameLoop() {
             world.update();
             collisionSystem.resolve(world);
             world.render(renderer);
+            worldRenderer.render(renderer, worldTiles, world);
         }
 
         SDL_RenderPresent(renderer);
