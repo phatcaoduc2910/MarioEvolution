@@ -1,15 +1,24 @@
 #include "core/Game.h"
 
+#include "service/LevelCodec.h"
 #include "view/PauseScreen.h"
 #include "view/StartScreen.h"
 
 #include <SDL2/SDL_image.h>
+#include <algorithm>
+#include <exception>
+
+namespace {
+constexpr const char* kLevelPath = "assets/level1.map";
+constexpr int kTileSize = 32;
+}
 
 Game::Game()
     : currentScreen(std::make_unique<StartScreen>()),
       audioService(std::make_unique<SoundManager>()) {}
 
 Game::~Game() {
+    SDL_DestroyTexture(playerTexture);
     SDL_DestroyTexture(worldTiles);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -23,7 +32,8 @@ bool Game::start() {
         return false;
     }
 
-    if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) == 0) {
+    constexpr int imageFlags = IMG_INIT_PNG;
+    if ((IMG_Init(imageFlags) & imageFlags) != imageFlags) {
         SDL_Log("SDL_image initialization failed: %s", IMG_GetError());
         return false;
     }
@@ -53,7 +63,6 @@ bool Game::start() {
         return false;
     }
 
-
     SDL_Surface* worldSurface = IMG_Load("assets/WorldTiles.png");
     if (worldSurface == nullptr) {
         SDL_Log("World texture loading failed: %s", IMG_GetError());
@@ -72,6 +81,21 @@ bool Game::start() {
         SDL_Log("World texture creation failed: %s", SDL_GetError());
         return false;
     }
+
+    playerTexture = IMG_LoadTexture(renderer, "assets/Player.png");
+    if (playerTexture == nullptr) {
+        SDL_Log("Player texture load failed: %s", IMG_GetError());
+        return false;
+    }
+
+    try {
+        world.loadLevel(LevelCodec::load(kLevelPath, kTileSize));
+    } catch (const std::exception& error) {
+        SDL_Log("Level loading failed: %s", error.what());
+        return false;
+    }
+
+    lastFrameTicks = SDL_GetTicks();
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     running = true;
@@ -162,7 +186,11 @@ void Game::gameLoop() {
             break;
         }
 
-        // Xóa frame cũ.
+        const Uint32 now = SDL_GetTicks();
+        const Uint32 elapsed = now - lastFrameTicks;
+        const int deltaMs = static_cast<int>(std::min<Uint32>(elapsed, 100));
+        lastFrameTicks = now;
+
         SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
         SDL_RenderClear(renderer);
 
@@ -182,8 +210,15 @@ void Game::gameLoop() {
 
             world.update();
             collisionSystem.resolve(world);
-            world.render(renderer);
+
+            playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
+
             worldRenderer.render(renderer, worldTiles, world);
+            playerRenderer.renderPlayer(
+                renderer,
+                playerTexture,
+                world.getPlayer()
+            );
         }
 
         SDL_RenderPresent(renderer);

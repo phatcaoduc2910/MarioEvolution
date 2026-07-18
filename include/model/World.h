@@ -8,7 +8,7 @@
 #include <vector>
 
 class Actor;
-struct SDL_Renderer;
+class LevelData;
 
 class World {
 public:
@@ -19,6 +19,8 @@ public:
     const std::vector<std::unique_ptr<StaticObject>>& getObjects() const;
     const std::vector<std::unique_ptr<Item>>& getItems() const;
 
+    void loadLevel(const LevelData& level);
+
     void addActor(std::unique_ptr<Actor> actor);
     void addObject(std::unique_ptr<StaticObject> object);
     void addItem(std::unique_ptr<Item> item);
@@ -28,7 +30,6 @@ public:
     bool isGameOver() const;
 
     void update();
-    void render(SDL_Renderer* renderer) const;
 
 private:
     Player player;
