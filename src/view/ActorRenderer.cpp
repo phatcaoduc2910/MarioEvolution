@@ -3,14 +3,20 @@
 
 #include <cmath>
 
+namespace {
+constexpr SpriteSheetLayout kPlayerSpriteLayout{
+    0, 16, 14, 32, 16, 32
+};
+constexpr int kPlayerRenderScale = 2;
+}
+
 /**
  * Khởi tạo các dãy animation của small player trên spritesheet.
  */
 ActorRenderer::ActorRenderer()
-    : idleAnimation(24, 24, 0, 0, 1, 0),
-      walkAnimation(24, 24, 0, 1, 3, 120),
-      jumpAnimation(24, 24, 0, 4, 1, 0),
-      dashAnimation(24, 24, 0, 1, 4, 60),
+    : idleAnimation(kPlayerSpriteLayout, 0, 0, 8, 160),
+      walkAnimation(kPlayerSpriteLayout, 2, 0, 4, 100),
+      jumpAnimation(kPlayerSpriteLayout, 1, 0, 4, 120),
       currentState(PlayerAnimationState::Idle) {}
 
 /**
@@ -89,13 +95,15 @@ void ActorRenderer::renderPlayer(SDL_Renderer* renderer,
     
     SDL_Rect source = animationFor(currentState).getCurrentFrame();
 
-    constexpr int kSmallPlayerSize = 32;
+    const int renderWidth = source.w * kPlayerRenderScale;
+    const int renderHeight = source.h * kPlayerRenderScale;
     SDL_Rect destination {
-        static_cast<int>(player.getX()),
+        static_cast<int>(player.getX()) +
+            (player.getWidth() - renderWidth) / 2,
         static_cast<int>(player.getY()) +
-            player.getHeight() - kSmallPlayerSize,
-        kSmallPlayerSize,
-        kSmallPlayerSize
+            player.getHeight() - renderHeight,
+        renderWidth,
+        renderHeight
     };
 
     const SDL_RendererFlip flip =
