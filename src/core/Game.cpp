@@ -13,10 +13,18 @@ constexpr const char* kLevelPath = "assets/level1.map";
 constexpr int kTileSize = 32;
 }
 
+/**
+ * Khởi tạo game ở màn hình bắt đầu và tạo audio service mặc định.
+ *
+ * Tài nguyên SDL chỉ được tạo khi start() được gọi.
+ */
 Game::Game()
     : currentScreen(std::make_unique<StartScreen>()),
       audioService(std::make_unique<SoundManager>()) {}
 
+/**
+ * Giải phóng tài nguyên theo thứ tự texture, renderer, window và subsystem SDL.
+ */
 Game::~Game() {
     SDL_DestroyTexture(playerTexture);
     SDL_DestroyTexture(worldTiles);
@@ -26,6 +34,11 @@ Game::~Game() {
     SDL_Quit();
 }
 
+/**
+ * Khởi tạo SDL, cửa sổ, renderer, texture và level mặc định.
+ *
+ * @return true nếu toàn bộ tài nguyên được nạp thành công; ngược lại là false.
+ */
 bool Game::start() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("SDL initialization failed: %s", SDL_GetError());
@@ -102,6 +115,9 @@ bool Game::start() {
     return true;
 }
 
+/**
+ * Chuyển gameplay sang màn hình tạm dừng và tạm dừng nhạc nền.
+ */
 void Game::pause() {
     if (playing && currentScreen == nullptr) {
         currentScreen = std::make_unique<PauseScreen>();
@@ -109,6 +125,9 @@ void Game::pause() {
     }
 }
 
+/**
+ * Đóng màn hình tạm dừng và tiếp tục nhạc nền.
+ */
 void Game::resume() {
     // Khi playing là true, màn hình duy nhất có thể đang mở là PauseScreen.
     if (playing && currentScreen != nullptr) {
@@ -117,6 +136,12 @@ void Game::resume() {
     }
 }
 
+/**
+ * Chạy vòng lặp chính cho tới khi nhận yêu cầu thoát.
+ *
+ * Mỗi frame xử lý toàn bộ SDL event, cập nhật gameplay khi không có screen phủ,
+ * sau đó render screen hoặc World hiện tại.
+ */
 void Game::gameLoop() {
     SDL_Event event;
 

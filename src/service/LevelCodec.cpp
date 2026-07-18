@@ -9,6 +9,13 @@
 #include <vector>
 
 namespace {
+/**
+ * Chuyển một ký tự trong file map thành tile id runtime.
+ *
+ * @param symbol Ký tự map cần giải mã.
+ * @return Tile id tương ứng.
+ * @throws std::runtime_error Khi ký tự không thuộc định dạng map.
+ */
 TileId decodeTile(char symbol) {
     switch (symbol) {
         case '.': return kEmptyTileId;
@@ -24,6 +31,13 @@ TileId decodeTile(char symbol) {
     }
 }
 
+/**
+ * Chuyển tile id runtime thành ký tự để lưu map.
+ *
+ * @param tileId Tile id cần mã hóa.
+ * @return Ký tự map tương ứng.
+ * @throws std::runtime_error Khi tile chưa có ký hiệu map.
+ */
 char encodeTile(TileId tileId) {
     switch (tileId) {
         case kEmptyTileId: return '.';

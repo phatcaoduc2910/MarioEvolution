@@ -1,5 +1,13 @@
 #include "model/GameObject.h"
 
+/**
+ * Khởi tạo game object với vị trí và kích thước vùng bao.
+ *
+ * @param x Tọa độ x ban đầu.
+ * @param y Tọa độ y ban đầu.
+ * @param width Chiều rộng vùng bao.
+ * @param height Chiều cao vùng bao.
+ */
 GameObject::GameObject(double x, double y, int width, int height)
     : x(x), y(y), width(width), height(height) {}
 
@@ -12,18 +20,30 @@ Rectangle GameObject::getBounds() const {
     return {x, y, width, height};
 }
 
+/**
+ * @return Tọa độ x hiện tại của object.
+ */
 double GameObject::getX() const {
     return x;
 }
 
+/**
+ * @return Tọa độ y hiện tại của object.
+ */
 double GameObject::getY() const {
     return y;
 }
 
+/**
+ * @return Chiều rộng vùng bao của object.
+ */
 int GameObject::getWidth() const {
     return width;
 }
 
+/**
+ * @return Chiều cao vùng bao của object.
+ */
 int GameObject::getHeight() const {
     return height;
 }

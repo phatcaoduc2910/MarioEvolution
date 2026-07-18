@@ -8,6 +8,11 @@
 #include <iostream>
 #include <string>
 
+/**
+ * Nạp, lưu lại và so sánh toàn bộ dữ liệu level mẫu.
+ *
+ * @return 0 khi mọi assertion đều đạt.
+ */
 int main() {
     constexpr int kTileSize = 32;
     const std::string sourcePath = "assets/level1.map";

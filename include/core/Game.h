@@ -11,6 +11,12 @@
 
 #include <memory>
 
+/**
+ * Sở hữu tài nguyên SDL và điều phối vòng lặp cấp cao của ứng dụng.
+ *
+ * Game chuyển đổi giữa menu, gameplay và pause screen; World giữ trạng thái
+ * gameplay, còn các renderer chỉ chịu trách nhiệm hiển thị.
+ */
 class Game {
 public:
     Game();

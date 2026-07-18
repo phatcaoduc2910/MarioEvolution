@@ -11,6 +11,13 @@
 #include <utility>
 
 namespace {
+/**
+ * Kiểm tra actor đang đi lên và có tâm nằm dưới tâm object hay không.
+ *
+ * @param actor Actor đang va chạm.
+ * @param object Object được kiểm tra.
+ * @return true nếu va chạm xảy ra từ phía dưới; ngược lại là false.
+ */
 bool hitsFromBelow(const Actor& actor, const GameObject& object) {
     const Rectangle actorBounds = actor.getBounds();
     const Rectangle objectBounds = object.getBounds();
