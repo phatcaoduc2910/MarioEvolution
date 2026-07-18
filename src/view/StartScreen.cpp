@@ -16,11 +16,25 @@ constexpr SDL_Color kTitleColor{255, 214, 66, 255};
 constexpr SDL_Color kTextColor{255, 255, 255, 255};
 constexpr SDL_Color kGuideColor{194, 208, 231, 255};
 
+/**
+ * Chọn màu nền của một nút theo trạng thái lựa chọn hiện tại.
+ *
+ * @param option Lựa chọn gắn với nút.
+ * @param selectedOption Lựa chọn đang được chọn.
+ * @return Màu nhấn nếu hai lựa chọn giống nhau, nếu không là màu nút thường.
+ */
 SDL_Color buttonColor(MenuOption option, MenuOption selectedOption) {
     return option == selectedOption ? kSelectedColor : kButtonColor;
 }
 }
 
+/**
+ * Vẽ panel, các lựa chọn và hướng dẫn của màn hình bắt đầu.
+ *
+ * Bố cục được căn theo kích thước output hiện tại của renderer.
+ *
+ * @param renderer SDL renderer nhận lệnh vẽ.
+ */
 void StartScreen::render(SDL_Renderer* renderer) const {
     if (renderer == nullptr) {
         return;
@@ -80,6 +94,12 @@ void StartScreen::render(SDL_Renderer* renderer) const {
     );
 }
 
+/**
+ * Cập nhật lựa chọn menu và chuyển phím Enter thành ScreenAction.
+ *
+ * @param input Trạng thái input logic hiện tại.
+ * @return StartGame, ExitGame hoặc None tùy lựa chọn và phím Enter.
+ */
 ScreenAction StartScreen::handleInput(InputHandler& input) {
     if (input.isPressed(Key::Up)) {
         selectedOption = MenuOption::StartGame;

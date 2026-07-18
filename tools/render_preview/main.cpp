@@ -7,6 +7,11 @@
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
 
+/**
+ * Nạp Player.png và phát lặp animation idle trong cửa sổ preview.
+ *
+ * @return 0 khi đóng cửa sổ bình thường, -1 khi khởi tạo SDL hoặc asset lỗi.
+ */
 int main() {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cout << "SDL error: " << SDL_GetError() << std::endl;

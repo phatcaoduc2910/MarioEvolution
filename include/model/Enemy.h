@@ -4,6 +4,9 @@
 
 class Player;
 
+/**
+ * Actor thù địch có tốc độ tuần tra và trạng thái chiến đấu.
+ */
 class Enemy : public Actor {
 public:
     Enemy(double x, double y, int width, int height);
@@ -18,6 +21,9 @@ protected:
     EnemyState state;
 };
 
+/**
+ * Enemy đi bộ đơn giản, chết khi bị giẫm.
+ */
 class Goomba : public Enemy {
 public:
     Goomba(double x, double y);
@@ -26,6 +32,9 @@ public:
     void die() override;
 };
 
+/**
+ * Enemy có thể chuyển giữa trạng thái đi bộ và mai rùa.
+ */
 class Koopa : public Enemy {
 public:
     Koopa(double x, double y);

@@ -4,6 +4,9 @@
 
 class Player;
 
+/**
+ * StaticObject ghi nhận việc player hoàn thành màn.
+ */
 class Flag : public StaticObject {
 public:
     Flag(double x, double y);

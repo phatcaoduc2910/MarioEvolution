@@ -10,6 +10,9 @@
 class Actor;
 class LevelData;
 
+/**
+ * Sở hữu player, actor, object, item, điểm và trạng thái kết thúc màn.
+ */
 class World {
 public:
     World();
