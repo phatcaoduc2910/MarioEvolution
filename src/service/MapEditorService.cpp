@@ -1,19 +1,21 @@
 #include "service/MapEditorService.h"
 
+#include "service/LevelCodec.h"
+
 #include <algorithm>
 #include <array>
+#include <exception>
 #include <iostream>
+#include <utility>
 
 namespace {
 constexpr int kCameraSpeed = 12;
-constexpr TileId kWallTileId = 1;
-constexpr TileId kTopBoundaryTileId = 2;
-
-constexpr std::array<TileId, 8> kBrushTiles{
-    1, 2, 3, 4, 5, 6, 7, 8
-};
-constexpr std::array<int, 8> kBrushKeyMap{
-    1, 1, 2, 2, 3, 3, 4, 4
+constexpr std::array<TileId, 5> kBrushTiles{
+    kStandardBrickTileId,
+    kCoinBrickTileId,
+    kMushroomBrickTileId,
+    kFlowerBrickTileId,
+    kCoinTileId
 };
 
 /**
@@ -34,15 +36,12 @@ void setDrawColor(SDL_Renderer* renderer, const SDL_Color& color) {
  */
 SDL_Color tileColor(TileId tileId) {
     switch (tileId) {
-        case 0: return {24, 25, 28, 255};
-        case 1: return {139, 90, 43, 255};
-        case 2: return {196, 75, 52, 255};
-        case 3: return {235, 178, 45, 255};
-        case 4: return {50, 160, 90, 255};
-        case 5: return {72, 132, 190, 255};
-        case 6: return {154, 92, 173, 255};
-        case 7: return {94, 185, 176, 255};
-        case 8: return {151, 159, 169, 255};
+        case kEmptyTileId: return {24, 25, 28, 255};
+        case kStandardBrickTileId: return {139, 90, 43, 255};
+        case kCoinBrickTileId: return {235, 178, 45, 255};
+        case kMushroomBrickTileId: return {196, 75, 52, 255};
+        case kFlowerBrickTileId: return {50, 160, 90, 255};
+        case kCoinTileId: return {255, 215, 0, 255};
         default: return {190, 190, 190, 255};
     }
 }
@@ -58,22 +57,30 @@ SDL_Color tileColor(TileId tileId) {
  * @param windowHeight Chiều cao cửa sổ editor.
  */
 MapEditorService::MapEditorService(int mapWidth, int mapHeight, int tileSize,
-                                   int windowWidth, int windowHeight)
+                                   int windowWidth, int windowHeight,
+                                   std::string mapPath)
     : level(mapWidth, mapHeight, tileSize),
+      mapPath(std::move(mapPath)),
       windowWidth(windowWidth),
       windowHeight(windowHeight),
       cameraX(0),
       cameraY(0),
       mouseX(0),
       mouseY(0),
-      selectedTile(kWallTileId),
+      selectedTile(kStandardBrickTileId),
       strokeTile(kEmptyTileId),
       editorEnabled(true),
       strokeActive(false),
       running(false),
       window(nullptr),
       renderer(nullptr) {
-    generateLevel();
+    try {
+        level = LevelCodec::load(this->mapPath, tileSize);
+        std::cout << "Loaded map: " << this->mapPath << '\n';
+    } catch (const std::exception& error) {
+        std::cerr << error.what() << "\nCreating a new map instead.\n";
+        generateLevel();
+    }
 }
 
 /**
@@ -164,8 +171,8 @@ void MapEditorService::run() {
 /**
  * Xử lý phím điều khiển editor và nét vẽ bằng chuột.
  *
- * Phím 0 bật hoặc tắt editor, phím 1 đến 4 đổi nhóm brush, E lấy tile dưới
- * con trỏ và R tạo lại level có đường biên.
+ * Phím 0 bật hoặc tắt editor, phím 1 đến 5 chọn brush, E lấy tile dưới
+ * con trỏ, R tạo lại level và S lưu map.
  *
  * @param event Sự kiện SDL cần xử lý.
  */
@@ -205,12 +212,14 @@ void MapEditorService::handleEvent(const SDL_Event& event) {
     } else if (key == SDLK_0) {
         editorEnabled = !editorEnabled;
         strokeActive = false;
-    } else if (key >= SDLK_1 && key <= SDLK_4) {
-        selectNextBrush(static_cast<int>(key - SDLK_0));
+    } else if (key >= SDLK_1 && key <= SDLK_5) {
+        selectBrush(static_cast<int>(key - SDLK_0));
     } else if (key == SDLK_e && editorEnabled) {
         pickTile();
     } else if (key == SDLK_r && editorEnabled) {
         generateLevel();
+    } else if (key == SDLK_s && editorEnabled) {
+        saveLevel();
     }
 }
 
@@ -311,37 +320,17 @@ void MapEditorService::pickTile() {
 }
 
 /**
- * Chuyển tới brush tiếp theo thuộc nhóm phím được chọn.
- *
- * Mỗi nhóm có thể chứa nhiều biến thể tile và được duyệt vòng tròn giống danh
- * sách tile keymap trong tutorial.
- *
- * @param key Nhóm brush từ 1 đến 4.
+ * Chọn trực tiếp brush theo phím 1 đến 5.
  */
-void MapEditorService::selectNextBrush(int key) {
-    std::size_t currentIndex = kBrushTiles.size() - 1;
-    for (std::size_t index = 0; index < kBrushTiles.size(); ++index) {
-        if (kBrushTiles[index] == selectedTile) {
-            currentIndex = index;
-            break;
-        }
-    }
-
-    for (std::size_t offset = 1; offset <= kBrushTiles.size(); ++offset) {
-        const std::size_t index =
-            (currentIndex + offset) % kBrushTiles.size();
-        if (kBrushKeyMap[index] == key) {
-            selectedTile = kBrushTiles[index];
-            return;
-        }
+void MapEditorService::selectBrush(int key) {
+    const std::size_t index = static_cast<std::size_t>(key - 1);
+    if (index < kBrushTiles.size()) {
+        selectedTile = kBrushTiles[index];
     }
 }
 
 /**
- * Tạo lại map rỗng có đường biên bao quanh.
- *
- * Cột trái, cột phải và hàng dưới dùng tile tường. Hàng trên dùng một tile
- * biên riêng để giữ cấu trúc generate level tương tự tutorial.
+ * Tạo lại map rỗng với một hàng StandardBrick làm mặt đất.
  */
 void MapEditorService::generateLevel() {
     strokeActive = false;
@@ -350,15 +339,24 @@ void MapEditorService::generateLevel() {
         for (int column = 0; column < level.getWidth(); ++column) {
             TileId tileId = kEmptyTileId;
 
-            if (column == 0 || column == level.getWidth() - 1 ||
-                row == level.getHeight() - 1) {
-                tileId = kWallTileId;
-            } else if (row == 0) {
-                tileId = kTopBoundaryTileId;
+            if (row == level.getHeight() - 1) {
+                tileId = kStandardBrickTileId;
             }
 
             level.setTile(column, row, tileId);
         }
+    }
+}
+
+/**
+ * Ghi trạng thái editor hiện tại về file map dùng chung với game.
+ */
+void MapEditorService::saveLevel() {
+    try {
+        LevelCodec::save(level, mapPath);
+        std::cout << "Saved map: " << mapPath << '\n';
+    } catch (const std::exception& error) {
+        std::cerr << "Cannot save map: " << error.what() << '\n';
     }
 }
 

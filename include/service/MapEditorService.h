@@ -3,19 +3,18 @@
 #include "model/LevelData.h"
 
 #include <SDL2/SDL.h>
+#include <string>
 
 /**
  * Cung cấp editor tile có camera và brush theo tutorial của griffpatch.
  *
- * Editor chỉ thay đổi LevelData trong bộ nhớ. Việc lưu và mở file được dành
- * cho level codec ở bước tiếp theo.
- *
- * @todo Kết nối level codec để lưu và mở LevelData từ file.
+ * Editor nạp và lưu LevelData qua codec map ký tự dùng chung với game.
  */
 class MapEditorService {
 public:
     MapEditorService(int mapWidth, int mapHeight, int tileSize,
-                     int windowWidth, int windowHeight);
+                     int windowWidth, int windowHeight,
+                     std::string mapPath);
     ~MapEditorService();
 
     MapEditorService(const MapEditorService&) = delete;
@@ -33,14 +32,16 @@ private:
     void beginStroke();
     void paintStroke();
     void pickTile();
-    void selectNextBrush(int key);
+    void selectBrush(int key);
     void generateLevel();
+    void saveLevel();
 
     void render();
     void renderGrid();
     void renderBrushCursor();
 
     LevelData level;
+    std::string mapPath;
     int windowWidth;
     int windowHeight;
     int cameraX;
