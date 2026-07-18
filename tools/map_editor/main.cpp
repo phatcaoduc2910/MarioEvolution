@@ -5,11 +5,12 @@
 #include <iostream>
 
 namespace {
-constexpr int kMapWidth = 100;
-constexpr int kMapHeight = 40;
+constexpr int kMapWidth = 25;
+constexpr int kMapHeight = 19;
 constexpr int kTileSize = 32;
 constexpr int kWindowWidth = 800;
 constexpr int kWindowHeight = 600;
+constexpr const char* kMapPath = "assets/level1.map";
 }
 
 /**
@@ -27,7 +28,7 @@ int main() {
     int exitCode = 0;
     {
         MapEditorService editor(kMapWidth, kMapHeight, kTileSize,
-                                kWindowWidth, kWindowHeight);
+                                kWindowWidth, kWindowHeight, kMapPath);
         if (!editor.start()) {
             exitCode = 1;
         } else {
