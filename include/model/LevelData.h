@@ -10,11 +10,9 @@
  * Lớp chỉ chứa dữ liệu logic của map, không sở hữu tài nguyên SDL hoặc các
  * thực thể đang hoạt động trong World.
  *
- * @todo Phối hợp với Game/World để nạp LevelData khi khởi tạo màn chơi.
  * @todo Phối hợp với view để ánh xạ TileId sang frame trong WorldTiles.png.
  * @todo Phối hợp với CollisionSystem để xác định tile rắn và tránh va chạm
  * trùng với StaticObject.
- * @todo Thống nhất định dạng file dùng chung giữa map editor và level codec.
  */
 class LevelData {
 public:

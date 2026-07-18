@@ -11,6 +11,11 @@ using TileId = std::uint16_t;
  * Mã tile dành riêng cho một ô trống trong lưới map.
  */
 inline constexpr TileId kEmptyTileId = 0;
+inline constexpr TileId kStandardBrickTileId = 1;
+inline constexpr TileId kCoinBrickTileId = 2;
+inline constexpr TileId kMushroomBrickTileId = 3;
+inline constexpr TileId kFlowerBrickTileId = 4;
+inline constexpr TileId kCoinTileId = 5;
 
 struct Rectangle {
     double x;
