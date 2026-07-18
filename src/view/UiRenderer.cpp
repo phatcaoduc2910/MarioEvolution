@@ -9,7 +9,9 @@ constexpr int kGlyphWidth = 5;
 constexpr int kGlyphHeight = 7;
 constexpr int kGlyphAdvance = 6;
 
-// Mỗi số biểu diễn một hàng 5 pixel của ký tự; bit 1 là pixel cần được vẽ.
+/**
+ * Một glyph gồm bảy hàng 5 pixel; bit 1 là pixel cần được vẽ.
+ */
 using Glyph = std::array<unsigned char, kGlyphHeight>;
 
 const Glyph kBlankGlyph{};
@@ -29,6 +31,12 @@ const std::unordered_map<char, Glyph> kFont = {
     {'Y', {17, 17, 10, 4, 4, 4, 4}},     {'Z', {31, 1, 2, 4, 8, 16, 31}}
 };
 
+/**
+ * Tìm glyph không phân biệt chữ hoa và chữ thường.
+ *
+ * @param rawCharacter Ký tự cần tìm.
+ * @return Glyph tương ứng, hoặc glyph rỗng nếu font không hỗ trợ ký tự.
+ */
 const Glyph& findGlyph(char rawCharacter) {
     const char character = static_cast<char>(
         std::toupper(static_cast<unsigned char>(rawCharacter))
@@ -37,17 +45,41 @@ const Glyph& findGlyph(char rawCharacter) {
     return found != kFont.end() ? found->second : kBlankGlyph;
 }
 
+/**
+ * Tính chiều rộng của một chuỗi bitmap khi render.
+ *
+ * @param text Chuỗi cần đo.
+ * @param scale Hệ số phóng mỗi pixel.
+ * @return Chiều rộng chuỗi theo pixel màn hình.
+ */
 int textWidth(std::string_view text, int scale) {
     return static_cast<int>(text.size()) * kGlyphAdvance * scale;
 }
 }
 
+/**
+ * Tô kín một hình chữ nhật bằng màu RGBA đã cho.
+ *
+ * @param renderer SDL renderer nhận lệnh vẽ.
+ * @param rect Hình chữ nhật đích.
+ * @param color Màu cần tô.
+ */
 void UiRenderer::fillRect(SDL_Renderer* renderer, const SDL_Rect& rect,
                           SDL_Color color) {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_RenderFillRect(renderer, &rect);
 }
 
+/**
+ * Vẽ chuỗi bằng font bitmap 5x7 tích hợp.
+ *
+ * @param renderer SDL renderer nhận lệnh vẽ.
+ * @param text Chuỗi cần vẽ.
+ * @param x Tọa độ x bắt đầu.
+ * @param y Tọa độ y bắt đầu.
+ * @param scale Hệ số phóng mỗi pixel.
+ * @param color Màu chữ.
+ */
 void UiRenderer::drawText(SDL_Renderer* renderer, std::string_view text,
                           int x, int y, int scale, SDL_Color color) {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
@@ -77,6 +109,16 @@ void UiRenderer::drawText(SDL_Renderer* renderer, std::string_view text,
     }
 }
 
+/**
+ * Vẽ chuỗi bitmap căn giữa theo chiều rộng màn hình.
+ *
+ * @param renderer SDL renderer nhận lệnh vẽ.
+ * @param text Chuỗi cần vẽ.
+ * @param screenWidth Chiều rộng màn hình dùng để căn giữa.
+ * @param y Tọa độ y bắt đầu.
+ * @param scale Hệ số phóng mỗi pixel.
+ * @param color Màu chữ.
+ */
 void UiRenderer::drawCenteredText(SDL_Renderer* renderer,
                                   std::string_view text, int screenWidth,
                                   int y, int scale, SDL_Color color) {

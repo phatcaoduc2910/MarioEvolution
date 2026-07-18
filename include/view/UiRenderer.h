@@ -4,7 +4,9 @@
 
 #include <string_view>
 
-// Các thao tác vẽ UI cơ bản được dùng chung giữa nhiều màn hình.
+/**
+ * Các thao tác vẽ hình và bitmap text dùng chung giữa các screen.
+ */
 namespace UiRenderer {
 void fillRect(SDL_Renderer* renderer, const SDL_Rect& rect, SDL_Color color);
 

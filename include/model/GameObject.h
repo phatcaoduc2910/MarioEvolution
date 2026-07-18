@@ -2,6 +2,9 @@
 
 #include "core/Types.h"
 
+/**
+ * Cơ sở chung cho mọi thực thể có vị trí và kích thước trong World.
+ */
 class GameObject {
 public:
     GameObject(double x, double y, int width, int height);
