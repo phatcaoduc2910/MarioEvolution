@@ -33,6 +33,5 @@ private:
     SpriteAnimation idleAnimation;
     SpriteAnimation walkAnimation;
     SpriteAnimation jumpAnimation;
-    SpriteAnimation dashAnimation;
     PlayerAnimationState currentState;
 };

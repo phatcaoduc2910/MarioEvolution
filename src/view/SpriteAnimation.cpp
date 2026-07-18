@@ -3,17 +3,15 @@
 /**
  * Khởi tạo một dãy frame nằm ngang trên spritesheet.
  *
- * @param frameWidth Chiều rộng một frame tính bằng pixel.
- * @param frameHeight Chiều cao một frame tính bằng pixel.
+ * @param layout Gốc, kích thước frame và khoảng cách giữa các frame.
  * @param row Hàng chứa animation trên spritesheet.
  * @param startCol Cột đầu tiên của animation.
  * @param frameCount Số frame trong animation.
  * @param frameDurationMs Thời gian hiển thị mỗi frame, tính bằng mili giây.
  */
-SpriteAnimation::SpriteAnimation(int frameWidth, int frameHeight, int row,
+SpriteAnimation::SpriteAnimation(SpriteSheetLayout layout, int row,
                                  int startCol, int frameCount, int frameDurationMs)
-    : frameWidth(frameWidth),
-      frameHeight(frameHeight),
+    : layout(layout),
       row(row),
       startCol(startCol),
       frameCount(frameCount),
@@ -58,9 +56,9 @@ void SpriteAnimation::reset() {
  */
 SDL_Rect SpriteAnimation::getCurrentFrame() const {
     return {
-        (startCol + currentFrame) * frameWidth,
-        row * frameHeight,
-        frameWidth,
-        frameHeight
+        layout.originX + (startCol + currentFrame) * layout.strideX,
+        layout.originY + row * layout.strideY,
+        layout.frameWidth,
+        layout.frameHeight
     };
 }
