@@ -5,6 +5,7 @@
 #include "controller/InputHandler.h"
 #include "model/World.h"
 #include "service/AudioService.h"
+#include "view/ActorRenderer.h"
 #include "view/Screen.h"
 #include "view/WorldRenderer.h"
 
@@ -30,9 +31,12 @@ private:
     InputHandler inputHandler;
     CollisionSystem collisionSystem;
     WorldRenderer worldRenderer;
+    ActorRenderer playerRenderer;
     bool playing{false};
     bool running{false};
     SDL_Window* window{nullptr};
     SDL_Renderer* renderer{nullptr};
     SDL_Texture* worldTiles{nullptr};
+    SDL_Texture* playerTexture{nullptr};
+    Uint32 lastFrameTicks{0};
 };

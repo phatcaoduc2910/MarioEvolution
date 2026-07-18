@@ -1,24 +1,16 @@
 #include "model/World.h"
 
 #include "model/Actor.h"
+#include "model/Brick.h"
+#include "model/LevelData.h"
 
-#include <SDL2/SDL.h>
+#include <stdexcept>
 #include <utility>
 
 World::World()
     : player(100.0, 502.0),
       score(0),
-      gameOver(false) {
-    // Nền đất
-    addObject(std::make_unique<StaticObject>(
-        0.0, 550.0, 800, 50
-    ));
-
-    // Bệ 
-    addObject(std::make_unique<StaticObject>(
-        320.0, 500.0, 160, 32
-    ));
-}
+      gameOver(false) {}
 
 
 Player& World::getPlayer() {
@@ -35,6 +27,55 @@ const std::vector<std::unique_ptr<StaticObject>>& World::getObjects() const {
 
 const std::vector<std::unique_ptr<Item>>& World::getItems() const {
     return items;
+}
+
+/**
+ * Chuyển dữ liệu map tĩnh thành các brick và item runtime thuộc sở hữu World.
+ *
+ * @param level Lưới map dùng tile 32 pixel.
+ * @throws std::invalid_argument Khi kích thước tile không khớp object hiện tại.
+ */
+void World::loadLevel(const LevelData& level) {
+    constexpr int kObjectTileSize = 32;
+    if (level.getTileSize() != kObjectTileSize) {
+        throw std::invalid_argument("World requires 32-pixel map tiles");
+    }
+
+    actors.clear();
+    objects.clear();
+    items.clear();
+    score = 0;
+    gameOver = false;
+
+    for (int row = 0; row < level.getHeight(); ++row) {
+        for (int column = 0; column < level.getWidth(); ++column) {
+            const TileId tileId = level.getTile(column, row);
+            const double x = static_cast<double>(column * kObjectTileSize);
+            const double y = static_cast<double>(row * kObjectTileSize);
+
+            switch (tileId) {
+                case kEmptyTileId:
+                    break;
+                case kStandardBrickTileId:
+                    addObject(std::make_unique<StandardBrick>(x, y));
+                    break;
+                case kCoinBrickTileId:
+                    addObject(std::make_unique<CoinBrick>(x, y, 1));
+                    break;
+                case kMushroomBrickTileId:
+                    addObject(std::make_unique<MushroomBrick>(x, y));
+                    break;
+                case kFlowerBrickTileId:
+                    addObject(std::make_unique<FlowerBrick>(x, y));
+                    break;
+                case kCoinTileId:
+                    addItem(std::make_unique<Coin>(x + 8.0, y + 8.0, 1));
+                    break;
+                default:
+                    throw std::invalid_argument("World received an unknown tile id");
+            }
+        }
+    }
 }
 
 void World::addActor(std::unique_ptr<Actor> actor) {
@@ -78,33 +119,4 @@ void World::update() {
     if (player.getY() > 600.0) {
         gameOver = true;
     }
-}
-
-// Viết tạm hàm renderer để thay cho việc render trong view. Sau này sẽ xóa.
-void World::render(SDL_Renderer* renderer) const {
-    if (renderer == nullptr) {
-        return;
-    }
-
-    // Render nền đất và bệ.
-    SDL_SetRenderDrawColor(renderer, 139, 90, 43, 255);
-    for (const auto& object : objects) {
-        const SDL_Rect destination{
-            static_cast<int>(object->getX()),
-            static_cast<int>(object->getY()),
-            object->getWidth(),
-            object->getHeight()
-        };
-        SDL_RenderFillRect(renderer, &destination);
-    }
-
-    // Render player.
-    const SDL_Rect playerDestination{
-        static_cast<int>(player.getX()),
-        static_cast<int>(player.getY()),
-        player.getWidth(),
-        player.getHeight()
-    };
-    SDL_SetRenderDrawColor(renderer, 220, 45, 45, 255);
-    SDL_RenderFillRect(renderer, &playerDestination);
 }
