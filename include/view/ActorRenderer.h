@@ -17,7 +17,9 @@ public:
     void updatePlayer(const Player& player, int deltaMs);
     void renderPlayer(SDL_Renderer* renderer,
                       SDL_Texture* texture,
-                      const Player& player);
+                      const Player& player,
+                      int offsetX = 0,
+                      int offsetY = 0);
 
 private:
     enum class PlayerAnimationState {

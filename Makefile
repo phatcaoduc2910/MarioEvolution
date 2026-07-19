@@ -16,12 +16,6 @@ SRC = $(wildcard src/*.cpp src/*/*.cpp)
 OBJDIR = builds
 OBJ = $(SRC:src/%.cpp=$(OBJDIR)/%.o)
 
-MAP_EDITOR_APP = $(OBJDIR)/map_editor/MapEditor.exe
-MAP_EDITOR_SRC = tools/map_editor/main.cpp \
-	src/service/MapEditorService.cpp \
-	src/service/LevelCodec.cpp \
-	src/model/LevelData.cpp
-
 RENDER_PREVIEW_APP = $(OBJDIR)/render_preview/RenderPreview.exe
 RENDER_PREVIEW_SRC = tools/render_preview/main.cpp \
 	src/view/SpriteAnimation.cpp
@@ -31,8 +25,13 @@ LEVEL_CODEC_TEST_SRC = tools/level_codec_test/main.cpp \
 	src/service/LevelCodec.cpp \
 	src/model/LevelData.cpp
 
+TILE_CATALOG_TEST_APP = $(OBJDIR)/tests/TileCatalogTest.exe
+TILE_CATALOG_TEST_SRC = tools/tile_catalog_test/main.cpp \
+	src/view/TileCatalog.cpp
+
 .PHONY: all create run tools map-editor run-map-editor \
-	render-preview run-render-preview test test-level-codec clean
+	render-preview run-render-preview test test-level-codec \
+	test-tile-catalog clean
 
 all: create
 
@@ -48,15 +47,14 @@ run: create
 	@echo "Đang khởi động game..."
 	PATH="$(MSYS2_PREFIX)/bin:$$PATH" ./$(APP)
 
-tools: map-editor render-preview
+tools: render-preview
 
-map-editor: $(MAP_EDITOR_APP)
-$(MAP_EDITOR_APP): $(MAP_EDITOR_SRC)
-	mkdir -p "$(@D)"
-	$(CXX) $(CXXFLAGS) $(MAP_EDITOR_SRC) $(LDFLAGS) $(LDLIBS) -o $@
+map-editor: create
+	@echo "Map editor is embedded in the game; press 0 while playing."
 
-run-map-editor: map-editor
-	PATH="$(MSYS2_PREFIX)/bin:$$PATH" "$(MAP_EDITOR_APP)"
+run-map-editor: create
+	@echo "Starting the game; press 0 while playing to open the editor."
+	PATH="$(MSYS2_PREFIX)/bin:$$PATH" ./$(APP)
 
 render-preview: $(RENDER_PREVIEW_APP)
 $(RENDER_PREVIEW_APP): $(RENDER_PREVIEW_SRC)
@@ -66,7 +64,7 @@ $(RENDER_PREVIEW_APP): $(RENDER_PREVIEW_SRC)
 run-render-preview: render-preview
 	PATH="$(MSYS2_PREFIX)/bin:$$PATH" "$(RENDER_PREVIEW_APP)"
 
-test: test-level-codec
+test: test-level-codec test-tile-catalog
 
 test-level-codec: $(LEVEL_CODEC_TEST_APP)
 	./$(LEVEL_CODEC_TEST_APP)
@@ -74,6 +72,13 @@ test-level-codec: $(LEVEL_CODEC_TEST_APP)
 $(LEVEL_CODEC_TEST_APP): $(LEVEL_CODEC_TEST_SRC) assets/level1.map
 	mkdir -p "$(@D)"
 	$(CXX) $(CXXFLAGS) $(LEVEL_CODEC_TEST_SRC) $(LDFLAGS) -o $@
+
+test-tile-catalog: $(TILE_CATALOG_TEST_APP)
+	./$(TILE_CATALOG_TEST_APP)
+
+$(TILE_CATALOG_TEST_APP): $(TILE_CATALOG_TEST_SRC)
+	mkdir -p "$(@D)"
+	$(CXX) $(CXXFLAGS) $(TILE_CATALOG_TEST_SRC) $(LDFLAGS) -o $@
 
 clean:
 	@echo "Đang dọn dep..."
