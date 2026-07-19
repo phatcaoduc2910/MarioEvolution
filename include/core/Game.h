@@ -11,6 +11,8 @@
 
 #include <memory>
 
+class MapEditorService;
+
 /**
  * Sở hữu tài nguyên SDL và điều phối vòng lặp cấp cao của ứng dụng.
  *
@@ -34,6 +36,7 @@ private:
     World world;
     std::unique_ptr<Screen> currentScreen;
     std::unique_ptr<AudioService> audioService;
+    std::unique_ptr<MapEditorService> mapEditor;
     InputHandler inputHandler;
     CollisionSystem collisionSystem;
     WorldRenderer worldRenderer;

@@ -84,10 +84,14 @@ void ActorRenderer::updatePlayer(const Player& player, int deltaMs) {
  * @param renderer SDL renderer đích.
  * @param texture Texture chứa spritesheet player.
  * @param player Player cung cấp vị trí, kích thước và hướng nhìn.
+ * @param offsetX Độ lệch ngang khi render qua camera.
+ * @param offsetY Độ lệch dọc khi render qua camera.
  */
 void ActorRenderer::renderPlayer(SDL_Renderer* renderer,
                                  SDL_Texture* texture,
-                                 const Player& player) {
+                                 const Player& player,
+                                 int offsetX,
+                                 int offsetY) {
     if (renderer == nullptr || texture == nullptr ||
         !player.isAlive() || player.getState() == PlayerState::Dead) {
             return;
@@ -99,9 +103,9 @@ void ActorRenderer::renderPlayer(SDL_Renderer* renderer,
     const int renderHeight = source.h * kPlayerRenderScale;
     SDL_Rect destination {
         static_cast<int>(player.getX()) +
-            (player.getWidth() - renderWidth) / 2,
+            (player.getWidth() - renderWidth) / 2 + offsetX,
         static_cast<int>(player.getY()) +
-            player.getHeight() - renderHeight,
+            player.getHeight() - renderHeight + offsetY,
         renderWidth,
         renderHeight
     };

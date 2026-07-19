@@ -1,15 +1,16 @@
 #include "core/Game.h"
 
-#include "service/LevelCodec.h"
+#include "service/MapEditorService.h"
 #include "view/PauseScreen.h"
 #include "view/StartScreen.h"
 
 #include <SDL2/SDL_image.h>
 #include <algorithm>
-#include <exception>
 
 namespace {
 constexpr const char* kLevelPath = "assets/level1.map";
+constexpr int kMapWidth = 25;
+constexpr int kMapHeight = 19;
 constexpr int kTileSize = 32;
 }
 
@@ -101,12 +102,14 @@ bool Game::start() {
         return false;
     }
 
-    try {
-        world.loadLevel(LevelCodec::load(kLevelPath, kTileSize));
-    } catch (const std::exception& error) {
-        SDL_Log("Level loading failed: %s", error.what());
-        return false;
-    }
+    mapEditor = std::make_unique<MapEditorService>(
+        kMapWidth,
+        kMapHeight,
+        kTileSize,
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        kLevelPath);
+    world.loadLevel(mapEditor->getLevel());
 
     lastFrameTicks = SDL_GetTicks();
 
@@ -151,6 +154,18 @@ void Game::gameLoop() {
             if (event.type == SDL_QUIT) {
                 running = false;
                 break;
+            }
+
+            if (playing && currentScreen == nullptr && mapEditor != nullptr) {
+                const bool wasEditorEnabled = mapEditor->isEnabled();
+                if (mapEditor->handleEvent(event)) {
+                    if (!wasEditorEnabled && mapEditor->isEnabled()) {
+                        world.getPlayer().setMoveDirection(0);
+                    } else if (wasEditorEnabled && !mapEditor->isEnabled()) {
+                        world.loadLevel(mapEditor->getLevel());
+                    }
+                    continue;
+                }
             }
 
             // Chỉ giải quyết sự kiện bàn phím.
@@ -224,26 +239,41 @@ void Game::gameLoop() {
             // Menu và màn hình tạm dừng không cập nhật thế giới game.
             currentScreen->render(renderer);
         } else if (playing) {
-            int horizontalInput = 0;
-            if (inputHandler.isPressed(Key::Left)) {
-                --horizontalInput;
+            if (mapEditor != nullptr && mapEditor->isEnabled()) {
+                mapEditor->update();
+                mapEditor->render(renderer, worldTiles);
+
+                playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
+                const SDL_Rect viewport = mapEditor->getMapViewport();
+                SDL_RenderSetClipRect(renderer, &viewport);
+                playerRenderer.renderPlayer(
+                    renderer,
+                    playerTexture,
+                    world.getPlayer(),
+                    -mapEditor->getCameraX(),
+                    -mapEditor->getCameraY());
+                SDL_RenderSetClipRect(renderer, nullptr);
+            } else {
+                int horizontalInput = 0;
+                if (inputHandler.isPressed(Key::Left)) {
+                    --horizontalInput;
+                }
+                if (inputHandler.isPressed(Key::Right)) {
+                    ++horizontalInput;
+                }
+                world.getPlayer().setMoveDirection(horizontalInput);
+
+                world.update();
+                collisionSystem.resolve(world);
+
+                playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
+
+                worldRenderer.render(renderer, worldTiles, world);
+                playerRenderer.renderPlayer(
+                    renderer,
+                    playerTexture,
+                    world.getPlayer());
             }
-            if (inputHandler.isPressed(Key::Right)) {
-                ++horizontalInput;
-            }
-            world.getPlayer().setMoveDirection(horizontalInput);
-
-            world.update();
-            collisionSystem.resolve(world);
-
-            playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
-
-            worldRenderer.render(renderer, worldTiles, world);
-            playerRenderer.renderPlayer(
-                renderer,
-                playerTexture,
-                world.getPlayer()
-            );
         }
 
         SDL_RenderPresent(renderer);

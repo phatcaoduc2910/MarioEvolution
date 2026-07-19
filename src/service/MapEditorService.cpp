@@ -1,22 +1,32 @@
 #include "service/MapEditorService.h"
 
 #include "service/LevelCodec.h"
+#include "view/TileCatalog.h"
+#include "view/UiRenderer.h"
 
 #include <algorithm>
-#include <array>
+#include <cstddef>
 #include <exception>
 #include <iostream>
 #include <utility>
 
 namespace {
 constexpr int kCameraSpeed = 12;
-constexpr std::array<TileId, 5> kBrushTiles{
-    kStandardBrickTileId,
-    kCoinBrickTileId,
-    kMushroomBrickTileId,
-    kFlowerBrickTileId,
-    kCoinTileId
-};
+constexpr int kPaletteWidth = 208;
+constexpr int kPalettePadding = 12;
+constexpr int kPaletteTop = 88;
+constexpr int kPaletteColumns = 2;
+constexpr int kPaletteCellWidth = 92;
+constexpr int kPaletteCellHeight = 88;
+constexpr int kPalettePreviewSize = 48;
+
+constexpr SDL_Color kMapColor{100, 149, 237, 255};
+constexpr SDL_Color kPanelColor{28, 32, 40, 255};
+constexpr SDL_Color kCardColor{47, 54, 66, 255};
+constexpr SDL_Color kGridColor{65, 86, 112, 150};
+constexpr SDL_Color kTextColor{238, 242, 248, 255};
+constexpr SDL_Color kMutedTextColor{166, 177, 194, 255};
+constexpr SDL_Color kSelectedColor{255, 181, 46, 255};
 
 /**
  * Đặt màu vẽ hiện tại cho SDL renderer.
@@ -24,37 +34,69 @@ constexpr std::array<TileId, 5> kBrushTiles{
  * @param renderer Renderer cần thay đổi màu.
  * @param color Màu RGBA mới.
  */
-void setDrawColor(SDL_Renderer* renderer, const SDL_Color& color) {
+void setDrawColor(SDL_Renderer* renderer, SDL_Color color) {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
 }
 
 /**
- * Lấy màu đại diện cho một mã tile trong editor.
+ * Lấy tile thứ index đang được phép hiển thị trong palette.
  *
- * @param tileId Mã tile cần hiển thị.
- * @return Màu dùng để vẽ tile.
+ * @param index Vị trí tile trong palette, không tính tile bị ẩn.
+ * @return Định nghĩa tile tương ứng, hoặc nullptr nếu index vượt giới hạn.
  */
-SDL_Color tileColor(TileId tileId) {
-    switch (tileId) {
-        case kEmptyTileId: return {24, 25, 28, 255};
-        case kStandardBrickTileId: return {139, 90, 43, 255};
-        case kCoinBrickTileId: return {235, 178, 45, 255};
-        case kMushroomBrickTileId: return {196, 75, 52, 255};
-        case kFlowerBrickTileId: return {50, 160, 90, 255};
-        case kCoinTileId: return {255, 215, 0, 255};
-        default: return {190, 190, 190, 255};
+const TileDefinition* paletteDefinition(std::size_t index) {
+    std::size_t visibleIndex = 0;
+    for (const TileDefinition& definition : tileDefinitions()) {
+        if (!definition.paletteVisible) {
+            continue;
+        }
+        if (visibleIndex == index) {
+            return &definition;
+        }
+        ++visibleIndex;
     }
+    return nullptr;
+}
+
+/**
+ * Vẽ một tile từ spritesheet vào vùng đích.
+ *
+ * @param renderer Renderer nhận lệnh vẽ.
+ * @param texture Spritesheet WorldTiles.png.
+ * @param tileId Mã tile cần vẽ.
+ * @param destination Vùng đích trên cửa sổ.
+ * @param alpha Độ trong suốt tạm thời của texture.
+ * @return true nếu tile có sprite hợp lệ; ngược lại là false.
+ */
+bool renderTile(SDL_Renderer* renderer, SDL_Texture* texture, TileId tileId,
+                const SDL_Rect& destination, Uint8 alpha = 255) {
+    const TileDefinition* definition = findTileDefinition(tileId);
+    if (renderer == nullptr || texture == nullptr || definition == nullptr ||
+        definition->source.w <= 0 || definition->source.h <= 0) {
+        return false;
+    }
+
+    Uint8 oldAlpha = 255;
+    SDL_GetTextureAlphaMod(texture, &oldAlpha);
+    SDL_SetTextureAlphaMod(texture, alpha);
+    SDL_RenderCopy(renderer, texture, &definition->source, &destination);
+    SDL_SetTextureAlphaMod(texture, oldAlpha);
+    return true;
 }
 }
 
 /**
- * Khởi tạo editor cùng một LevelData rỗng và vùng nhìn cố định.
+ * Khởi tạo editor nhúng và nạp map dùng chung với game.
  *
- * @param mapWidth Số cột tile của map.
- * @param mapHeight Số hàng tile của map.
- * @param tileSize Kích thước cạnh của một tile, tính bằng pixel.
- * @param windowWidth Chiều rộng cửa sổ editor.
- * @param windowHeight Chiều cao cửa sổ editor.
+ * Nếu file chưa tồn tại hoặc không hợp lệ, editor tạo một map mới có hàng gạch
+ * nền và đánh dấu dữ liệu chưa được lưu.
+ *
+ * @param mapWidth Số cột dùng khi cần tạo map mới.
+ * @param mapHeight Số hàng dùng khi cần tạo map mới.
+ * @param tileSize Kích thước một ô tile theo pixel.
+ * @param windowWidth Chiều rộng cửa sổ game.
+ * @param windowHeight Chiều cao cửa sổ game.
+ * @param mapPath Đường dẫn file map dùng chung.
  */
 MapEditorService::MapEditorService(int mapWidth, int mapHeight, int tileSize,
                                    int windowWidth, int windowHeight,
@@ -69,11 +111,9 @@ MapEditorService::MapEditorService(int mapWidth, int mapHeight, int tileSize,
       mouseY(0),
       selectedTile(kStandardBrickTileId),
       strokeTile(kEmptyTileId),
-      editorEnabled(true),
-      strokeActive(false),
-      running(false),
-      window(nullptr),
-      renderer(nullptr) {
+      editorEnabled(false),
+      dirty(false),
+      strokeActive(false) {
     try {
         level = LevelCodec::load(this->mapPath, tileSize);
         std::cout << "Loaded map: " << this->mapPath << '\n';
@@ -84,147 +124,162 @@ MapEditorService::MapEditorService(int mapWidth, int mapHeight, int tileSize,
 }
 
 /**
- * Giải phóng SDL renderer và cửa sổ thuộc sở hữu của editor.
+ * @return true nếu editor đang nhận input và hiển thị palette.
  */
-MapEditorService::~MapEditorService() {
-    if (renderer != nullptr) {
-        SDL_DestroyRenderer(renderer);
-    }
-    if (window != nullptr) {
-        SDL_DestroyWindow(window);
-    }
+bool MapEditorService::isEnabled() const {
+    return editorEnabled;
 }
 
 /**
- * Tạo cửa sổ và renderer cần thiết cho editor.
- *
- * Renderer phần mềm được dùng làm phương án dự phòng khi renderer tăng tốc
- * không khả dụng.
- *
- * @return true nếu editor khởi tạo thành công; ngược lại là false.
+ * @return true nếu level đã thay đổi kể từ lần lưu gần nhất.
  */
-bool MapEditorService::start() {
-    window = SDL_CreateWindow(
-        "MarioEvolution Tile Editor",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        windowWidth,
-        windowHeight,
-        SDL_WINDOW_SHOWN);
-
-    if (window == nullptr) {
-        std::cerr << "Không thể tạo cửa sổ map editor: "
-                  << SDL_GetError() << '\n';
-        return false;
-    }
-
-    renderer = SDL_CreateRenderer(
-        window,
-        -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-
-    if (renderer == nullptr) {
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-    }
-
-    if (renderer == nullptr) {
-        std::cerr << "Không thể tạo renderer cho map editor: "
-                  << SDL_GetError() << '\n';
-        return false;
-    }
-
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    return true;
+bool MapEditorService::isDirty() const {
+    return dirty;
 }
 
 /**
- * Chạy vòng lặp input, camera và render của editor.
- */
-void MapEditorService::run() {
-    if (renderer == nullptr) {
-        return;
-    }
-
-    running = true;
-    while (running) {
-        const Uint32 frameStart = SDL_GetTicks();
-
-        SDL_Event event;
-        while (SDL_PollEvent(&event) != 0) {
-            handleEvent(event);
-        }
-
-        updateCamera();
-        if (strokeActive) {
-            paintStroke();
-        }
-        render();
-
-        const Uint32 frameTime = SDL_GetTicks() - frameStart;
-        constexpr Uint32 kMinimumFrameTime = 16;
-        if (frameTime < kMinimumFrameTime) {
-            SDL_Delay(kMinimumFrameTime - frameTime);
-        }
-    }
-}
-
-/**
- * Xử lý phím điều khiển editor và nét vẽ bằng chuột.
+ * Xử lý input editor trong SDL event loop do Game sở hữu.
  *
- * Phím 0 bật hoặc tắt editor, phím 1 đến 5 chọn brush, E lấy tile dưới
- * con trỏ, R tạo lại level và S lưu map.
+ * Phím 0 bật/tắt editor. Khi editor mở, phím 1 đến 5 chọn palette, E lấy tile,
+ * R tạo lại map, Ctrl+S lưu và Esc đóng editor. Chuột trái chọn palette hoặc
+ * kéo một nét đặt/xóa tile trong viewport map.
  *
  * @param event Sự kiện SDL cần xử lý.
+ * @return true nếu editor đã sử dụng event; ngược lại là false.
  */
-void MapEditorService::handleEvent(const SDL_Event& event) {
-    if (event.type == SDL_QUIT) {
-        running = false;
-        return;
+bool MapEditorService::handleEvent(const SDL_Event& event) {
+    if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
+        event.key.keysym.sym == SDLK_0) {
+        editorEnabled = !editorEnabled;
+        strokeActive = false;
+        return true;
+    }
+
+    if (!editorEnabled) {
+        return false;
     }
 
     if (event.type == SDL_MOUSEMOTION) {
         mouseX = event.motion.x;
         mouseY = event.motion.y;
-        return;
+        return true;
     }
 
     if (event.type == SDL_MOUSEBUTTONDOWN &&
         event.button.button == SDL_BUTTON_LEFT) {
         mouseX = event.button.x;
         mouseY = event.button.y;
-        beginStroke();
-        return;
+
+        TileId paletteTile = kEmptyTileId;
+        if (paletteTileAt(mouseX, mouseY, paletteTile)) {
+            selectedTile = paletteTile;
+            strokeActive = false;
+        } else {
+            beginStroke();
+        }
+        return true;
     }
 
     if (event.type == SDL_MOUSEBUTTONUP &&
         event.button.button == SDL_BUTTON_LEFT) {
         strokeActive = false;
-        return;
+        return true;
     }
 
-    if (event.type != SDL_KEYDOWN || event.key.repeat != 0) {
-        return;
+    if (event.type == SDL_KEYUP) {
+        return false;
+    }
+
+    if (event.type != SDL_KEYDOWN) {
+        return true;
+    }
+
+    if (event.key.repeat != 0) {
+        return true;
     }
 
     const SDL_Keycode key = event.key.keysym.sym;
     if (key == SDLK_ESCAPE) {
-        running = false;
-    } else if (key == SDLK_0) {
-        editorEnabled = !editorEnabled;
+        editorEnabled = false;
         strokeActive = false;
     } else if (key >= SDLK_1 && key <= SDLK_5) {
         selectBrush(static_cast<int>(key - SDLK_0));
-    } else if (key == SDLK_e && editorEnabled) {
+    } else if (key == SDLK_e) {
         pickTile();
-    } else if (key == SDLK_r && editorEnabled) {
+    } else if (key == SDLK_r) {
         generateLevel();
-    } else if (key == SDLK_s && editorEnabled) {
+    } else if (key == SDLK_s &&
+               (event.key.keysym.mod & KMOD_CTRL) != 0) {
         saveLevel();
+    }
+    return true;
+}
+
+/**
+ * Cập nhật camera editor theo trạng thái bàn phím hiện tại.
+ */
+void MapEditorService::update() {
+    if (editorEnabled) {
+        updateCamera();
+        if (strokeActive) {
+            paintStroke();
+        }
     }
 }
 
 /**
- * Cập nhật camera từ các phím WASD hoặc phím mũi tên đang được giữ.
+ * Vẽ map, con trỏ brush và palette vào renderer của Game.
+ *
+ * @param renderer Renderer thuộc sở hữu Game.
+ * @param worldTiles Spritesheet tile đã được Game nạp một lần.
+ */
+void MapEditorService::render(SDL_Renderer* renderer,
+                              SDL_Texture* worldTiles) {
+    if (!editorEnabled || renderer == nullptr || worldTiles == nullptr) {
+        return;
+    }
+
+    setDrawColor(renderer, kMapColor);
+    SDL_RenderClear(renderer);
+
+    const SDL_Rect viewport = getMapViewport();
+    SDL_RenderSetClipRect(renderer, &viewport);
+    renderGrid(renderer, worldTiles);
+    renderBrushCursor(renderer, worldTiles);
+    SDL_RenderSetClipRect(renderer, nullptr);
+    renderPalette(renderer, worldTiles);
+}
+
+/**
+ * @return LevelData hiện đang được editor quản lý.
+ */
+const LevelData& MapEditorService::getLevel() const {
+    return level;
+}
+
+/**
+ * @return Tọa độ x hiện tại của camera editor.
+ */
+int MapEditorService::getCameraX() const {
+    return cameraX;
+}
+
+/**
+ * @return Tọa độ y hiện tại của camera editor.
+ */
+int MapEditorService::getCameraY() const {
+    return cameraY;
+}
+
+/**
+ * @return Viewport map nằm bên trái palette.
+ */
+SDL_Rect MapEditorService::getMapViewport() const {
+    return {0, 0, getViewportWidth(), windowHeight};
+}
+
+/**
+ * Cập nhật camera từ WASD hoặc các phím mũi tên và giữ camera trong map.
  */
 void MapEditorService::updateCamera() {
     const Uint8* keys = SDL_GetKeyboardState(nullptr);
@@ -244,7 +299,7 @@ void MapEditorService::updateCamera() {
 
     const int mapPixelWidth = level.getWidth() * level.getTileSize();
     const int mapPixelHeight = level.getHeight() * level.getTileSize();
-    const int maxCameraX = std::max(0, mapPixelWidth - windowWidth);
+    const int maxCameraX = std::max(0, mapPixelWidth - getViewportWidth());
     const int maxCameraY = std::max(0, mapPixelHeight - windowHeight);
 
     cameraX = std::clamp(cameraX, 0, maxCameraX);
@@ -252,18 +307,25 @@ void MapEditorService::updateCamera() {
 }
 
 /**
- * Chuyển tọa độ chuột trên màn hình sang ô trong map có tính camera.
+ * @return Chiều rộng phần cửa sổ dành cho map.
+ */
+int MapEditorService::getViewportWidth() const {
+    return std::max(1, windowWidth - kPaletteWidth);
+}
+
+/**
+ * Chuyển tọa độ chuột trong viewport sang ô map có tính camera.
  *
- * @param screenX Tọa độ x của chuột trong cửa sổ.
- * @param screenY Tọa độ y của chuột trong cửa sổ.
- * @param column Biến nhận chỉ số cột tile.
- * @param row Biến nhận chỉ số hàng tile.
- * @return true nếu ô nằm trong map; ngược lại là false.
+ * @param screenX Tọa độ x chuột trong cửa sổ.
+ * @param screenY Tọa độ y chuột trong cửa sổ.
+ * @param column Biến nhận chỉ số cột.
+ * @param row Biến nhận chỉ số hàng.
+ * @return true nếu tọa độ thuộc một ô hợp lệ; ngược lại là false.
  */
 bool MapEditorService::screenToCell(int screenX, int screenY,
                                     int& column, int& row) const {
     if (screenX < 0 || screenY < 0 ||
-        screenX >= windowWidth || screenY >= windowHeight) {
+        screenX >= getViewportWidth() || screenY >= windowHeight) {
         return false;
     }
 
@@ -274,16 +336,42 @@ bool MapEditorService::screenToCell(int screenX, int screenY,
 }
 
 /**
- * Bắt đầu một nét vẽ và chọn thao tác đặt hoặc xóa từ ô đầu tiên.
+ * Tìm tile palette nằm dưới con trỏ chuột.
  *
- * Nếu ô đầu tiên đã chứa selectedTile, toàn bộ nét kéo sẽ xóa. Nếu không,
- * toàn bộ nét kéo sẽ đặt selectedTile giống hành vi brush trong tutorial.
+ * @param screenX Tọa độ x chuột trong cửa sổ.
+ * @param screenY Tọa độ y chuột trong cửa sổ.
+ * @param tileId Biến nhận mã tile khi tìm thấy.
+ * @return true nếu chuột nằm trên một ô palette; ngược lại là false.
  */
-void MapEditorService::beginStroke() {
-    if (!editorEnabled) {
-        return;
+bool MapEditorService::paletteTileAt(int screenX, int screenY,
+                                     TileId& tileId) const {
+    const int localX = screenX - getViewportWidth() - kPalettePadding;
+    const int localY = screenY - kPaletteTop;
+    if (localX < 0 || localY < 0) {
+        return false;
     }
 
+    const int column = localX / kPaletteCellWidth;
+    const int row = localY / kPaletteCellHeight;
+    if (column < 0 || column >= kPaletteColumns) {
+        return false;
+    }
+
+    const std::size_t index = static_cast<std::size_t>(
+        row * kPaletteColumns + column);
+    const TileDefinition* definition = paletteDefinition(index);
+    if (definition == nullptr) {
+        return false;
+    }
+
+    tileId = definition->tileId;
+    return true;
+}
+
+/**
+ * Bắt đầu nét đặt hoặc xóa dựa trên nội dung ô đầu tiên.
+ */
+void MapEditorService::beginStroke() {
     int column = 0;
     int row = 0;
     if (!screenToCell(mouseX, mouseY, column, row)) {
@@ -298,18 +386,22 @@ void MapEditorService::beginStroke() {
 }
 
 /**
- * Gán brush của nét hiện tại vào ô dưới con trỏ chuột.
+ * Gán tile của nét hiện tại vào ô dưới con trỏ chuột.
  */
 void MapEditorService::paintStroke() {
     int column = 0;
     int row = 0;
-    if (screenToCell(mouseX, mouseY, column, row)) {
-        level.setTile(column, row, strokeTile);
+    if (!screenToCell(mouseX, mouseY, column, row) ||
+        level.getTile(column, row) == strokeTile) {
+        return;
     }
+
+    level.setTile(column, row, strokeTile);
+    dirty = true;
 }
 
 /**
- * Chọn mã tile đang nằm dưới con trỏ làm brush hiện tại.
+ * Chọn tile dưới con trỏ làm brush hiện tại.
  */
 void MapEditorService::pickTile() {
     int column = 0;
@@ -320,40 +412,46 @@ void MapEditorService::pickTile() {
 }
 
 /**
- * Chọn trực tiếp brush theo phím 1 đến 5.
+ * Chọn trực tiếp một brush theo thứ tự hiển thị trong palette.
+ *
+ * @param paletteNumber Số thứ tự bắt đầu từ 1.
  */
-void MapEditorService::selectBrush(int key) {
-    const std::size_t index = static_cast<std::size_t>(key - 1);
-    if (index < kBrushTiles.size()) {
-        selectedTile = kBrushTiles[index];
+void MapEditorService::selectBrush(int paletteNumber) {
+    if (paletteNumber <= 0) {
+        return;
+    }
+
+    const TileDefinition* definition = paletteDefinition(
+        static_cast<std::size_t>(paletteNumber - 1));
+    if (definition != nullptr) {
+        selectedTile = definition->tileId;
     }
 }
 
 /**
- * Tạo lại map rỗng với một hàng StandardBrick làm mặt đất.
+ * Tạo map rỗng với một hàng StandardBrick làm mặt đất.
  */
 void MapEditorService::generateLevel() {
     strokeActive = false;
 
     for (int row = 0; row < level.getHeight(); ++row) {
         for (int column = 0; column < level.getWidth(); ++column) {
-            TileId tileId = kEmptyTileId;
-
-            if (row == level.getHeight() - 1) {
-                tileId = kStandardBrickTileId;
-            }
-
+            const TileId tileId = row == level.getHeight() - 1
+                                      ? kStandardBrickTileId
+                                      : kEmptyTileId;
             level.setTile(column, row, tileId);
         }
     }
+    dirty = true;
 }
 
 /**
- * Ghi trạng thái editor hiện tại về file map dùng chung với game.
+ * Ghi LevelData hiện tại về file map dùng chung với game.
  */
 void MapEditorService::saveLevel() {
     try {
         LevelCodec::save(level, mapPath);
+        dirty = false;
         std::cout << "Saved map: " << mapPath << '\n';
     } catch (const std::exception& error) {
         std::cerr << "Cannot save map: " << error.what() << '\n';
@@ -361,60 +459,47 @@ void MapEditorService::saveLevel() {
 }
 
 /**
- * Vẽ toàn bộ trạng thái hiện tại của editor.
+ * Vẽ các tile nhìn thấy trong viewport camera.
+ *
+ * @param renderer Renderer nhận lệnh vẽ.
+ * @param worldTiles Spritesheet chứa tile.
  */
-void MapEditorService::render() {
-    setDrawColor(renderer, {18, 19, 22, 255});
-    SDL_RenderClear(renderer);
-
-    renderGrid();
-    renderBrushCursor();
-
-    SDL_RenderPresent(renderer);
-}
-
-/**
- * Chỉ vẽ các tile đang nằm trong vùng camera.
- */
-void MapEditorService::renderGrid() {
+void MapEditorService::renderGrid(SDL_Renderer* renderer,
+                                  SDL_Texture* worldTiles) {
     const int tileSize = level.getTileSize();
     const int firstColumn = cameraX / tileSize;
     const int firstRow = cameraY / tileSize;
     const int lastColumn = std::min(
         level.getWidth() - 1,
-        (cameraX + windowWidth) / tileSize);
+        (cameraX + getViewportWidth()) / tileSize);
     const int lastRow = std::min(
         level.getHeight() - 1,
         (cameraY + windowHeight) / tileSize);
 
     for (int row = firstRow; row <= lastRow; ++row) {
         for (int column = firstColumn; column <= lastColumn; ++column) {
-            const SDL_Rect cell = {
+            const SDL_Rect cell{
                 column * tileSize - cameraX,
                 row * tileSize - cameraY,
                 tileSize,
                 tileSize
             };
 
-            setDrawColor(renderer, tileColor(level.getTile(column, row)));
-            SDL_RenderFillRect(renderer, &cell);
-
-            if (editorEnabled) {
-                setDrawColor(renderer, {58, 61, 68, 255});
-                SDL_RenderDrawRect(renderer, &cell);
-            }
+            renderTile(renderer, worldTiles, level.getTile(column, row), cell);
+            setDrawColor(renderer, kGridColor);
+            SDL_RenderDrawRect(renderer, &cell);
         }
     }
 }
 
 /**
- * Vẽ brush trong suốt tại ô đang nằm dưới con trỏ chuột.
+ * Vẽ preview brush trong suốt tại ô dưới con trỏ chuột.
+ *
+ * @param renderer Renderer nhận lệnh vẽ.
+ * @param worldTiles Spritesheet chứa tile.
  */
-void MapEditorService::renderBrushCursor() {
-    if (!editorEnabled) {
-        return;
-    }
-
+void MapEditorService::renderBrushCursor(SDL_Renderer* renderer,
+                                         SDL_Texture* worldTiles) {
     int column = 0;
     int row = 0;
     if (!screenToCell(mouseX, mouseY, column, row)) {
@@ -422,18 +507,108 @@ void MapEditorService::renderBrushCursor() {
     }
 
     const int tileSize = level.getTileSize();
-    const SDL_Rect cursor = {
+    const SDL_Rect cursor{
         column * tileSize - cameraX,
         row * tileSize - cameraY,
         tileSize,
         tileSize
     };
+    const TileId previewTile = strokeActive ? strokeTile : selectedTile;
 
-    SDL_Color color = tileColor(strokeActive ? strokeTile : selectedTile);
-    color.a = 150;
-    setDrawColor(renderer, color);
-    SDL_RenderFillRect(renderer, &cursor);
+    if (!renderTile(renderer, worldTiles, previewTile, cursor, 155)) {
+        setDrawColor(renderer, {210, 60, 60, 120});
+        SDL_RenderFillRect(renderer, &cursor);
+    }
 
-    setDrawColor(renderer, {245, 245, 245, 255});
+    setDrawColor(renderer, kTextColor);
     SDL_RenderDrawRect(renderer, &cursor);
+}
+
+/**
+ * Vẽ panel palette cố định ở cạnh phải cửa sổ.
+ *
+ * @param renderer Renderer nhận lệnh vẽ.
+ * @param worldTiles Spritesheet chứa tile preview.
+ */
+void MapEditorService::renderPalette(SDL_Renderer* renderer,
+                                     SDL_Texture* worldTiles) {
+    const int panelX = getViewportWidth();
+    UiRenderer::fillRect(
+        renderer,
+        {panelX, 0, kPaletteWidth, windowHeight},
+        kPanelColor);
+
+    setDrawColor(renderer, {12, 14, 18, 255});
+    SDL_RenderDrawLine(renderer, panelX, 0, panelX, windowHeight);
+
+    UiRenderer::drawText(
+        renderer, "EDITOR", panelX + kPalettePadding, 16, 3, kTextColor);
+    UiRenderer::drawText(
+        renderer,
+        dirty ? "UNSAVED" : "SAVED",
+        panelX + kPalettePadding,
+        52,
+        1,
+        dirty ? kSelectedColor : kMutedTextColor);
+
+    std::size_t index = 0;
+    while (const TileDefinition* definition = paletteDefinition(index)) {
+        const int column = static_cast<int>(index) % kPaletteColumns;
+        const int row = static_cast<int>(index) / kPaletteColumns;
+        const SDL_Rect card{
+            panelX + kPalettePadding + column * kPaletteCellWidth,
+            kPaletteTop + row * kPaletteCellHeight,
+            kPaletteCellWidth - 8,
+            kPaletteCellHeight - 8
+        };
+        UiRenderer::fillRect(renderer, card, kCardColor);
+
+        const SDL_Rect preview{
+            card.x + (card.w - kPalettePreviewSize) / 2,
+            card.y + 5,
+            kPalettePreviewSize,
+            kPalettePreviewSize
+        };
+        renderTile(renderer, worldTiles, definition->tileId, preview);
+        UiRenderer::drawText(
+            renderer,
+            definition->label,
+            card.x + 7,
+            card.y + 61,
+            1,
+            kTextColor);
+
+        if (definition->tileId == selectedTile) {
+            setDrawColor(renderer, kSelectedColor);
+            SDL_RenderDrawRect(renderer, &card);
+            const SDL_Rect inner{card.x + 1, card.y + 1, card.w - 2, card.h - 2};
+            SDL_RenderDrawRect(renderer, &inner);
+        }
+        ++index;
+    }
+
+    const TileDefinition* selected = findTileDefinition(selectedTile);
+    UiRenderer::drawText(
+        renderer, "SELECTED", panelX + kPalettePadding, 372, 1,
+        kMutedTextColor);
+    UiRenderer::drawText(
+        renderer,
+        selected != nullptr ? selected->label : "UNKNOWN",
+        panelX + kPalettePadding,
+        390,
+        2,
+        kSelectedColor);
+
+    UiRenderer::drawText(
+        renderer, "ZERO CLOSE", panelX + kPalettePadding, 468, 1,
+        kMutedTextColor);
+    UiRenderer::drawText(
+        renderer, "CTRL S SAVE", panelX + kPalettePadding, 486, 1,
+        kMutedTextColor);
+    UiRenderer::drawText(
+        renderer, "E PICK", panelX + kPalettePadding, 504, 1,
+        kMutedTextColor);
+    UiRenderer::drawText(
+        renderer, "R RESET", panelX + kPalettePadding, 522, 1,
+        kMutedTextColor);
 }
