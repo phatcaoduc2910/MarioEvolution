@@ -3,12 +3,10 @@
 #include "model/Brick.h"
 #include "model/Item.h"
 #include "model/World.h"
+#include "view/TileCatalog.h"
 
 namespace {
-    constexpr SDL_Rect STANDARD_BRICK_SPRITE{160, 1104, 16, 16};
-    constexpr SDL_Rect QUESTION_BRICK_SPRITE{0, 1120, 16, 16};
     constexpr SDL_Rect OPENED_BRICK_SPRITE{64, 1104, 16, 16};
-    constexpr SDL_Rect COIN_SPRITE{0, 1312, 16, 16};
 
     /**
      * Chuyển vùng bao của GameObject thành SDL rectangle đích.
@@ -99,11 +97,16 @@ void WorldRenderer::render(SDL_Renderer* renderer, SDL_Texture* worldTiles, cons
             continue;
         }
 
-        const SDL_Rect* sprite = &QUESTION_BRICK_SPRITE;
-        if (brick->canBeBroken()) {
-            sprite = &STANDARD_BRICK_SPRITE;
-        } else if (brick->isOpened()) {
-            sprite = &OPENED_BRICK_SPRITE;
+        const SDL_Rect* sprite = &OPENED_BRICK_SPRITE;
+        if (!brick->isOpened()) {
+            const TileId tileId = brick->canBeBroken()
+                                      ? kStandardBrickTileId
+                                      : kCoinBrickTileId;
+            const TileDefinition* definition = findTileDefinition(tileId);
+            if (definition == nullptr) {
+                continue;
+            }
+            sprite = &definition->source;
         }
 
         const SDL_Rect dst = destination(*brick);
@@ -117,7 +120,12 @@ void WorldRenderer::render(SDL_Renderer* renderer, SDL_Texture* worldTiles, cons
 
         const SDL_Rect dst = destination(*item);
         if (dynamic_cast<const Coin*>(item.get()) != nullptr) {
-            assetRenderer.render(renderer, worldTiles, &COIN_SPRITE, &dst);
+            const TileDefinition* definition =
+                findTileDefinition(kCoinTileId);
+            if (definition != nullptr) {
+                assetRenderer.render(
+                    renderer, worldTiles, &definition->source, &dst);
+            }
         } else if (dynamic_cast<const Mushroom*>(item.get()) != nullptr) {
             renderMushroom(renderer, dst);
         } else if (dynamic_cast<const FireFlower*>(item.get()) != nullptr) {

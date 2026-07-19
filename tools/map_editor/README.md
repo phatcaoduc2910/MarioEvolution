@@ -1,7 +1,7 @@
 # Map Editor
 
-Map editor SDL2 chuyển hành vi từ bài 5 của series Tile Scrolling Platformer
-sang C++ và chỉnh sửa trực tiếp một `LevelData` trong bộ nhớ.
+Map editor được nhúng trực tiếp trong cửa sổ game và chỉnh sửa `LevelData` mà
+game đang dùng. Thư mục này chỉ giữ tài liệu tương thích cho luồng cũ.
 
 ## Build và chạy
 
@@ -9,6 +9,9 @@ sang C++ và chỉnh sửa trực tiếp một `LevelData` trong bộ nhớ.
 make map-editor
 make run-map-editor
 ```
+
+Hai lệnh đều build game chính; `run-map-editor` mở game. Bắt đầu màn chơi rồi
+nhấn `0` để bật palette.
 
 ## Điều khiển
 
@@ -20,7 +23,8 @@ make run-map-editor
 - Phím `5`: `o` - Coin tự do.
 - Phím `E` lấy tile dưới con trỏ làm brush.
 - Phím `R` tạo lại level với hàng gạch nền.
-- Phím `S` lưu vào `assets/level1.map`.
+- Click palette hoặc dùng phím `1` đến `5` để chọn brush.
+- `Ctrl+S` lưu vào `assets/level1.map`.
 - Giữ chuột trái và kéo để vẽ; bắt đầu trên tile đang chọn sẽ xóa cả nét.
 - Phím mũi tên hoặc `WASD` di chuyển camera.
 - Phím `Esc` đóng editor.
