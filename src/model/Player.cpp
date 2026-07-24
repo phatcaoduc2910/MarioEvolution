@@ -13,16 +13,10 @@ namespace {
     constexpr int kInvincibleFrames = 90;
 
     std::unordered_map<const Player*, int> invincibleTimers;
-    /**
-     * Bắt đầu một khoảng bất tử ngắn sau khi người chơi nhận sát thương.
-     *
-     * @param player Instance người chơi cần nhận bất tử tạm thời.
-     */
     void startInvincibility(Player* player) {
         invincibleTimers[player] = kInvincibleFrames;
     }
 }
-// Set vị trí ban đầu của player.
 Player::Player(double x, double y)
     : Actor(x, y, 32, 48),
     powerUp(PowerUpType::None),
@@ -49,9 +43,6 @@ void Player::jump() {
     }
 }
 
-/**
- * Cập nhật vận tốc ngang của người chơi dựa trên input. (Hàm Phát thêm)
- */
 void Player::setMoveDirection(int direction) {
     if (!alive || state == PlayerState::Dead) {
         velocityX = 0.0;
@@ -66,11 +57,6 @@ void Player::setMoveDirection(int direction) {
         velocityX = 0.0;
     }
 }
-/**
- * Áp dụng hiệu ứng item cho người chơi và đánh dấu item đã được nhặt.
- *
- * @param item Item mà người chơi chạm vào.
- */
 void Player::collect(Item& item) {
     if (!alive || state == PlayerState::Dead || item.isCollected()) { return; }
 
@@ -88,12 +74,6 @@ void Player::collect(Item& item) {
     item.collect();
 }
 
-/**
- * Gây sát thương cho người chơi theo trạng thái hiện tại.
- *
- * FIRE giảm xuống BIG, BIG giảm xuống SMALL, còn SMALL chuyển thành DEAD.
- * Các lần giảm cấp sẽ cấp một khoảng bất tử ngắn.
- */
 void Player::takeDamage() {
     if (!alive || state == PlayerState::Dead || invincible) {
         return;
@@ -120,14 +100,6 @@ void Player::takeDamage() {
     }
 }
 
-/**
- * Xử lý khi người chơi chạm cờ cuối màn.
- *
- * Người chơi dừng di chuyển, căn ngang vào cờ và giao trạng thái hoàn thành cho
- * object cờ.
- *
- * @param flag Cờ mà người chơi chạm vào.
- */
 void Player::captureFlag(Flag& flag) {
     if (!alive || state == PlayerState::Dead) {
         return;
@@ -140,19 +112,10 @@ void Player::captureFlag(Flag& flag) {
     flag.onCapture(*this);
 }
 
-/**
- * Bắn đạn khi hệ thống power-up lửa sẵn sàng.
- *
- * Hàm này cố ý để trống cho đến khi project định nghĩa entity Fireball và bộ
- * quản lý đạn.
- */
 void Player::shootFireball() {
-    //@todo: cập nhật Fireball.cpp để viết hàm này
+    // TODO: nối Fireball vào World rồi mới bật phím bắn.
 }
 
-/**
- * Cập nhật vật lý người chơi và bộ đếm bất tử tạm thời.
- */
 void Player::update() {
     if (!alive || state == PlayerState::Dead) {
         return;
@@ -172,10 +135,4 @@ void Player::update() {
     move();
 }
 
-/**
- * Render người chơi.
- *
- * Việc render hiện do tầng view xử lý, nên hook render trong model được cố ý để
- * trống.
- */
 void Player::render() {}

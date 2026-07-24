@@ -10,21 +10,12 @@ constexpr SpriteSheetLayout kPlayerSpriteLayout{
 constexpr int kPlayerRenderScale = 2;
 }
 
-/**
- * Khởi tạo các dãy animation của small player trên spritesheet.
- */
 ActorRenderer::ActorRenderer()
     : idleAnimation(kPlayerSpriteLayout, 0, 0, 8, 160),
       walkAnimation(kPlayerSpriteLayout, 2, 0, 4, 100),
       jumpAnimation(kPlayerSpriteLayout, 1, 0, 4, 120),
       currentState(PlayerAnimationState::Idle) {}
 
-/**
- * Chọn trạng thái animation từ trạng thái vật lý của player.
- *
- * @param player Player cần kiểm tra.
- * @return Trạng thái Jump, Walk hoặc Idle phù hợp.
- */
 ActorRenderer::PlayerAnimationState
 ActorRenderer::selectState(const Player& player) const {
     constexpr double kMotionEpsilon = 0.001;
@@ -40,12 +31,6 @@ ActorRenderer::selectState(const Player& player) const {
     return PlayerAnimationState::Idle;
 }
 
-/**
- * Lấy bộ đếm animation ứng với trạng thái được chọn.
- *
- * @param state Trạng thái animation của player.
- * @return Tham chiếu tới SpriteAnimation tương ứng.
- */
 SpriteAnimation& ActorRenderer::animationFor(PlayerAnimationState state) {
     switch (state) {
         case PlayerAnimationState::Walk:
@@ -58,12 +43,6 @@ SpriteAnimation& ActorRenderer::animationFor(PlayerAnimationState state) {
     }
 }
 
-/**
- * Cập nhật frame animation của player và reset khi trạng thái thay đổi.
- *
- * @param player Player cung cấp vận tốc và trạng thái mặt đất.
- * @param deltaMs Thời gian từ frame game trước, tính bằng mili giây.
- */
 void ActorRenderer::updatePlayer(const Player& player, int deltaMs) {
     const PlayerAnimationState nextState = selectState(player);
 
@@ -75,18 +54,6 @@ void ActorRenderer::updatePlayer(const Player& player, int deltaMs) {
     animationFor(currentState).update(deltaMs);
 }
 
-/**
- * Cắt frame hiện tại từ texture spritesheet và vẽ player lên màn hình.
- *
- * getCurrentFrame() tạo SDL_Rect nguồn. AssetRenderer truyền vùng nguồn này
- * vào SDL_RenderCopyEx để SDL chỉ lấy đúng frame cần vẽ.
- *
- * @param renderer SDL renderer đích.
- * @param texture Texture chứa spritesheet player.
- * @param player Player cung cấp vị trí, kích thước và hướng nhìn.
- * @param offsetX Độ lệch ngang khi render qua camera.
- * @param offsetY Độ lệch dọc khi render qua camera.
- */
 void ActorRenderer::renderPlayer(SDL_Renderer* renderer,
                                  SDL_Texture* texture,
                                  const Player& player,
@@ -101,6 +68,7 @@ void ActorRenderer::renderPlayer(SDL_Renderer* renderer,
 
     const int renderWidth = source.w * kPlayerRenderScale;
     const int renderHeight = source.h * kPlayerRenderScale;
+    // Sprite cao hơn hitbox nên neo đáy để chân Mario không bị nhảy.
     SDL_Rect destination {
         static_cast<int>(player.getX()) +
             (player.getWidth() - renderWidth) / 2 + offsetX,

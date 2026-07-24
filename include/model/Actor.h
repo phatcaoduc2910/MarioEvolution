@@ -2,9 +2,6 @@
 
 #include "GameObject.h"
 
-/**
- * GameObject có chuyển động, hướng nhìn và trạng thái sống.
- */
 class Actor : public GameObject {
 public:
     Actor(double x, double y, int width, int height);

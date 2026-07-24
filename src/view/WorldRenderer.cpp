@@ -8,12 +8,6 @@
 namespace {
     constexpr SDL_Rect OPENED_BRICK_SPRITE{64, 1104, 16, 16};
 
-    /**
-     * Chuyển vùng bao của GameObject thành SDL rectangle đích.
-     *
-     * @param object Object cần render.
-     * @return Hình chữ nhật đích theo tọa độ và kích thước object.
-     */
     SDL_Rect destination(const GameObject& object) {
         return {
             static_cast<int>(object.getX()),
@@ -23,24 +17,11 @@ namespace {
         };
     }
 
-    /**
-     * Tô kín một hình chữ nhật bằng màu đã cho.
-     *
-     * @param renderer SDL renderer nhận lệnh vẽ.
-     * @param rect Hình chữ nhật đích.
-     * @param color Màu cần tô.
-     */
     void fill(SDL_Renderer* renderer, const SDL_Rect& rect, SDL_Color color) {
         SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
         SDL_RenderFillRect(renderer, &rect);
     }
 
-    /**
-     * Vẽ mushroom tạm thời bằng các hình chữ nhật màu.
-     *
-     * @param renderer SDL renderer nhận lệnh vẽ.
-     * @param dst Vùng đích của mushroom.
-     */
     void renderMushroom(SDL_Renderer* renderer, const SDL_Rect& dst) {
         const SDL_Rect cap{dst.x, dst.y, dst.w, dst.h / 2};
         const SDL_Rect stem{dst.x + dst.w / 4, dst.y + dst.h / 2, dst.w / 2, dst.h / 2};
@@ -53,12 +34,6 @@ namespace {
         fill(renderer, rightSpot, {255, 255, 255, 255});
     }
 
-    /**
-     * Vẽ fire flower tạm thời bằng các hình chữ nhật màu.
-     *
-     * @param renderer SDL renderer nhận lệnh vẽ.
-     * @param dst Vùng đích của fire flower.
-     */
     void renderFireFlower(SDL_Renderer* renderer, const SDL_Rect& dst) {
         const SDL_Rect stem{dst.x + dst.w * 3 / 8, dst.y + dst.h / 2, dst.w / 4, dst.h / 2};
         const SDL_Rect petals{dst.x + dst.w / 8, dst.y, dst.w * 3 / 4, dst.h * 3 / 5};
@@ -70,16 +45,6 @@ namespace {
     }
 }
 
-/**
- * Vẽ toàn bộ brick và item chưa thu thập trong World.
- *
- * Hàm giữ lại màu vẽ ban đầu của renderer vì mushroom và fire flower hiện được
- * dựng bằng primitive thay vì spritesheet.
- *
- * @param renderer SDL renderer nhận lệnh vẽ.
- * @param worldTiles Texture chứa sprite của brick và coin.
- * @param world World cung cấp danh sách object và item.
- */
 void WorldRenderer::render(SDL_Renderer* renderer, SDL_Texture* worldTiles, const World& world) {
     if (renderer == nullptr || worldTiles == nullptr) {
         return;

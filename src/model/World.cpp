@@ -7,48 +7,31 @@
 #include <stdexcept>
 #include <utility>
 
-/**
- * Khởi tạo World rỗng với player, điểm và trạng thái game ban đầu.
- */
 World::World()
     : player(100.0, 502.0),
       score(0),
       gameOver(false) {}
 
-/**
- * @return Tham chiếu có thể chỉnh sửa tới player duy nhất của World.
- */
+
 Player& World::getPlayer() {
     return player;
 }
 
-/**
- * @return Danh sách actor động thuộc sở hữu World.
- */
+
 const std::vector<std::unique_ptr<Actor>>& World::getActors() const {
     return actors;
 }
 
-/**
- * @return Danh sách object tĩnh thuộc sở hữu World.
- */
+
 const std::vector<std::unique_ptr<StaticObject>>& World::getObjects() const {
     return objects;
 }
 
-/**
- * @return Danh sách item thuộc sở hữu World.
- */
+
 const std::vector<std::unique_ptr<Item>>& World::getItems() const {
     return items;
 }
 
-/**
- * Chuyển dữ liệu map tĩnh thành các brick và item runtime thuộc sở hữu World.
- *
- * @param level Lưới map dùng tile 32 pixel.
- * @throws std::invalid_argument Khi kích thước tile không khớp object hiện tại.
- */
 void World::loadLevel(const LevelData& level) {
     constexpr int kObjectTileSize = 32;
     if (level.getTileSize() != kObjectTileSize) {
@@ -67,6 +50,7 @@ void World::loadLevel(const LevelData& level) {
             const double x = static_cast<double>(column * kObjectTileSize);
             const double y = static_cast<double>(row * kObjectTileSize);
 
+            // Format hiện tại chỉ sinh brick và item; actor cần layer spawn riêng.
             switch (tileId) {
                 case kEmptyTileId:
                     break;
@@ -92,59 +76,32 @@ void World::loadLevel(const LevelData& level) {
     }
 }
 
-/**
- * Chuyển quyền sở hữu một actor mới vào World.
- *
- * @param actor Actor được thêm.
- */
 void World::addActor(std::unique_ptr<Actor> actor) {
     actors.push_back(std::move(actor));
 }
 
-/**
- * Chuyển quyền sở hữu một object tĩnh mới vào World.
- *
- * @param object Object được thêm.
- */
 void World::addObject(std::unique_ptr<StaticObject> object) {
     objects.push_back(std::move(object));
 }
 
-/**
- * Chuyển quyền sở hữu một item mới vào World.
- *
- * @param item Item được thêm.
- */
 void World::addItem(std::unique_ptr<Item> item) {
     items.push_back(std::move(item));
 }
 
-/**
- * Cộng một giá trị vào tổng điểm hiện tại.
- *
- * @param points Số điểm cần cộng; giá trị âm sẽ làm giảm tổng điểm.
- */
 void World::addScore(int points) {
     score += points;
 }
 
-/**
- * @return Tổng điểm hiện tại của World.
- */
+
 int World::getScore() const {
     return score;
 }
 
-/**
- * @return true nếu player đã rơi khỏi giới hạn màn; ngược lại là false.
- */
+
 bool World::isGameOver() const {
     return gameOver;
 }
 
-/**
- * Cập nhật player, các actor còn sống, item và điều kiện game over.
- */
 void World::update() {
     player.update();
 
@@ -158,7 +115,6 @@ void World::update() {
         item->update();
     }
 
-    // Player rơi khỏi màn hình.
     if (player.getY() > 600.0) {
         gameOver = true;
     }

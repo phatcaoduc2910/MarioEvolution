@@ -14,18 +14,10 @@ constexpr int kMapHeight = 19;
 constexpr int kTileSize = 32;
 }
 
-/**
- * Khởi tạo game ở màn hình bắt đầu và tạo audio service mặc định.
- *
- * Tài nguyên SDL chỉ được tạo khi start() được gọi.
- */
 Game::Game()
     : currentScreen(std::make_unique<StartScreen>()),
       audioService(std::make_unique<SoundManager>()) {}
 
-/**
- * Giải phóng tài nguyên theo thứ tự texture, renderer, window và subsystem SDL.
- */
 Game::~Game() {
     SDL_DestroyTexture(playerTexture);
     SDL_DestroyTexture(worldTiles);
@@ -35,11 +27,6 @@ Game::~Game() {
     SDL_Quit();
 }
 
-/**
- * Khởi tạo SDL, cửa sổ, renderer, texture và level mặc định.
- *
- * @return true nếu toàn bộ tài nguyên được nạp thành công; ngược lại là false.
- */
 bool Game::start() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("SDL initialization failed: %s", SDL_GetError());
@@ -118,9 +105,6 @@ bool Game::start() {
     return true;
 }
 
-/**
- * Chuyển gameplay sang màn hình tạm dừng và tạm dừng nhạc nền.
- */
 void Game::pause() {
     if (playing && currentScreen == nullptr) {
         currentScreen = std::make_unique<PauseScreen>();
@@ -128,28 +112,18 @@ void Game::pause() {
     }
 }
 
-/**
- * Đóng màn hình tạm dừng và tiếp tục nhạc nền.
- */
 void Game::resume() {
-    // Khi playing là true, màn hình duy nhất có thể đang mở là PauseScreen.
     if (playing && currentScreen != nullptr) {
         currentScreen.reset();
         audioService->play("theme");
     }
 }
 
-/**
- * Chạy vòng lặp chính cho tới khi nhận yêu cầu thoát.
- *
- * Mỗi frame xử lý toàn bộ SDL event, cập nhật gameplay khi không có screen phủ,
- * sau đó render screen hoặc World hiện tại.
- */
 void Game::gameLoop() {
     SDL_Event event;
 
     while (running) {
-        // Xử lý hết sự kiện đang chờ trước khi cập nhật và vẽ khung hình mới.
+        // Hút hết event trước khi update để input không trễ sang frame sau.
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
@@ -168,25 +142,21 @@ void Game::gameLoop() {
                 }
             }
 
-            // Chỉ giải quyết sự kiện bàn phím.
             if (event.type != SDL_KEYDOWN && event.type != SDL_KEYUP) {
                 continue;
             }
 
-            // Chuyển phím SDL thành phím trừu tượng của game.
-            // Ví dụ: A hoặc <- chuyển thành Key::Left
             Key key = Key::Enter;
             if (!inputHandler.mapKey(event.key.keysym.sym, key)) {
                 continue;
             }
 
-            // Nếu thả phím, xóa phím đó khỏi tập phím đang giữ.
             if (event.type == SDL_KEYUP) {
                 inputHandler.release(key);
                 continue;
             }
 
-            // Tránh trường hợp giữ phím làm thay đổi lựa chọn liên tục.
+            // Menu và pause chỉ phản ứng một lần cho mỗi lần nhấn.
             if (event.key.repeat != 0) {
                 continue;
             }
@@ -234,9 +204,8 @@ void Game::gameLoop() {
         SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
         SDL_RenderClear(renderer);
 
-        // Render screen hoặc cập nhật gameplay.
+        // Có screen phủ thì World đứng yên.
         if (currentScreen != nullptr) {
-            // Menu và màn hình tạm dừng không cập nhật thế giới game.
             currentScreen->render(renderer);
         } else if (playing) {
             if (mapEditor != nullptr && mapEditor->isEnabled()) {

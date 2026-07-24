@@ -6,13 +6,6 @@ namespace {
 constexpr double kGravity = 0.45;
 constexpr double kMaxFallSpeed = 12.0;
 
-/**
- * Kiểm tra hai hình chữ nhật song song trục có chồng lên nhau không.
- *
- * @param a Hình chữ nhật thứ nhất.
- * @param b Hình chữ nhật thứ hai.
- * @return true nếu hai hình chữ nhật giao nhau; ngược lại là false.
- */
 bool intersects(const Rectangle& a, const Rectangle& b) {
     return a.x < b.x + b.width &&
            a.x + a.width > b.x &&
@@ -21,14 +14,6 @@ bool intersects(const Rectangle& a, const Rectangle& b) {
 }
 }
 
-/**
- * Khởi tạo actor với vị trí, kích thước và trạng thái vật lý ban đầu.
- *
- * @param x Tọa độ x ban đầu.
- * @param y Tọa độ y ban đầu.
- * @param width Chiều rộng collision box.
- * @param height Chiều cao collision box.
- */
 Actor::Actor(double x, double y, int width, int height)
     : GameObject(x, y, width, height),
       velocityX(0.0),
@@ -37,47 +22,31 @@ Actor::Actor(double x, double y, int width, int height)
       alive(true),
       onGround(false) {}
 
-/**
- * @return true nếu actor còn hoạt động; ngược lại là false.
- */
+
 bool Actor::isAlive() const {
     return alive;
 }
 
-/**
- * @return true nếu actor đang đứng trên mặt va chạm.
- */
+
 bool Actor::isOnGround() const {
     return onGround;
 }
 
-/**
- * @return Hướng nhìn hiện tại của actor.
- */
+
 Direction Actor::getDirection() const {
     return direction;
 }
 
-/**
- * @return Vận tốc theo trục x.
- */
+
 double Actor::getVelocityX() const {
     return velocityX;
 }
 
-/**
- * @return Vận tốc theo trục y.
- */
+
 double Actor::getVelocityY() const {
     return velocityY;
 }
 
-/**
- * Áp dụng vận tốc hiện tại vào vị trí của actor.
- *
- * Vận tốc ngang cũng cập nhật hướng nhìn để hệ thống render và gameplay biết
- * actor đang di chuyển sang trái hay phải.
- */
 void Actor::move() {
     x += velocityX;
     y += velocityY;
@@ -89,26 +58,11 @@ void Actor::move() {
     }
 }
 
-/**
- * Áp dụng trọng lực theo chiều dọc cho actor.
- *
- * Tốc độ rơi được giới hạn để tránh bước di chuyển mỗi frame quá lớn làm xử lý
- * va chạm mất ổn định.
- */
 void Actor::applyGravity() {
     onGround = false;
     velocityY = std::min(velocityY + kGravity, kMaxFallSpeed);
 }
 
-/**
- * Xử lý va chạm với game object rắn bằng độ chồng lấp AABB.
- *
- * Hàm này chỉ thực hiện tách vật lý chung. Các quyết định riêng của game như
- * nhặt item, sát thương kẻ địch, điểm số hoặc chạm cờ nên nằm trong
- * CollisionSystem hoặc lớp gameplay liên quan.
- *
- * @param object Object cần tách khỏi actor này.
- */
 void Actor::resolveCollision(GameObject& object) {
     const Rectangle self = getBounds();
     const Rectangle other = object.getBounds();
@@ -130,6 +84,7 @@ void Actor::resolveCollision(GameObject& object) {
     const double overlapX = std::min(overlapLeft, overlapRight);
     const double overlapY = std::min(overlapTop, overlapBottom);
 
+    // Tách theo trục lún ít hơn để actor không bị đẩy chéo qua vật cản.
     if (overlapX < overlapY) {
         x += (selfCenterX < otherCenterX) ? -overlapX : overlapX;
         velocityX = 0.0;
