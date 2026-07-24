@@ -9,11 +9,6 @@ constexpr SDL_Color kTitleColor{255, 214, 66, 255};
 constexpr SDL_Color kTextColor{255, 255, 255, 255};
 }
 
-/**
- * Vẽ lớp phủ tạm dừng theo kích thước hiện tại của renderer.
- *
- * @param renderer SDL renderer nhận lệnh vẽ.
- */
 void PauseScreen::render(SDL_Renderer* renderer) const {
     if (renderer == nullptr) {
         return;
@@ -41,12 +36,6 @@ void PauseScreen::render(SDL_Renderer* renderer) const {
     );
 }
 
-/**
- * Chuyển phím Pause hoặc Enter thành yêu cầu tiếp tục game.
- *
- * @param input Trạng thái input logic hiện tại.
- * @return ResumeGame khi người chơi yêu cầu tiếp tục; ngược lại là None.
- */
 ScreenAction PauseScreen::handleInput(InputHandler& input) {
     if (input.isPressed(Key::Pause) || input.isPressed(Key::Enter)) {
         return ScreenAction::ResumeGame;

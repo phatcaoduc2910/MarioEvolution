@@ -5,9 +5,6 @@
 class Flag;
 class Item;
 
-/**
- * Actor trung tâm nhận input, vật phẩm, sát thương và điều kiện thắng.
- */
 class Player : public Actor {
 public:
     Player(double x, double y);

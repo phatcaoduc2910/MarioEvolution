@@ -7,9 +7,6 @@
 
 class Player;
 
-/**
- * Chọn animation và vẽ player từ spritesheet lên SDL renderer.
- */
 class ActorRenderer {
 public:
     ActorRenderer();

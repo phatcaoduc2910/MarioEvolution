@@ -4,9 +4,6 @@
 
 class Actor;
 
-/**
- * GameObject đứng yên và mặc định có va chạm rắn.
- */
 class StaticObject : public GameObject {
 public:
     StaticObject(double x, double y, int width, int height);

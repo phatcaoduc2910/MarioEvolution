@@ -11,13 +11,6 @@
 #include <utility>
 
 namespace {
-/**
- * Kiểm tra actor đang đi lên và có tâm nằm dưới tâm object hay không.
- *
- * @param actor Actor đang va chạm.
- * @param object Object được kiểm tra.
- * @return true nếu va chạm xảy ra từ phía dưới; ngược lại là false.
- */
 bool hitsFromBelow(const Actor& actor, const GameObject& object) {
     const Rectangle actorBounds = actor.getBounds();
     const Rectangle objectBounds = object.getBounds();
@@ -28,9 +21,6 @@ bool hitsFromBelow(const Actor& actor, const GameObject& object) {
 }
 }
 
-/**
- * Kiểm tra có va chạm object hay không.
- */
 bool CollisionSystem::check(
     const Actor& actor,
     const GameObject& object
@@ -44,15 +34,13 @@ bool CollisionSystem::check(
            a.y + a.height > b.y;
 }
 
-/**
- * Chia trường hợp để giải quyết va chạm.
- */
 void CollisionSystem::resolve(World& world) {
     Player& player = world.getPlayer();
 
     for (const auto& object : world.getObjects()) {
         if (object->isSolid() && check(player, *object)) {
             if (hitsFromBelow(player, *object)) {
+                // SpecialBrick tạo item; gạch thường chỉ đổi trạng thái.
                 if (auto* specialBrick =
                         dynamic_cast<SpecialBrick*>(object.get())) {
                     std::unique_ptr<Item> item = specialBrick->releaseItem();

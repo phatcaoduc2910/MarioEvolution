@@ -9,13 +9,6 @@
 #include <vector>
 
 namespace {
-/**
- * Chuyển một ký tự trong file map thành tile id runtime.
- *
- * @param symbol Ký tự map cần giải mã.
- * @return Tile id tương ứng.
- * @throws std::runtime_error Khi ký tự không thuộc định dạng map.
- */
 TileId decodeTile(char symbol) {
     switch (symbol) {
         case '.': return kEmptyTileId;
@@ -31,13 +24,6 @@ TileId decodeTile(char symbol) {
     }
 }
 
-/**
- * Chuyển tile id runtime thành ký tự để lưu map.
- *
- * @param tileId Tile id cần mã hóa.
- * @return Ký tự map tương ứng.
- * @throws std::runtime_error Khi tile chưa có ký hiệu map.
- */
 char encodeTile(TileId tileId) {
     switch (tileId) {
         case kEmptyTileId: return '.';
@@ -54,11 +40,6 @@ char encodeTile(TileId tileId) {
 }
 }
 
-/**
- * Nạp lưới map; chiều rộng và chiều cao được suy ra từ nội dung file.
- *
- * @throws std::runtime_error Khi file rỗng, không đều hoặc chứa ký hiệu lạ.
- */
 LevelData LevelCodec::load(const std::string& path, int tileSize) {
     std::ifstream input(path, std::ios::binary);
     if (!input) {
@@ -68,6 +49,7 @@ LevelData LevelCodec::load(const std::string& path, int tileSize) {
     std::vector<std::string> rows;
     std::string line;
     while (std::getline(input, line)) {
+        // std::getline giữ lại '\r' khi đọc file CRLF trên Windows.
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
@@ -110,11 +92,6 @@ LevelData LevelCodec::load(const std::string& path, int tileSize) {
     return level;
 }
 
-/**
- * Lưu lưới map bằng đúng một ký tự cho mỗi ô.
- *
- * @throws std::runtime_error Khi không thể ghi file hoặc tile chưa có ký hiệu.
- */
 void LevelCodec::save(const LevelData& level, const std::string& path) {
     std::ofstream output(path, std::ios::binary | std::ios::trunc);
     if (!output) {

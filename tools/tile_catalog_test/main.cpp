@@ -5,11 +5,6 @@
 #include <cstddef>
 #include <iostream>
 
-/**
- * Kiểm tra catalog có id duy nhất và metadata hợp lệ cho palette/autotile.
- *
- * @return 0 khi mọi assertion đều đạt.
- */
 int main() {
     std::array<bool, 6> seenTileIds{};
     std::size_t paletteTileCount = 0;

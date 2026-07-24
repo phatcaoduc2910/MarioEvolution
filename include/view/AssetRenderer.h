@@ -2,9 +2,6 @@
 
 #include <SDL2/SDL.h>
 
-/**
- * Bao mỏng quanh SDL_RenderCopyEx để kiểm tra input render dùng chung.
- */
 class AssetRenderer {
 public:
     AssetRenderer() = default;
