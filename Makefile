@@ -29,9 +29,17 @@ TILE_CATALOG_TEST_APP = $(OBJDIR)/tests/TileCatalogTest.exe
 TILE_CATALOG_TEST_SRC = tools/tile_catalog_test/main.cpp \
 	src/view/TileCatalog.cpp
 
+MAP_EDITOR_TEST_APP = $(OBJDIR)/tests/MapEditorTest.exe
+MAP_EDITOR_TEST_SRC = tools/map_editor_test/main.cpp \
+	src/service/MapEditorService.cpp \
+	src/service/LevelCodec.cpp \
+	src/model/LevelData.cpp \
+	src/view/TileCatalog.cpp \
+	src/view/UiRenderer.cpp
+
 .PHONY: all create run tools map-editor run-map-editor \
 	render-preview run-render-preview test test-level-codec \
-	test-tile-catalog clean
+	test-tile-catalog test-map-editor clean
 
 all: create
 
@@ -64,7 +72,7 @@ $(RENDER_PREVIEW_APP): $(RENDER_PREVIEW_SRC)
 run-render-preview: render-preview
 	PATH="$(MSYS2_PREFIX)/bin:$$PATH" "$(RENDER_PREVIEW_APP)"
 
-test: test-level-codec test-tile-catalog
+test: test-level-codec test-tile-catalog test-map-editor
 
 test-level-codec: $(LEVEL_CODEC_TEST_APP)
 	./$(LEVEL_CODEC_TEST_APP)
@@ -79,6 +87,13 @@ test-tile-catalog: $(TILE_CATALOG_TEST_APP)
 $(TILE_CATALOG_TEST_APP): $(TILE_CATALOG_TEST_SRC)
 	mkdir -p "$(@D)"
 	$(CXX) $(CXXFLAGS) $(TILE_CATALOG_TEST_SRC) $(LDFLAGS) -o $@
+
+test-map-editor: $(MAP_EDITOR_TEST_APP)
+	./$(MAP_EDITOR_TEST_APP)
+
+$(MAP_EDITOR_TEST_APP): $(MAP_EDITOR_TEST_SRC)
+	mkdir -p "$(@D)"
+	$(CXX) $(CXXFLAGS) $(MAP_EDITOR_TEST_SRC) $(LDFLAGS) $(LDLIBS) -o $@
 
 clean:
 	@echo "Đang dọn dep..."

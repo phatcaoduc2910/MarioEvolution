@@ -5,20 +5,33 @@
 #include "view/UiRenderer.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstddef>
 #include <exception>
+#include <filesystem>
 #include <iostream>
+#include <system_error>
 #include <utility>
 
 namespace {
 constexpr int kCameraSpeed = 12;
 constexpr int kPaletteWidth = 208;
 constexpr int kPalettePadding = 12;
-constexpr int kPaletteTop = 88;
+constexpr int kPaletteTop = 104;
 constexpr int kPaletteColumns = 2;
 constexpr int kPaletteCellWidth = 92;
 constexpr int kPaletteCellHeight = 88;
 constexpr int kPalettePreviewSize = 48;
+constexpr int kTabTop = 48;
+constexpr int kTabWidth = 84;
+constexpr int kTabHeight = 26;
+constexpr int kMapButtonsTop = 176;
+constexpr int kMapActionTop = 218;
+constexpr int kMapSaveAsTop = 258;
+constexpr int kMapListTop = 326;
+constexpr int kMapListRowHeight = 30;
+constexpr int kMinMapDimension = 5;
+constexpr int kMaxMapDimension = 200;
 
 constexpr SDL_Color kMapColor{100, 149, 237, 255};
 constexpr SDL_Color kPanelColor{28, 32, 40, 255};
@@ -28,22 +41,10 @@ constexpr SDL_Color kTextColor{238, 242, 248, 255};
 constexpr SDL_Color kMutedTextColor{166, 177, 194, 255};
 constexpr SDL_Color kSelectedColor{255, 181, 46, 255};
 
-/**
- * Đặt màu vẽ hiện tại cho SDL renderer.
- *
- * @param renderer Renderer cần thay đổi màu.
- * @param color Màu RGBA mới.
- */
 void setDrawColor(SDL_Renderer* renderer, SDL_Color color) {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
 }
 
-/**
- * Lấy tile thứ index đang được phép hiển thị trong palette.
- *
- * @param index Vị trí tile trong palette, không tính tile bị ẩn.
- * @return Định nghĩa tile tương ứng, hoặc nullptr nếu index vượt giới hạn.
- */
 const TileDefinition* paletteDefinition(std::size_t index) {
     std::size_t visibleIndex = 0;
     for (const TileDefinition& definition : tileDefinitions()) {
@@ -58,16 +59,6 @@ const TileDefinition* paletteDefinition(std::size_t index) {
     return nullptr;
 }
 
-/**
- * Vẽ một tile từ spritesheet vào vùng đích.
- *
- * @param renderer Renderer nhận lệnh vẽ.
- * @param texture Spritesheet WorldTiles.png.
- * @param tileId Mã tile cần vẽ.
- * @param destination Vùng đích trên cửa sổ.
- * @param alpha Độ trong suốt tạm thời của texture.
- * @return true nếu tile có sprite hợp lệ; ngược lại là false.
- */
 bool renderTile(SDL_Renderer* renderer, SDL_Texture* texture, TileId tileId,
                 const SDL_Rect& destination, Uint8 alpha = 255) {
     const TileDefinition* definition = findTileDefinition(tileId);
@@ -80,40 +71,68 @@ bool renderTile(SDL_Renderer* renderer, SDL_Texture* texture, TileId tileId,
     SDL_GetTextureAlphaMod(texture, &oldAlpha);
     SDL_SetTextureAlphaMod(texture, alpha);
     SDL_RenderCopy(renderer, texture, &definition->source, &destination);
+    // Preview mượn alpha của texture, xong phải trả lại cho lượt vẽ sau.
     SDL_SetTextureAlphaMod(texture, oldAlpha);
     return true;
 }
+
+std::string mapName(const std::string& path) {
+    return std::filesystem::path(path).stem().string();
 }
 
-/**
- * Khởi tạo editor nhúng và nạp map dùng chung với game.
- *
- * Nếu file chưa tồn tại hoặc không hợp lệ, editor tạo một map mới có hàng gạch
- * nền và đánh dấu dữ liệu chưa được lưu.
- *
- * @param mapWidth Số cột dùng khi cần tạo map mới.
- * @param mapHeight Số hàng dùng khi cần tạo map mới.
- * @param tileSize Kích thước một ô tile theo pixel.
- * @param windowWidth Chiều rộng cửa sổ game.
- * @param windowHeight Chiều cao cửa sổ game.
- * @param mapPath Đường dẫn file map dùng chung.
- */
+bool contains(const SDL_Rect& rectangle, int x, int y) {
+    return x >= rectangle.x && x < rectangle.x + rectangle.w &&
+           y >= rectangle.y && y < rectangle.y + rectangle.h;
+}
+
+std::string fitLabel(const std::string& text, std::size_t length) {
+    if (text.size() <= length) {
+        return text;
+    }
+    return text.substr(0, length);
+}
+
+std::string fitTailLabel(const std::string& text, std::size_t length) {
+    if (text.size() <= length) {
+        return text;
+    }
+    return text.substr(text.size() - length);
+}
+
+void renderButton(SDL_Renderer* renderer, const SDL_Rect& rectangle,
+                  const char* label, bool selected = false) {
+    UiRenderer::fillRect(
+        renderer, rectangle, selected ? kSelectedColor : kCardColor);
+    UiRenderer::drawText(
+        renderer, label, rectangle.x + 7, rectangle.y + 9, 1,
+        selected ? kPanelColor : kTextColor);
+}
+}
+
 MapEditorService::MapEditorService(int mapWidth, int mapHeight, int tileSize,
                                    int windowWidth, int windowHeight,
                                    std::string mapPath)
     : level(mapWidth, mapHeight, tileSize),
       mapPath(std::move(mapPath)),
+      mapDirectory(std::filesystem::path(this->mapPath).parent_path().string()),
       windowWidth(windowWidth),
       windowHeight(windowHeight),
       cameraX(0),
       cameraY(0),
       mouseX(0),
       mouseY(0),
+      mapListOffset(0),
       selectedTile(kStandardBrickTileId),
       strokeTile(kEmptyTileId),
+      palettePage(PalettePage::Tiles),
       editorEnabled(false),
       dirty(false),
-      strokeActive(false) {
+      strokeActive(false),
+      namingMap(false) {
+    if (mapDirectory.empty()) {
+        mapDirectory = ".";
+    }
+
     try {
         level = LevelCodec::load(this->mapPath, tileSize);
         std::cout << "Loaded map: " << this->mapPath << '\n';
@@ -121,42 +140,40 @@ MapEditorService::MapEditorService(int mapWidth, int mapHeight, int tileSize,
         std::cerr << error.what() << "\nCreating a new map instead.\n";
         generateLevel();
     }
+    refreshSavedMaps();
 }
 
-/**
- * @return true nếu editor đang nhận input và hiển thị palette.
- */
+
 bool MapEditorService::isEnabled() const {
     return editorEnabled;
 }
 
-/**
- * @return true nếu level đã thay đổi kể từ lần lưu gần nhất.
- */
+
 bool MapEditorService::isDirty() const {
     return dirty;
 }
 
-/**
- * Xử lý input editor trong SDL event loop do Game sở hữu.
- *
- * Phím 0 bật/tắt editor. Khi editor mở, phím 1 đến 5 chọn palette, E lấy tile,
- * R tạo lại map, Ctrl+S lưu và Esc đóng editor. Chuột trái chọn palette hoặc
- * kéo một nét đặt/xóa tile trong viewport map.
- *
- * @param event Sự kiện SDL cần xử lý.
- * @return true nếu editor đã sử dụng event; ngược lại là false.
- */
 bool MapEditorService::handleEvent(const SDL_Event& event) {
-    if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
-        event.key.keysym.sym == SDLK_0) {
-        editorEnabled = !editorEnabled;
-        strokeActive = false;
-        return true;
+    if (!editorEnabled) {
+        if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
+            event.key.keysym.sym == SDLK_0) {
+            editorEnabled = true;
+            strokeActive = false;
+            refreshSavedMaps();
+            return true;
+        }
+        return false;
     }
 
-    if (!editorEnabled) {
-        return false;
+    if (namingMap) {
+        return handleSaveAsEvent(event);
+    }
+
+    if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
+        event.key.keysym.sym == SDLK_0) {
+        editorEnabled = false;
+        strokeActive = false;
+        return true;
     }
 
     if (event.type == SDL_MOUSEMOTION) {
@@ -170,6 +187,11 @@ bool MapEditorService::handleEvent(const SDL_Event& event) {
         mouseX = event.button.x;
         mouseY = event.button.y;
 
+        if (handlePanelClick(mouseX, mouseY)) {
+            strokeActive = false;
+            return true;
+        }
+
         TileId paletteTile = kEmptyTileId;
         if (paletteTileAt(mouseX, mouseY, paletteTile)) {
             selectedTile = paletteTile;
@@ -177,6 +199,14 @@ bool MapEditorService::handleEvent(const SDL_Event& event) {
         } else {
             beginStroke();
         }
+        return true;
+    }
+
+    if (event.type == SDL_MOUSEWHEEL && palettePage == PalettePage::Maps) {
+        const int maxOffset = std::max(
+            0, static_cast<int>(savedMaps.size()) - getVisibleMapRows());
+        mapListOffset = std::clamp(
+            mapListOffset - event.wheel.y, 0, maxOffset);
         return true;
     }
 
@@ -202,12 +232,36 @@ bool MapEditorService::handleEvent(const SDL_Event& event) {
     if (key == SDLK_ESCAPE) {
         editorEnabled = false;
         strokeActive = false;
+    } else if (key == SDLK_TAB) {
+        palettePage = palettePage == PalettePage::Tiles
+                          ? PalettePage::Maps
+                          : PalettePage::Tiles;
+        if (palettePage == PalettePage::Maps) {
+            refreshSavedMaps();
+        }
+    } else if (key == SDLK_n) {
+        createNewLevel();
+    } else if (key == SDLK_F2 ||
+               (key == SDLK_s &&
+                (event.key.keysym.mod & KMOD_CTRL) != 0 &&
+                (event.key.keysym.mod & KMOD_SHIFT) != 0)) {
+        beginSaveAs();
     } else if (key >= SDLK_1 && key <= SDLK_5) {
         selectBrush(static_cast<int>(key - SDLK_0));
     } else if (key == SDLK_e) {
         pickTile();
     } else if (key == SDLK_r) {
         generateLevel();
+    } else if (key == SDLK_LEFTBRACKET) {
+        resizeLevel(level.getWidth() - 1, level.getHeight());
+    } else if (key == SDLK_RIGHTBRACKET) {
+        resizeLevel(level.getWidth() + 1, level.getHeight());
+    } else if (key == SDLK_MINUS) {
+        resizeLevel(level.getWidth(), level.getHeight() - 1);
+    } else if (key == SDLK_EQUALS) {
+        resizeLevel(level.getWidth(), level.getHeight() + 1);
+    } else if (key == SDLK_F5) {
+        refreshSavedMaps();
     } else if (key == SDLK_s &&
                (event.key.keysym.mod & KMOD_CTRL) != 0) {
         saveLevel();
@@ -215,11 +269,8 @@ bool MapEditorService::handleEvent(const SDL_Event& event) {
     return true;
 }
 
-/**
- * Cập nhật camera editor theo trạng thái bàn phím hiện tại.
- */
 void MapEditorService::update() {
-    if (editorEnabled) {
+    if (editorEnabled && !namingMap) {
         updateCamera();
         if (strokeActive) {
             paintStroke();
@@ -227,12 +278,6 @@ void MapEditorService::update() {
     }
 }
 
-/**
- * Vẽ map, con trỏ brush và palette vào renderer của Game.
- *
- * @param renderer Renderer thuộc sở hữu Game.
- * @param worldTiles Spritesheet tile đã được Game nạp một lần.
- */
 void MapEditorService::render(SDL_Renderer* renderer,
                               SDL_Texture* worldTiles) {
     if (!editorEnabled || renderer == nullptr || worldTiles == nullptr) {
@@ -250,37 +295,26 @@ void MapEditorService::render(SDL_Renderer* renderer,
     renderPalette(renderer, worldTiles);
 }
 
-/**
- * @return LevelData hiện đang được editor quản lý.
- */
+
 const LevelData& MapEditorService::getLevel() const {
     return level;
 }
 
-/**
- * @return Tọa độ x hiện tại của camera editor.
- */
+
 int MapEditorService::getCameraX() const {
     return cameraX;
 }
 
-/**
- * @return Tọa độ y hiện tại của camera editor.
- */
+
 int MapEditorService::getCameraY() const {
     return cameraY;
 }
 
-/**
- * @return Viewport map nằm bên trái palette.
- */
+
 SDL_Rect MapEditorService::getMapViewport() const {
     return {0, 0, getViewportWidth(), windowHeight};
 }
 
-/**
- * Cập nhật camera từ WASD hoặc các phím mũi tên và giữ camera trong map.
- */
 void MapEditorService::updateCamera() {
     const Uint8* keys = SDL_GetKeyboardState(nullptr);
 
@@ -306,22 +340,16 @@ void MapEditorService::updateCamera() {
     cameraY = std::clamp(cameraY, 0, maxCameraY);
 }
 
-/**
- * @return Chiều rộng phần cửa sổ dành cho map.
- */
+
 int MapEditorService::getViewportWidth() const {
     return std::max(1, windowWidth - kPaletteWidth);
 }
 
-/**
- * Chuyển tọa độ chuột trong viewport sang ô map có tính camera.
- *
- * @param screenX Tọa độ x chuột trong cửa sổ.
- * @param screenY Tọa độ y chuột trong cửa sổ.
- * @param column Biến nhận chỉ số cột.
- * @param row Biến nhận chỉ số hàng.
- * @return true nếu tọa độ thuộc một ô hợp lệ; ngược lại là false.
- */
+
+int MapEditorService::getVisibleMapRows() const {
+    return std::max(1, (windowHeight - kMapListTop - 12) / kMapListRowHeight);
+}
+
 bool MapEditorService::screenToCell(int screenX, int screenY,
                                     int& column, int& row) const {
     if (screenX < 0 || screenY < 0 ||
@@ -335,14 +363,6 @@ bool MapEditorService::screenToCell(int screenX, int screenY,
     return level.isInside(column, row);
 }
 
-/**
- * Tìm tile palette nằm dưới con trỏ chuột.
- *
- * @param screenX Tọa độ x chuột trong cửa sổ.
- * @param screenY Tọa độ y chuột trong cửa sổ.
- * @param tileId Biến nhận mã tile khi tìm thấy.
- * @return true nếu chuột nằm trên một ô palette; ngược lại là false.
- */
 bool MapEditorService::paletteTileAt(int screenX, int screenY,
                                      TileId& tileId) const {
     const int localX = screenX - getViewportWidth() - kPalettePadding;
@@ -368,9 +388,75 @@ bool MapEditorService::paletteTileAt(int screenX, int screenY,
     return true;
 }
 
-/**
- * Bắt đầu nét đặt hoặc xóa dựa trên nội dung ô đầu tiên.
- */
+bool MapEditorService::handlePanelClick(int screenX, int screenY) {
+    const int panelX = getViewportWidth();
+    if (screenX < panelX || screenX >= windowWidth) {
+        return false;
+    }
+
+    const SDL_Rect tilesTab{
+        panelX + kPalettePadding, kTabTop, kTabWidth, kTabHeight};
+    const SDL_Rect mapsTab{
+        panelX + kPalettePadding + kTabWidth + 8,
+        kTabTop, kTabWidth, kTabHeight};
+    if (contains(tilesTab, screenX, screenY)) {
+        palettePage = PalettePage::Tiles;
+        return true;
+    }
+    if (contains(mapsTab, screenX, screenY)) {
+        palettePage = PalettePage::Maps;
+        refreshSavedMaps();
+        return true;
+    }
+
+    if (palettePage == PalettePage::Tiles) {
+        return false;
+    }
+
+    const int buttonX = panelX + kPalettePadding;
+    constexpr int smallButtonWidth = 40;
+    constexpr int smallButtonGap = 4;
+    const SDL_Rect widthMinus{buttonX, kMapButtonsTop, smallButtonWidth, 30};
+    const SDL_Rect widthPlus{
+        buttonX + smallButtonWidth + smallButtonGap,
+        kMapButtonsTop, smallButtonWidth, 30};
+    const SDL_Rect heightMinus{
+        buttonX + (smallButtonWidth + smallButtonGap) * 2,
+        kMapButtonsTop, smallButtonWidth, 30};
+    const SDL_Rect heightPlus{
+        buttonX + (smallButtonWidth + smallButtonGap) * 3,
+        kMapButtonsTop, smallButtonWidth, 30};
+
+    if (contains(widthMinus, screenX, screenY)) {
+        resizeLevel(level.getWidth() - 1, level.getHeight());
+    } else if (contains(widthPlus, screenX, screenY)) {
+        resizeLevel(level.getWidth() + 1, level.getHeight());
+    } else if (contains(heightMinus, screenX, screenY)) {
+        resizeLevel(level.getWidth(), level.getHeight() - 1);
+    } else if (contains(heightPlus, screenX, screenY)) {
+        resizeLevel(level.getWidth(), level.getHeight() + 1);
+    } else {
+        const SDL_Rect newButton{buttonX, kMapActionTop, 84, 30};
+        const SDL_Rect saveButton{buttonX + 92, kMapActionTop, 84, 30};
+        const SDL_Rect saveAsButton{buttonX, kMapSaveAsTop, 176, 30};
+        if (contains(newButton, screenX, screenY)) {
+            createNewLevel();
+        } else if (contains(saveButton, screenX, screenY)) {
+            saveLevel();
+        } else if (contains(saveAsButton, screenX, screenY)) {
+            beginSaveAs();
+        } else if (screenY >= kMapListTop) {
+            const int visibleRow =
+                (screenY - kMapListTop) / kMapListRowHeight;
+            if (visibleRow < getVisibleMapRows()) {
+                openSavedMap(static_cast<std::size_t>(
+                    mapListOffset + visibleRow));
+            }
+        }
+    }
+    return true;
+}
+
 void MapEditorService::beginStroke() {
     int column = 0;
     int row = 0;
@@ -378,6 +464,7 @@ void MapEditorService::beginStroke() {
         return;
     }
 
+    // Bắt đầu trên đúng loại tile thì cả nét chuyển sang xóa.
     strokeTile = level.getTile(column, row) == selectedTile
                      ? kEmptyTileId
                      : selectedTile;
@@ -385,9 +472,6 @@ void MapEditorService::beginStroke() {
     paintStroke();
 }
 
-/**
- * Gán tile của nét hiện tại vào ô dưới con trỏ chuột.
- */
 void MapEditorService::paintStroke() {
     int column = 0;
     int row = 0;
@@ -398,11 +482,9 @@ void MapEditorService::paintStroke() {
 
     level.setTile(column, row, strokeTile);
     dirty = true;
+    pendingDiscardTarget.clear();
 }
 
-/**
- * Chọn tile dưới con trỏ làm brush hiện tại.
- */
 void MapEditorService::pickTile() {
     int column = 0;
     int row = 0;
@@ -411,11 +493,6 @@ void MapEditorService::pickTile() {
     }
 }
 
-/**
- * Chọn trực tiếp một brush theo thứ tự hiển thị trong palette.
- *
- * @param paletteNumber Số thứ tự bắt đầu từ 1.
- */
 void MapEditorService::selectBrush(int paletteNumber) {
     if (paletteNumber <= 0) {
         return;
@@ -428,11 +505,9 @@ void MapEditorService::selectBrush(int paletteNumber) {
     }
 }
 
-/**
- * Tạo map rỗng với một hàng StandardBrick làm mặt đất.
- */
 void MapEditorService::generateLevel() {
     strokeActive = false;
+    pendingDiscardTarget.clear();
 
     for (int row = 0; row < level.getHeight(); ++row) {
         for (int column = 0; column < level.getWidth(); ++column) {
@@ -445,25 +520,196 @@ void MapEditorService::generateLevel() {
     dirty = true;
 }
 
-/**
- * Ghi LevelData hiện tại về file map dùng chung với game.
- */
-void MapEditorService::saveLevel() {
+void MapEditorService::createNewLevel() {
+    if (!canDiscardChanges("NEW")) {
+        return;
+    }
+
+    level = LevelData(level.getWidth(), level.getHeight(), level.getTileSize());
+    mapPath.clear();
+    cameraX = 0;
+    cameraY = 0;
+    generateLevel();
+    statusMessage = "NEW MAP";
+}
+
+void MapEditorService::resizeLevel(int newWidth, int newHeight) {
+    newWidth = std::clamp(newWidth, kMinMapDimension, kMaxMapDimension);
+    newHeight = std::clamp(newHeight, kMinMapDimension, kMaxMapDimension);
+    if (newWidth == level.getWidth() && newHeight == level.getHeight()) {
+        return;
+    }
+
+    level.resize(newWidth, newHeight);
+    dirty = true;
+    pendingDiscardTarget.clear();
+    updateCamera();
+    statusMessage = "MAP RESIZED";
+}
+
+void MapEditorService::refreshSavedMaps() {
+    savedMaps.clear();
+    std::error_code error;
+    const std::filesystem::path directory(mapDirectory);
+
+    for (std::filesystem::directory_iterator it(directory, error), end;
+         !error && it != end; it.increment(error)) {
+        if (!it->is_regular_file(error)) {
+            continue;
+        }
+
+        std::string extension = it->path().extension().string();
+        std::transform(extension.begin(), extension.end(), extension.begin(),
+                       [](unsigned char character) {
+                           return static_cast<char>(std::tolower(character));
+                       });
+        if (extension == ".map") {
+            savedMaps.push_back(it->path().string());
+        }
+    }
+
+    std::sort(savedMaps.begin(), savedMaps.end(),
+              [](const std::string& left, const std::string& right) {
+                  return mapName(left) < mapName(right);
+              });
+    mapListOffset = std::clamp(
+        mapListOffset, 0,
+        std::max(0, static_cast<int>(savedMaps.size()) - getVisibleMapRows()));
+}
+
+void MapEditorService::openSavedMap(std::size_t index) {
+    if (index >= savedMaps.size()) {
+        return;
+    }
+
+    const std::string target = savedMaps[index];
+    if (!canDiscardChanges(target)) {
+        return;
+    }
+
     try {
-        LevelCodec::save(level, mapPath);
+        level = LevelCodec::load(target, level.getTileSize());
+        mapPath = target;
+        cameraX = 0;
+        cameraY = 0;
         dirty = false;
+        pendingDiscardTarget.clear();
+        statusMessage = "MAP OPENED";
+        std::cout << "Loaded map: " << mapPath << '\n';
+    } catch (const std::exception& error) {
+        statusMessage = "OPEN FAILED";
+        std::cerr << "Cannot open map: " << error.what() << '\n';
+    }
+}
+
+void MapEditorService::beginSaveAs() {
+    saveAsName.clear();
+    namingMap = true;
+    palettePage = PalettePage::Maps;
+    statusMessage = "TYPE MAP NAME";
+    SDL_StartTextInput();
+}
+
+bool MapEditorService::handleSaveAsEvent(const SDL_Event& event) {
+    if (event.type == SDL_TEXTINPUT) {
+        for (const char character : std::string(event.text.text)) {
+            const unsigned char value = static_cast<unsigned char>(character);
+            if (saveAsName.size() < 32 &&
+                (std::isalnum(value) || character == '_' || character == '-')) {
+                saveAsName.push_back(character);
+            }
+        }
+        return true;
+    }
+
+    if (event.type == SDL_KEYUP) {
+        return false;
+    }
+
+    if (event.type != SDL_KEYDOWN || event.key.repeat != 0) {
+        return true;
+    }
+
+    if (event.key.keysym.sym == SDLK_BACKSPACE && !saveAsName.empty()) {
+        saveAsName.pop_back();
+    } else if (event.key.keysym.sym == SDLK_RETURN) {
+        saveLevelAs();
+    } else if (event.key.keysym.sym == SDLK_ESCAPE) {
+        namingMap = false;
+        statusMessage = "SAVE AS CANCELED";
+        SDL_StopTextInput();
+    }
+    return true;
+}
+
+void MapEditorService::saveLevelAs() {
+    if (saveAsName.empty()) {
+        statusMessage = "NAME REQUIRED";
+        return;
+    }
+
+    const std::filesystem::path target =
+        std::filesystem::path(mapDirectory) / (saveAsName + ".map");
+    const std::filesystem::path current(mapPath);
+    // Save As chỉ được ghi đè khi đích chính là file đang mở.
+    if (std::filesystem::exists(target) &&
+        (mapPath.empty() || target.lexically_normal() != current.lexically_normal())) {
+        statusMessage = "NAME EXISTS";
+        return;
+    }
+
+    try {
+        std::filesystem::create_directories(target.parent_path());
+        LevelCodec::save(level, target.string());
+        mapPath = target.string();
+        dirty = false;
+        namingMap = false;
+        pendingDiscardTarget.clear();
+        statusMessage = "MAP SAVED";
+        SDL_StopTextInput();
+        refreshSavedMaps();
         std::cout << "Saved map: " << mapPath << '\n';
     } catch (const std::exception& error) {
+        statusMessage = "SAVE FAILED";
         std::cerr << "Cannot save map: " << error.what() << '\n';
     }
 }
 
-/**
- * Vẽ các tile nhìn thấy trong viewport camera.
- *
- * @param renderer Renderer nhận lệnh vẽ.
- * @param worldTiles Spritesheet chứa tile.
- */
+bool MapEditorService::canDiscardChanges(const std::string& target) {
+    if (!dirty) {
+        pendingDiscardTarget.clear();
+        return true;
+    }
+    if (pendingDiscardTarget == target) {
+        pendingDiscardTarget.clear();
+        return true;
+    }
+
+    // Gửi lại đúng thao tác lần hai mới được bỏ phần chưa lưu.
+    pendingDiscardTarget = target;
+    statusMessage = "REPEAT TO DISCARD";
+    return false;
+}
+
+void MapEditorService::saveLevel() {
+    if (mapPath.empty()) {
+        beginSaveAs();
+        return;
+    }
+
+    try {
+        LevelCodec::save(level, mapPath);
+        dirty = false;
+        pendingDiscardTarget.clear();
+        statusMessage = "MAP SAVED";
+        refreshSavedMaps();
+        std::cout << "Saved map: " << mapPath << '\n';
+    } catch (const std::exception& error) {
+        statusMessage = "SAVE FAILED";
+        std::cerr << "Cannot save map: " << error.what() << '\n';
+    }
+}
+
 void MapEditorService::renderGrid(SDL_Renderer* renderer,
                                   SDL_Texture* worldTiles) {
     const int tileSize = level.getTileSize();
@@ -492,12 +738,6 @@ void MapEditorService::renderGrid(SDL_Renderer* renderer,
     }
 }
 
-/**
- * Vẽ preview brush trong suốt tại ô dưới con trỏ chuột.
- *
- * @param renderer Renderer nhận lệnh vẽ.
- * @param worldTiles Spritesheet chứa tile.
- */
 void MapEditorService::renderBrushCursor(SDL_Renderer* renderer,
                                          SDL_Texture* worldTiles) {
     int column = 0;
@@ -524,12 +764,6 @@ void MapEditorService::renderBrushCursor(SDL_Renderer* renderer,
     SDL_RenderDrawRect(renderer, &cursor);
 }
 
-/**
- * Vẽ panel palette cố định ở cạnh phải cửa sổ.
- *
- * @param renderer Renderer nhận lệnh vẽ.
- * @param worldTiles Spritesheet chứa tile preview.
- */
 void MapEditorService::renderPalette(SDL_Renderer* renderer,
                                      SDL_Texture* worldTiles) {
     const int panelX = getViewportWidth();
@@ -543,13 +777,32 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
 
     UiRenderer::drawText(
         renderer, "EDITOR", panelX + kPalettePadding, 16, 3, kTextColor);
+
+    const SDL_Rect tilesTab{
+        panelX + kPalettePadding, kTabTop, kTabWidth, kTabHeight};
+    const SDL_Rect mapsTab{
+        panelX + kPalettePadding + kTabWidth + 8,
+        kTabTop, kTabWidth, kTabHeight};
+    renderButton(
+        renderer, tilesTab, "TILES", palettePage == PalettePage::Tiles);
+    renderButton(
+        renderer, mapsTab, "MAPS", palettePage == PalettePage::Maps);
+
+    const std::string status = statusMessage.empty()
+                                   ? (dirty ? "UNSAVED" : "SAVED")
+                                   : statusMessage;
     UiRenderer::drawText(
         renderer,
-        dirty ? "UNSAVED" : "SAVED",
+        fitLabel(status, 28),
         panelX + kPalettePadding,
-        52,
+        82,
         1,
         dirty ? kSelectedColor : kMutedTextColor);
+
+    if (palettePage == PalettePage::Maps) {
+        renderMapPalette(renderer);
+        return;
+    }
 
     std::size_t index = 0;
     while (const TileDefinition* definition = paletteDefinition(index)) {
@@ -589,13 +842,13 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
 
     const TileDefinition* selected = findTileDefinition(selectedTile);
     UiRenderer::drawText(
-        renderer, "SELECTED", panelX + kPalettePadding, 372, 1,
+        renderer, "SELECTED", panelX + kPalettePadding, 382, 1,
         kMutedTextColor);
     UiRenderer::drawText(
         renderer,
         selected != nullptr ? selected->label : "UNKNOWN",
         panelX + kPalettePadding,
-        390,
+        400,
         2,
         kSelectedColor);
 
@@ -611,4 +864,87 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
     UiRenderer::drawText(
         renderer, "R RESET", panelX + kPalettePadding, 522, 1,
         kMutedTextColor);
+    UiRenderer::drawText(
+        renderer, "TAB MAPS", panelX + kPalettePadding, 540, 1,
+        kMutedTextColor);
+}
+
+void MapEditorService::renderMapPalette(SDL_Renderer* renderer) {
+    const int panelX = getViewportWidth();
+    const int buttonX = panelX + kPalettePadding;
+    const std::string currentName = namingMap
+                                        ? saveAsName + "_"
+                                        : (mapPath.empty()
+                                               ? "UNTITLED"
+                                               : mapName(mapPath));
+
+    UiRenderer::drawText(
+        renderer, namingMap ? "SAVE AS" : "CURRENT MAP",
+        buttonX, 108, 1, kMutedTextColor);
+    UiRenderer::drawText(
+        renderer,
+        namingMap ? fitTailLabel(currentName, 14)
+                  : fitLabel(currentName, 14),
+        buttonX, 126, 2, kSelectedColor);
+
+    const std::string sizeText =
+        "SIZE " + std::to_string(level.getWidth()) + "X" +
+        std::to_string(level.getHeight());
+    UiRenderer::drawText(
+        renderer, sizeText, buttonX, 156, 1, kTextColor);
+
+    constexpr int smallButtonWidth = 40;
+    constexpr int smallButtonGap = 4;
+    renderButton(
+        renderer,
+        {buttonX, kMapButtonsTop, smallButtonWidth, 30}, "W-");
+    renderButton(
+        renderer,
+        {buttonX + smallButtonWidth + smallButtonGap,
+         kMapButtonsTop, smallButtonWidth, 30}, "W+");
+    renderButton(
+        renderer,
+        {buttonX + (smallButtonWidth + smallButtonGap) * 2,
+         kMapButtonsTop, smallButtonWidth, 30}, "H-");
+    renderButton(
+        renderer,
+        {buttonX + (smallButtonWidth + smallButtonGap) * 3,
+         kMapButtonsTop, smallButtonWidth, 30}, "H+");
+
+    renderButton(renderer, {buttonX, kMapActionTop, 84, 30}, "NEW");
+    renderButton(renderer, {buttonX + 92, kMapActionTop, 84, 30}, "SAVE");
+    renderButton(renderer, {buttonX, kMapSaveAsTop, 176, 30}, "SAVE AS");
+
+    UiRenderer::drawText(
+        renderer, "SAVED MAPS", buttonX, 304, 1, kMutedTextColor);
+
+    const int visibleRows = getVisibleMapRows();
+    for (int row = 0; row < visibleRows; ++row) {
+        const std::size_t index = static_cast<std::size_t>(mapListOffset + row);
+        if (index >= savedMaps.size()) {
+            break;
+        }
+
+        const SDL_Rect item{
+            buttonX,
+            kMapListTop + row * kMapListRowHeight,
+            176,
+            kMapListRowHeight - 4
+        };
+        const bool current = !mapPath.empty() &&
+            std::filesystem::path(savedMaps[index]).lexically_normal() ==
+                std::filesystem::path(mapPath).lexically_normal();
+        UiRenderer::fillRect(
+            renderer, item, current ? kSelectedColor : kCardColor);
+        UiRenderer::drawText(
+            renderer, fitLabel(mapName(savedMaps[index]), 26),
+            item.x + 6, item.y + 8, 1,
+            current ? kPanelColor : kTextColor);
+    }
+
+    if (savedMaps.empty()) {
+        UiRenderer::drawText(
+            renderer, "NO MAPS", buttonX, kMapListTop + 8, 1,
+            kMutedTextColor);
+    }
 }
