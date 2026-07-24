@@ -1,18 +1,9 @@
 #include "model/LevelData.h"
 
+#include <algorithm>
 #include <stdexcept>
+#include <utility>
 
-/**
- * Khởi tạo một màn chơi rỗng với kích thước lưới được chỉ định.
- *
- * Toàn bộ ô trong lưới được gán kEmptyTileId và vị trí sinh của người chơi
- * được đặt tại ô đầu tiên.
- *
- * @param width Số cột tile của màn chơi.
- * @param height Số hàng tile của màn chơi.
- * @param tileSize Chiều rộng và chiều cao của một tile, tính bằng pixel.
- * @throws std::invalid_argument Khi width, height hoặc tileSize không dương.
- */
 LevelData::LevelData(int width, int height, int tileSize)
     : width(width),
       height(height),
@@ -32,80 +23,35 @@ LevelData::LevelData(int width, int height, int tileSize)
     tiles.assign(tileCount, kEmptyTileId);
 }
 
-/**
- * Lấy số cột tile của màn chơi.
- *
- * @return Chiều rộng lưới tính theo số tile.
- */
 int LevelData::getWidth() const {
     return width;
 }
 
-/**
- * Lấy số hàng tile của màn chơi.
- *
- * @return Chiều cao lưới tính theo số tile.
- */
 int LevelData::getHeight() const {
     return height;
 }
 
-/**
- * Lấy kích thước cạnh của một tile.
- *
- * @return Kích thước tile tính bằng pixel.
- */
 int LevelData::getTileSize() const {
     return tileSize;
 }
 
-/**
- * Lấy cột sinh của người chơi trong lưới tile.
- *
- * @return Chỉ số cột sinh của người chơi.
- */
 int LevelData::getSpawnColumn() const {
     return spawnColumn;
 }
 
-/**
- * Lấy hàng sinh của người chơi trong lưới tile.
- *
- * @return Chỉ số hàng sinh của người chơi.
- */
 int LevelData::getSpawnRow() const {
     return spawnRow;
 }
 
-/**
- * Lấy toàn bộ tile theo thứ tự từ trái sang phải, từ trên xuống dưới.
- *
- * @return Tham chiếu chỉ đọc tới danh sách tile của màn chơi.
- */
 const std::vector<TileId>& LevelData::getTiles() const {
     return tiles;
 }
 
-/**
- * Kiểm tra một tọa độ ô có nằm trong lưới tile hay không.
- *
- * @param column Chỉ số cột cần kiểm tra.
- * @param row Chỉ số hàng cần kiểm tra.
- * @return true nếu ô nằm trong lưới; ngược lại là false.
- */
 bool LevelData::isInside(int column, int row) const {
     return column >= 0 && column < width &&
            row >= 0 && row < height;
 }
 
-/**
- * Chuyển tọa độ cột, hàng thành vị trí trong vector tile dạng row-major.
- *
- * @param column Chỉ số cột của tile.
- * @param row Chỉ số hàng của tile.
- * @return Vị trí tương ứng trong vector tile.
- * @throws std::out_of_range Khi tọa độ nằm ngoài lưới.
- */
 std::size_t LevelData::toIndex(int column, int row) const {
     if (!isInside(column, row)) {
         throw std::out_of_range("Tọa độ ô đang nằm ngoài map.");
@@ -116,37 +62,14 @@ std::size_t LevelData::toIndex(int column, int row) const {
         static_cast<std::size_t>(column);
 }
 
-/**
- * Lấy mã tile tại một ô trong lưới.
- *
- * @param column Chỉ số cột của tile.
- * @param row Chỉ số hàng của tile.
- * @return Mã tile đang được lưu tại ô.
- * @throws std::out_of_range Khi tọa độ nằm ngoài lưới.
- */
 TileId LevelData::getTile(int column, int row) const {
     return tiles[toIndex(column, row)];
 }
 
-/**
- * Gán mã tile mới cho một ô trong lưới.
- *
- * @param column Chỉ số cột của tile.
- * @param row Chỉ số hàng của tile.
- * @param tileId Mã tile mới cần lưu.
- * @throws std::out_of_range Khi tọa độ nằm ngoài lưới.
- */
 void LevelData::setTile(int column, int row, TileId tileId) {
     tiles[toIndex(column, row)] = tileId;
 }
 
-/**
- * Đặt ô sinh của người chơi trong lưới tile.
- *
- * @param column Chỉ số cột sinh của người chơi.
- * @param row Chỉ số hàng sinh của người chơi.
- * @throws std::out_of_range Khi tọa độ nằm ngoài lưới.
- */
 void LevelData::setPlayerSpawn(int column, int row) {
     if (!isInside(column, row)) {
         throw std::out_of_range("Người chơi đang sinh ra ở ngoài map.");
@@ -154,4 +77,31 @@ void LevelData::setPlayerSpawn(int column, int row) {
 
     spawnColumn = column;
     spawnRow = row;
+}
+
+void LevelData::resize(int newWidth, int newHeight) {
+    if (newWidth <= 0 || newHeight <= 0) {
+        throw std::invalid_argument("Kich thuoc map phai la so duong.");
+    }
+
+    std::vector<TileId> resized(
+        static_cast<std::size_t>(newWidth) *
+            static_cast<std::size_t>(newHeight),
+        kEmptyTileId);
+    const int copyWidth = std::min(width, newWidth);
+    const int copyHeight = std::min(height, newHeight);
+
+    // Giữ góc trên-trái; phần nới thêm đã là ô trống.
+    for (int row = 0; row < copyHeight; ++row) {
+        for (int column = 0; column < copyWidth; ++column) {
+            resized[static_cast<std::size_t>(row) * newWidth + column] =
+                tiles[static_cast<std::size_t>(row) * width + column];
+        }
+    }
+
+    width = newWidth;
+    height = newHeight;
+    spawnColumn = std::min(spawnColumn, width - 1);
+    spawnRow = std::min(spawnRow, height - 1);
+    tiles = std::move(resized);
 }

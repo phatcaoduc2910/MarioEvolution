@@ -4,12 +4,6 @@
 #include <cstddef>
 #include <vector>
 
-/**
- * Lưu dữ liệu lưới tile tĩnh của một màn chơi.
- *
- * Lớp chỉ chứa dữ liệu logic của map, không sở hữu tài nguyên SDL hoặc các
- * thực thể đang hoạt động trong World.
- */
 class LevelData {
 public:
     LevelData(int width, int height, int tileSize);
@@ -21,6 +15,8 @@ public:
     int getSpawnColumn() const;
     int getSpawnRow() const;
     void setPlayerSpawn(int column, int row);
+
+    void resize(int newWidth, int newHeight);
 
     bool isInside(int column, int row) const;
 

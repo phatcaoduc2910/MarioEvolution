@@ -8,11 +8,6 @@
 #include <iostream>
 #include <string>
 
-/**
- * Nạp, lưu lại và so sánh toàn bộ dữ liệu level mẫu.
- *
- * @return 0 khi mọi assertion đều đạt.
- */
 int main() {
     constexpr int kTileSize = 32;
     const std::string sourcePath = "assets/level1.map";
@@ -35,6 +30,20 @@ int main() {
     for (const int count : tileCounts) {
         assert(count > 0);
     }
+
+    LevelData resized(2, 2, kTileSize);
+    resized.setTile(0, 0, kStandardBrickTileId);
+    resized.setTile(1, 1, kFlowerBrickTileId);
+    resized.setPlayerSpawn(1, 1);
+    resized.resize(3, 1);
+    assert(resized.getWidth() == 3);
+    assert(resized.getHeight() == 1);
+    assert(resized.getTile(0, 0) == kStandardBrickTileId);
+    assert(resized.getTile(2, 0) == kEmptyTileId);
+    assert(resized.getSpawnColumn() == 1);
+    assert(resized.getSpawnRow() == 0);
+    resized.resize(3, 2);
+    assert(resized.getTile(1, 1) == kEmptyTileId);
 
     std::remove(copyPath.c_str());
     std::cout << "Level codec round-trip passed\n";
