@@ -36,5 +36,14 @@ hoặc đóng editor.
 - Giữ chuột trái và kéo trên map để đặt tile; bắt đầu trên tile cùng loại để xóa.
 - Phím `E` lấy tile dưới con trỏ làm brush.
 - Phím mũi tên hoặc `WASD` di chuyển camera.
-- `Ctrl+S` lưu vào `assets/level1.map`.
+- `Tab` hoặc click `TILES`/`MAPS` để đổi trang palette.
+- Trong trang `MAPS`, click `W-`, `W+`, `H-`, `H+` để đổi kích thước map.
+  Có thể dùng `[`/`]` cho chiều rộng và `-`/`=` cho chiều cao.
+- `N` hoặc nút `NEW` tạo map mới với kích thước hiện tại.
+- `Ctrl+S` hoặc nút `SAVE` lưu map hiện tại.
+- `F2`, `Ctrl+Shift+S` hoặc nút `SAVE AS` để nhập tên map mới; `Enter` lưu,
+  `Esc` hủy. Tên nhận chữ, số, `_`, `-` và được lưu trong `assets/`.
+- Click tên trong `SAVED MAPS` để mở map; lăn chuột để xem danh sách dài và
+  nhấn `F5` để quét lại thư mục.
+- Khi có thay đổi chưa lưu, lặp lại thao tác `NEW`/mở map để xác nhận bỏ thay đổi.
 - Phím `R` tạo lại map và `Esc` đóng editor.

@@ -24,7 +24,15 @@ nhấn `0` để bật palette.
 - Phím `E` lấy tile dưới con trỏ làm brush.
 - Phím `R` tạo lại level với hàng gạch nền.
 - Click palette hoặc dùng phím `1` đến `5` để chọn brush.
-- `Ctrl+S` lưu vào `assets/level1.map`.
+- `Ctrl+S` lưu map đang mở; map mới sẽ chuyển sang nhập tên Save As.
+- `Tab` hoặc click tab `MAPS` để mở palette quản lý map.
+- `W-`, `W+`, `H-`, `H+` đổi kích thước và giữ phần tile còn nằm trong biên.
+  Phím tắt tương ứng là `[`/`]` cho chiều rộng, `-`/`=` cho chiều cao.
+- `N`/`NEW` tạo map mới; `Ctrl+S`/`SAVE` lưu file hiện tại.
+- `F2`, `Ctrl+Shift+S` hoặc `SAVE AS` nhập tên file mới; `Enter` lưu, `Esc` hủy.
+- Danh sách `SAVED MAPS` hiển thị mọi file `.map` trong `assets/`; click để mở,
+  lăn chuột để cuộn và nhấn `F5` để làm mới.
+- Thao tác tạo/mở làm mất thay đổi chưa lưu phải được lặp lại để xác nhận.
 - Giữ chuột trái và kéo để vẽ; bắt đầu trên tile đang chọn sẽ xóa cả nét.
 - Phím mũi tên hoặc `WASD` di chuyển camera.
 - Phím `Esc` đóng editor.
