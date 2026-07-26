@@ -9,23 +9,28 @@ constexpr SDL_Color kTitleColor{255, 214, 66, 255};
 constexpr SDL_Color kTextColor{255, 255, 255, 255};
 }
 
+// Vẽ lớp phủ tạm dừng theo kích thước hiện tại của renderer.
 void PauseScreen::render(SDL_Renderer* renderer) const {
+    // Kiểm tra renderer
     if (renderer == nullptr) {
         return;
     }
 
+    // Lấy kích thước renderer
     int screenWidth = 0;
     int screenHeight = 0;
     if (SDL_GetRendererOutputSize(renderer, &screenWidth, &screenHeight) != 0) {
         return;
     }
 
+    // Vẽ hình chữ nhật phủ đầy màn hình
     UiRenderer::fillRect(
         renderer,
         {0, 0, screenWidth, screenHeight},
         kOverlayColor
     );
 
+    // Vẽ chữ "PAUSED" và "PRESS P OR ENTER TO CONTINUE"
     const int centerY = screenHeight / 2;
     UiRenderer::drawCenteredText(
         renderer, "PAUSED", screenWidth, centerY - 70, 5, kTitleColor
@@ -36,10 +41,11 @@ void PauseScreen::render(SDL_Renderer* renderer) const {
     );
 }
 
+// Nhấn phím Paused hoặc Enter để tiếp tục game
 ScreenAction PauseScreen::handleInput(InputHandler& input) {
     if (input.isPressed(Key::Pause) || input.isPressed(Key::Enter)) {
         return ScreenAction::ResumeGame;
     }
 
-    return ScreenAction::None;
+    return ScreenAction::None;      // Trả về None nếu không nhấn
 }
