@@ -3,37 +3,49 @@
 #include "controller/InputHandler.h"
 #include "view/UiRenderer.h"
 
-namespace {
-constexpr int kPanelWidth = 520;
-constexpr int kPanelHeight = 380;
-constexpr int kButtonWidth = 280;
-constexpr int kButtonHeight = 60;
+namespace{
+    constexpr int kPanelWidth = 520;
+    constexpr int kPanelHeight = 380;
+    constexpr int kButtonWidth = 280;
+    constexpr int kButtonHeight = 60;
 
-constexpr SDL_Color kPanelColor{29, 44, 73, 235};
-constexpr SDL_Color kSelectedColor{242, 172, 45, 255};
-constexpr SDL_Color kButtonColor{69, 88, 120, 255};
-constexpr SDL_Color kTitleColor{255, 214, 66, 255};
-constexpr SDL_Color kTextColor{255, 255, 255, 255};
-constexpr SDL_Color kGuideColor{194, 208, 231, 255};
+    constexpr SDL_Color kPanelColor{29, 44, 73, 235};
+    constexpr SDL_Color kSelectedColor{242, 172, 45, 255};
+    constexpr SDL_Color kButtonColor{69, 88, 120, 255};
+    constexpr SDL_Color kTitleColor{255, 214, 66, 255};
+    constexpr SDL_Color kTextColor{255, 255, 255, 255};
+    constexpr SDL_Color kGuideColor{194, 208, 231, 255};
 
-SDL_Color buttonColor(MenuOption option, MenuOption selectedOption) {
-    return option == selectedOption ? kSelectedColor : kButtonColor;
+    /**
+    Chọn màu nền của một nút theo trạng thái lựa chọn hiện tại.
+    Nếu nút đang được chọn, trả về màu vàng (kSelectedColor)
+    Nếu không, trả về màu xanh xám (kButtonColor)
+    */
+    SDL_Color buttonColor(MenuOption option, MenuOption selectedOption){
+        return option == selectedOption ? kSelectedColor : kButtonColor;
+    }
 }
-}
 
-void StartScreen::render(SDL_Renderer* renderer) const {
-    if (renderer == nullptr) {
+//Vẽ panel, các lựa chọn và hướng dẫn của màn hình bắt đầu.
+void StartScreen::render(SDL_Renderer* renderer) const{
+    // Kiểm tra renderer có hợp lệ không
+    if (renderer == nullptr){
         return;
     }
 
     int screenWidth = 0;
     int screenHeight = 0;
-    if (SDL_GetRendererOutputSize(renderer, &screenWidth, &screenHeight) != 0) {
+
+    // Lấy kích thước cửa sổ bằng SDL_GetRendererOutputSize()
+    if (SDL_GetRendererOutputSize(renderer, &screenWidth, &screenHeight) != 0){
         return;
     }
 
+    // Tính tâm màn hình
     const int centerX = screenWidth / 2;
     const int centerY = screenHeight / 2;
+
+    // Tạo các hình chữ nhật: Panel Menu, nút Start và nút Exit
     const SDL_Rect panel{
         centerX - kPanelWidth / 2,
         centerY - kPanelHeight / 2,
@@ -53,6 +65,7 @@ void StartScreen::render(SDL_Renderer* renderer) const {
         kButtonHeight
     };
 
+    // Vẽ panel và hai nút bằng fillRect()
     UiRenderer::fillRect(renderer, panel, kPanelColor);
     UiRenderer::fillRect(
         renderer,
@@ -80,18 +93,22 @@ void StartScreen::render(SDL_Renderer* renderer) const {
     );
 }
 
-ScreenAction StartScreen::handleInput(InputHandler& input) {
+// Cập nhật lựa chọn menu và chuyển phím Enter thành ScreenAction.
+ScreenAction StartScreen::handleInput(InputHandler& input){
+    // Nhấn lên: chọn StartGame, nhấn xuống: chọn Exit
     if (input.isPressed(Key::Up)) {
         selectedOption = MenuOption::StartGame;
-    } else if (input.isPressed(Key::Down)) {
+    } else if (input.isPressed(Key::Down)){
         selectedOption = MenuOption::Exit;
     }
 
-    if (!input.isPressed(Key::Enter)) {
+    // Nếu chưa nhấn Enter thì chưa có hành động 
+    if (!input.isPressed(Key::Enter)){
         return ScreenAction::None;
     }
 
+    // Nếu nhấn Enter 
     return selectedOption == MenuOption::StartGame
-        ? ScreenAction::StartGame
-        : ScreenAction::ExitGame;
+        ? ScreenAction::StartGame   // Đang chọn Start -> trả về StartGame
+        : ScreenAction::ExitGame;   // Đang chọn Exit -> trả về ExitGame
 }

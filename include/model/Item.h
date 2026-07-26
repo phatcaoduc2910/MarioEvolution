@@ -1,11 +1,13 @@
-#pragma once
+#pragma once 
 
 #include "GameObject.h"
 
 class Player;
 
-class Item : public GameObject {
+// Lớp Item
+class Item : public GameObject{
 public:
+    // Khởi tạo vị trí, kích thước, vùng va chạm
     Item(double x, double y, int width, int height);
     ~Item() override = default;
 
@@ -17,25 +19,29 @@ protected:
     bool collected;
 };
 
-class Coin : public Item {
+// Lớp Coin
+class Coin : public Item{
 public:
+    // Tạo đồng xu
     Coin(double x, double y, int value);
 
-    int getValue() const;
+    int getValue() const;   // Trả về số điểm của đồng xu
     void applyTo(Player& player) override;
 
 private:
     int value;
 };
 
-class Mushroom : public Item {
+// lớp Mushroom: chuyển người chơi sang trạng thái Big
+class Mushroom : public Item{
 public:
     Mushroom(double x, double y);
 
     void applyTo(Player& player) override;
 };
 
-class FireFlower : public Item {
+// Lớp FireFlower: chuyển người chơi sang trạng thái Fire
+class FireFlower : public Item{
 public:
     FireFlower(double x, double y);
 
