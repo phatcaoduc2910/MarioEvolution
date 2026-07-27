@@ -9,7 +9,7 @@
 
 #include <memory>
 #include <utility>
-
+//Check nếu player nhảy lên trên block
 namespace {
 bool hitsFromBelow(const Actor& actor, const GameObject& object) {
     const Rectangle actorBounds = actor.getBounds();
@@ -20,7 +20,7 @@ bool hitsFromBelow(const Actor& actor, const GameObject& object) {
     return actor.getVelocityY() < 0.0 && actorCenterY > objectCenterY;
 }
 }
-
+//Kiểm tra va chạm kiểu AABB
 bool CollisionSystem::check(
     const Actor& actor,
     const GameObject& object
@@ -36,11 +36,10 @@ bool CollisionSystem::check(
 
 void CollisionSystem::resolve(World& world) {
     Player& player = world.getPlayer();
-
+    //Xử lý player với brick
     for (const auto& object : world.getObjects()) {
         if (object->isSolid() && check(player, *object)) {
             if (hitsFromBelow(player, *object)) {
-                // SpecialBrick tạo item; gạch thường chỉ đổi trạng thái.
                 if (auto* specialBrick =
                         dynamic_cast<SpecialBrick*>(object.get())) {
                     std::unique_ptr<Item> item = specialBrick->releaseItem();
@@ -55,7 +54,7 @@ void CollisionSystem::resolve(World& world) {
             object->onCollision(player);
         }
     }
-
+    //Xử lý player với item rơi ra
     for (const auto& item : world.getItems()) {
         if (item->isCollected() || !check(player, *item)) {
             continue;
@@ -66,7 +65,7 @@ void CollisionSystem::resolve(World& world) {
         }
         player.collect(*item);
     }
-
+    //Xử lý các actor với brick
     for (const auto& actor : world.getActors()) {
         if (!actor->isAlive()) {
             continue;
