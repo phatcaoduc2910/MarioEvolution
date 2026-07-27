@@ -32,6 +32,8 @@ const std::vector<std::unique_ptr<Item>>& World::getItems() const {
     return items;
 }
 
+
+//Đọc map từ level.map
 void World::loadLevel(const LevelData& level) {
     constexpr int kObjectTileSize = 32;
     if (level.getTileSize() != kObjectTileSize) {
@@ -50,7 +52,7 @@ void World::loadLevel(const LevelData& level) {
             const double x = static_cast<double>(column * kObjectTileSize);
             const double y = static_cast<double>(row * kObjectTileSize);
 
-            // Format hiện tại chỉ sinh brick và item; actor cần layer spawn riêng.
+            // Add block theo tileId
             switch (tileId) {
                 case kEmptyTileId:
                     break;

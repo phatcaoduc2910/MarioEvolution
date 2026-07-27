@@ -26,7 +26,7 @@ Game::~Game() {
     IMG_Quit();
     SDL_Quit();
 }
-
+//Khởi tạo giá trị ban đầu của game
 bool Game::start() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("SDL initialization failed: %s", SDL_GetError());
@@ -118,18 +118,18 @@ void Game::resume() {
         audioService->play("theme");
     }
 }
-
+// Xử lý vòng lặp game
 void Game::gameLoop() {
     SDL_Event event;
 
     while (running) {
-        // Hút hết event trước khi update để input không trễ sang frame sau.
         while (SDL_PollEvent(&event)) {
+            //Thoát game
             if (event.type == SDL_QUIT) {
                 running = false;
                 break;
             }
-
+            //Vào map editor
             if (playing && currentScreen == nullptr && mapEditor != nullptr) {
                 const bool wasEditorEnabled = mapEditor->isEnabled();
                 if (mapEditor->handleEvent(event)) {
@@ -142,6 +142,7 @@ void Game::gameLoop() {
                 }
             }
 
+            //Xử lý key
             if (event.type != SDL_KEYDOWN && event.type != SDL_KEYUP) {
                 continue;
             }
@@ -156,13 +157,12 @@ void Game::gameLoop() {
                 continue;
             }
 
-            // Menu và pause chỉ phản ứng một lần cho mỗi lần nhấn.
             if (event.key.repeat != 0) {
                 continue;
             }
 
             inputHandler.press(key);
-
+            // Xử lý screen
             if (auto* startScreen = dynamic_cast<StartScreen*>(currentScreen.get())) {
                 const ScreenAction action = startScreen->handleInput(inputHandler);
 
@@ -195,7 +195,7 @@ void Game::gameLoop() {
         if (!running) {
             break;
         }
-
+        //Xử lý game theo thời gian
         const Uint32 now = SDL_GetTicks();
         const Uint32 elapsed = now - lastFrameTicks;
         const int deltaMs = static_cast<int>(std::min<Uint32>(elapsed, 100));
@@ -203,12 +203,11 @@ void Game::gameLoop() {
 
         SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
         SDL_RenderClear(renderer);
-
-        // Có screen phủ thì World đứng yên.
+        //Render cửa sổ
         if (currentScreen != nullptr) {
             currentScreen->render(renderer);
-        } else if (playing) {
-            if (mapEditor != nullptr && mapEditor->isEnabled()) {
+        } else if (playing) { 
+            if (mapEditor != nullptr && mapEditor->isEnabled()) { //Kiểm tra xem có mở mapeditor k
                 mapEditor->update();
                 mapEditor->render(renderer, worldTiles);
 
@@ -222,7 +221,7 @@ void Game::gameLoop() {
                     -mapEditor->getCameraX(),
                     -mapEditor->getCameraY());
                 SDL_RenderSetClipRect(renderer, nullptr);
-            } else {
+            } else { //Nếu trong game
                 int horizontalInput = 0;
                 if (inputHandler.isPressed(Key::Left)) {
                     --horizontalInput;
