@@ -1,8 +1,7 @@
 #include "core/Game.h"
 
 #include "service/MapEditorService.h"
-#include "view/PauseScreen.h"
-#include "view/StartScreen.h"
+
 
 #include <SDL2/SDL_image.h>
 #include <algorithm>
@@ -15,7 +14,7 @@ constexpr int kTileSize = 32;
 }
 
 Game::Game()
-    : currentScreen(std::make_unique<StartScreen>()),
+    : currentGameState(StartMenu),
       audioService(std::make_unique<SoundManager>()) {}
 
 Game::~Game() {
@@ -101,127 +100,122 @@ bool Game::start() {
     lastFrameTicks = SDL_GetTicks();
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    running = true;
     return true;
 }
 
 void Game::pause() {
-    if (playing && currentScreen == nullptr) {
-        currentScreen = std::make_unique<PauseScreen>();
-        audioService->pause("theme");
-    }
+    currentGameState = Paused;
+    pauseScreen.render(renderer);
+    audioService->pause("theme");
 }
 
 void Game::resume() {
-    if (playing && currentScreen != nullptr) {
-        currentScreen.reset();
-        audioService->play("theme");
-    }
+    currentGameState = Playing;
+    audioService->play("theme");
+}
+
+void Game::edit() {
+    currentGameState = Editing;
+    audioService->pause("theme");
 }
 // Xử lý vòng lặp game
 void Game::gameLoop() {
     SDL_Event event;
+    
 
-    while (running) {
+    while (currentGameState != Exit) {
         while (SDL_PollEvent(&event)) {
-            //Thoát game
-            if (event.type == SDL_QUIT) {
-                running = false;
-                break;
-            }
-            //Vào map editor
-            if (playing && currentScreen == nullptr && mapEditor != nullptr) {
-                const bool wasEditorEnabled = mapEditor->isEnabled();
-                if (mapEditor->handleEvent(event)) {
-                    if (!wasEditorEnabled && mapEditor->isEnabled()) {
-                        world.getPlayer().setMoveDirection(0);
-                    } else if (wasEditorEnabled && !mapEditor->isEnabled()) {
-                        world.loadLevel(mapEditor->getLevel());
-                    }
-                    continue;
-                }
-            }
 
-            //Xử lý key
-            if (event.type != SDL_KEYDOWN && event.type != SDL_KEYUP) {
-                continue;
-            }
-
-            Key key = Key::Enter;
-            if (!inputHandler.mapKey(event.key.keysym.sym, key)) {
-                continue;
-            }
-
-            if (event.type == SDL_KEYUP) {
+        Key key = inputHandler.mapKey(event.key.keysym.sym);
+            if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                inputHandler.press(key); 
+            } else if (event.type == SDL_KEYUP) {
                 inputHandler.release(key);
-                continue;
             }
 
-            if (event.key.repeat != 0) {
-                continue;
+            if(event.type == SDL_QUIT) {
+                currentGameState = Exit;
             }
-
-            inputHandler.press(key);
-            // Xử lý screen
-            if (auto* startScreen = dynamic_cast<StartScreen*>(currentScreen.get())) {
-                const ScreenAction action = startScreen->handleInput(inputHandler);
-
-                if (action == ScreenAction::StartGame) {
-                    playing = true;
-                    currentScreen.reset();
-                    audioService->play("theme");
-                } else if (action == ScreenAction::ExitGame) {
-                    running = false;
+            switch (currentGameState) {
+                case StartMenu:{
+                    ScreenAction action = startScreen.handleInput(inputHandler);
+                    if(action == ScreenAction::StartGame) {
+                        currentGameState = Playing;
+                    } else if (action == ScreenAction::ExitGame) {
+                        currentGameState = Exit;
+                    }
+                    break;
                 }
-            } else if (auto* pauseScreen = dynamic_cast<PauseScreen*>(currentScreen.get())) {
-                const ScreenAction action = pauseScreen->handleInput(inputHandler);
-
-                if (action == ScreenAction::ResumeGame) {
-                    resume();
+                case Playing:{
+                    if(inputHandler.isPressed(Key::Esc)) {
+                        inputHandler.release(Key::Esc);
+                        pause();
+                    } else if (inputHandler.isPressed(Key::Jump)) {
+                        world.getPlayer().jump();
+                    } else if (inputHandler.isPressed(Key::Edit)) {
+                        inputHandler.release(Key::Edit);
+                        currentGameState = Editing;
+                        mapEditor->handleEvent(event);
+                    }
+                    break;
                 }
-            } else if (playing) {
-                if (key == Key::Pause) {
+                case Paused:{
+                    if(inputHandler.isPressed(Key::Esc)) {
+                        inputHandler.release(Key::Esc);
+                        resume();
+                    }
+                    break;
+                }
+                case Editing:{
+                    //Vào map editor
+                    const bool wasEditorEnabled = mapEditor->isEnabled();
+                    if (mapEditor->handleEvent(event)) {
+                        if (!wasEditorEnabled && mapEditor->isEnabled()) {
+                            world.getPlayer().setMoveDirection(0);
+                        } else if (wasEditorEnabled && !mapEditor->isEnabled()) {
+                            world.loadLevel(mapEditor->getLevel());
+                        }
+                        continue;
+                    }
+
+                    if(inputHandler.isPressed(Key::Edit)) {
+                        inputHandler.release(Key::Edit);
+                        currentGameState = Playing;
+                    }
+
+                    break;
+                }
+                case LevelComplete:{
                     pause();
-                } else if (key == Key::Jump) {
-                    world.getPlayer().jump();
+                    break;
+                }
+                case GameOver:{
+                    pause();
+                    break;
+                }
+                case Exit:{
+                    break;
                 }
             }
-
-            if (!running) {
-                break;
-            }
         }
 
-        if (!running) {
+    const Uint32 now = SDL_GetTicks();
+    const Uint32 elapsed = now - lastFrameTicks;
+    const int deltaMs = static_cast<int>(std::min<Uint32>(elapsed, 100));
+    lastFrameTicks = now;
+    SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
+    SDL_RenderClear(renderer);
+
+    switch (currentGameState) {
+        case StartMenu:
+            startScreen.render(renderer);
             break;
-        }
-        //Xử lý game theo thời gian
-        const Uint32 now = SDL_GetTicks();
-        const Uint32 elapsed = now - lastFrameTicks;
-        const int deltaMs = static_cast<int>(std::min<Uint32>(elapsed, 100));
-        lastFrameTicks = now;
 
-        SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
-        SDL_RenderClear(renderer);
-        //Render cửa sổ
-        if (currentScreen != nullptr) {
-            currentScreen->render(renderer);
-        } else if (playing) { 
-            if (mapEditor != nullptr && mapEditor->isEnabled()) { //Kiểm tra xem có mở mapeditor k
-                mapEditor->update();
-                mapEditor->render(renderer, worldTiles);
-
-                playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
-                const SDL_Rect viewport = mapEditor->getMapViewport();
-                SDL_RenderSetClipRect(renderer, &viewport);
-                playerRenderer.renderPlayer(
-                    renderer,
-                    playerTexture,
-                    world.getPlayer(),
-                    -mapEditor->getCameraX(),
-                    -mapEditor->getCameraY());
-                SDL_RenderSetClipRect(renderer, nullptr);
-            } else { //Nếu trong game
+        case Paused:
+            pauseScreen.render(renderer);
+            break;
+        case Playing:{
+            //Nếu trong game
                 int horizontalInput = 0;
                 if (inputHandler.isPressed(Key::Left)) {
                     --horizontalInput;
@@ -241,9 +235,26 @@ void Game::gameLoop() {
                     renderer,
                     playerTexture,
                     world.getPlayer());
-            }
-        }
+                }
+                break;
 
-        SDL_RenderPresent(renderer);
+        case Editing:{
+            mapEditor->update();
+            mapEditor->render(renderer, worldTiles);
+
+            playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
+            const SDL_Rect viewport = mapEditor->getMapViewport();
+            SDL_RenderSetClipRect(renderer, &viewport);
+            playerRenderer.renderPlayer(
+                renderer,
+                playerTexture,
+                world.getPlayer(),
+                -mapEditor->getCameraX(),
+                -mapEditor->getCameraY());
+            SDL_RenderSetClipRect(renderer, nullptr);
+        }
+        break;
     }
+    SDL_RenderPresent(renderer);
+}
 }
