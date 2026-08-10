@@ -5,12 +5,13 @@
 #include <SDL2/SDL.h>
 #include <set>
 
+
 class InputHandler {
 public:
     bool isPressed(Key key) const;
     void press(Key key);
     void release(Key key);
-    bool mapKey(SDL_Keycode keycode, Key& key);
+    Key mapKey(SDL_Keycode keycode) const;
     void update();
 
 private:
