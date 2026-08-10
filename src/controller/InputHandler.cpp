@@ -44,4 +44,17 @@ Key InputHandler::mapKey(SDL_Keycode keycode) const {
     }
 }
 
-void InputHandler::update() {}
+Option InputHandler::getMenuOption(Option &option) const {
+
+    if (isPressed(Key::Up)) {
+        option = Option::StartGame;
+    } else if (isPressed(Key::Down)) {
+        option = Option::ExitGame;
+    }
+    
+    if (isPressed(Key::Enter)) {
+        return option;
+    }
+    // Chưa bấm Enter -> Trả về None
+    return Option::None;
+}
