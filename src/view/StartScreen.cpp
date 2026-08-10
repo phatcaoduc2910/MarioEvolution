@@ -21,7 +21,7 @@ namespace{
     Nếu nút đang được chọn, trả về màu vàng (kSelectedColor)
     Nếu không, trả về màu xanh xám (kButtonColor)
     */
-    SDL_Color buttonColor(MenuOption option, MenuOption selectedOption){
+    SDL_Color buttonColor(Option option, Option selectedOption){
         return option == selectedOption ? kSelectedColor : kButtonColor;
     }
 }
@@ -70,12 +70,12 @@ void StartScreen::render(SDL_Renderer* renderer) const{
     UiRenderer::fillRect(
         renderer,
         startButton,
-        buttonColor(MenuOption::StartGame, selectedOption)
+        buttonColor(Option::StartGame, selectedOption)
     );
     UiRenderer::fillRect(
         renderer,
         exitButton,
-        buttonColor(MenuOption::Exit, selectedOption)
+        buttonColor(Option::ExitGame, selectedOption)
     );
 
     UiRenderer::drawCenteredText(
@@ -92,23 +92,6 @@ void StartScreen::render(SDL_Renderer* renderer) const{
         kGuideColor
     );
 }
-
-// Cập nhật lựa chọn menu và chuyển phím Enter thành ScreenAction.
-ScreenAction StartScreen::handleInput(InputHandler& input){
-    // Nhấn lên: chọn StartGame, nhấn xuống: chọn Exit
-    if (input.isPressed(Key::Up)) {
-        selectedOption = MenuOption::StartGame;
-    } else if (input.isPressed(Key::Down)){
-        selectedOption = MenuOption::Exit;
-    }
-
-    // Nếu chưa nhấn Enter thì chưa có hành động 
-    if (!input.isPressed(Key::Enter)){
-        return ScreenAction::None;
-    }
-
-    // Nếu nhấn Enter 
-    return selectedOption == MenuOption::StartGame
-        ? ScreenAction::StartGame   // Đang chọn Start -> trả về StartGame
-        : ScreenAction::ExitGame;   // Đang chọn Exit -> trả về ExitGame
+void StartScreen::setOption(Option option) {
+    selectedOption = option;
 }
