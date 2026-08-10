@@ -43,7 +43,7 @@ void PauseScreen::render(SDL_Renderer* renderer) const {
 
 // Nhấn phím Paused hoặc Enter để tiếp tục game
 ScreenAction PauseScreen::handleInput(InputHandler& input) {
-    if (input.isPressed(Key::Pause) || input.isPressed(Key::Enter)) {
+    if (input.isPressed(Key::Esc) || input.isPressed(Key::Enter)) {
         return ScreenAction::ResumeGame;
     }
 
