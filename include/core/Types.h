@@ -70,3 +70,9 @@ enum GameState {
     GameOver,
     Exit
 };
+
+enum class Option {
+    None,          
+    StartGame,      
+    ExitGame,          
+};
