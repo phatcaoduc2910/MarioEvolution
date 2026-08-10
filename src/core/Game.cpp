@@ -206,7 +206,7 @@ void Game::gameLoop() {
             }
         }
 
-    constexpr int kFixedStepMs = 16; // ~16.6ms cho 1 frame 60Hz
+    constexpr int kFixedStepMs = 11;
     static int accumulatorMs = 0;
     const Uint32 now = SDL_GetTicks();
     const Uint32 elapsed = now - lastFrameTicks;
