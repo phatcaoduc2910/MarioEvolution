@@ -121,7 +121,7 @@ void Game::edit() {
 // Xử lý vòng lặp game
 void Game::gameLoop() {
     SDL_Event event;
-    
+    Option menuOption{Option::StartGame};
 
     while (currentGameState != Exit) {
         while (SDL_PollEvent(&event)) {
@@ -138,10 +138,13 @@ void Game::gameLoop() {
             }
             switch (currentGameState) {
                 case StartMenu:{
-                    ScreenAction action = startScreen.handleInput(inputHandler);
-                    if(action == ScreenAction::StartGame) {
+                    
+                    Option action = inputHandler.getMenuOption(menuOption);
+                    if (action == Option::StartGame) {
+                        world = World();
+                        world.loadLevel(mapEditor->getLevel()); 
                         currentGameState = Playing;
-                    } else if (action == ScreenAction::ExitGame) {
+                    } else if (action == Option::ExitGame) {
                         currentGameState = Exit;
                     }
                     break;
@@ -186,11 +189,15 @@ void Game::gameLoop() {
                     break;
                 }
                 case LevelComplete:{
-                    pause();
+                    if (inputHandler.isPressed(Key::Enter) || inputHandler.isPressed(Key::Esc)) {
+                        currentGameState = StartMenu;
+                    }
                     break;
                 }
                 case GameOver:{
-                    pause();
+                    if (inputHandler.isPressed(Key::Enter) || inputHandler.isPressed(Key::Esc)) {
+                        currentGameState = StartMenu;
+                    }
                     break;
                 }
                 case Exit:{
@@ -199,15 +206,21 @@ void Game::gameLoop() {
             }
         }
 
+    constexpr int kFixedStepMs = 16; // ~16.6ms cho 1 frame 60Hz
+    static int accumulatorMs = 0;
     const Uint32 now = SDL_GetTicks();
     const Uint32 elapsed = now - lastFrameTicks;
     const int deltaMs = static_cast<int>(std::min<Uint32>(elapsed, 100));
     lastFrameTicks = now;
+    accumulatorMs += deltaMs;
+
+
     SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
     SDL_RenderClear(renderer);
 
     switch (currentGameState) {
         case StartMenu:
+            startScreen.setOption(menuOption);
             startScreen.render(renderer);
             break;
 
@@ -215,29 +228,23 @@ void Game::gameLoop() {
             pauseScreen.render(renderer);
             break;
         case Playing:{
-            //Nếu trong game
+            while (accumulatorMs >= kFixedStepMs) {
                 int horizontalInput = 0;
-                if (inputHandler.isPressed(Key::Left)) {
-                    --horizontalInput;
-                }
-                if (inputHandler.isPressed(Key::Right)) {
-                    ++horizontalInput;
-                }
+                if (inputHandler.isPressed(Key::Left)) --horizontalInput;
+                if (inputHandler.isPressed(Key::Right)) ++horizontalInput;
                 world.getPlayer().setMoveDirection(horizontalInput);
-
                 world.update();
                 collisionSystem.resolve(world);
-
-                playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
-
-                worldRenderer.render(renderer, worldTiles, world);
-                playerRenderer.renderPlayer(
-                    renderer,
-                    playerTexture,
-                    world.getPlayer());
+                if (world.isGameOver()) {
+                    currentGameState = GameOver;
                 }
-                break;
-
+                accumulatorMs -= kFixedStepMs;
+            }
+            playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
+            worldRenderer.render(renderer, worldTiles, world);
+            playerRenderer.renderPlayer(renderer, playerTexture, world.getPlayer());
+            break;
+        }
         case Editing:{
             mapEditor->update();
             mapEditor->render(renderer, worldTiles);
