@@ -30,5 +30,5 @@ private:
     void startInvincibility();
 
     PlayerState state;
-    int invincibilityFramesRemaining;
+    double invincibilityRemainingSeconds;
 };
