@@ -6,9 +6,9 @@
 #include <cmath>
 
 namespace {
-constexpr double kJumpVelocity = -10.0;
-constexpr double kMoveSpeed = 4.0;
-constexpr double kMinVelocity = 0.001;
+constexpr double kJumpVelocityPixelsPerSecond = -600.0;
+constexpr double kMoveSpeedPixelsPerSecond = 240.0;
+constexpr double kMinVelocityPixelsPerSecond = 0.06;
 constexpr int kInvincibleFrames = 90;
 }
 
@@ -45,8 +45,9 @@ bool Player::isInvincible() const {
 }
 
 void Player::jump() {
-    if (isAlive() && std::abs(velocityY) < kMinVelocity) {
-        velocityY = kJumpVelocity;
+    if (isAlive() &&
+        std::abs(velocityY) < kMinVelocityPixelsPerSecond) {
+        velocityY = kJumpVelocityPixelsPerSecond;
     }
 }
 
@@ -57,9 +58,9 @@ void Player::setMoveDirection(int direction) {
     }
 
     if (direction < 0) {
-        velocityX = -kMoveSpeed;
+        velocityX = -kMoveSpeedPixelsPerSecond;
     } else if (direction > 0) {
-        velocityX = kMoveSpeed;
+        velocityX = kMoveSpeedPixelsPerSecond;
     } else {
         velocityX = 0.0;
     }
@@ -118,8 +119,6 @@ void Player::shootFireball() {
 }
 
 void Player::update(double dtSeconds) {
-    (void)dtSeconds;
-
     if (!isAlive()) {
         return;
     }
@@ -128,8 +127,8 @@ void Player::update(double dtSeconds) {
         --invincibilityFramesRemaining;
     }
 
-    applyGravity();
-    move();
+    applyGravity(dtSeconds);
+    move(dtSeconds);
 }
 
 void Player::startInvincibility() {

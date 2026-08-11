@@ -9,12 +9,12 @@ public:
     Enemy(double x, double y, int width, int height);
     ~Enemy() override = default;
 
-    virtual void patrol();
+    virtual void patrol(double dtSeconds);
     virtual void die();
     virtual void damagePlayer(Player& player);
 
 protected:
-    int walkingSpeed;
+    double walkingSpeed;
     EnemyState state;
 };
 
@@ -22,7 +22,7 @@ class Goomba : public Enemy {
 public:
     Goomba(double x, double y);
 
-    void patrol() override;
+    void patrol(double dtSeconds) override;
     void die() override;
 };
 
@@ -31,8 +31,8 @@ public:
     Koopa(double x, double y);
 
     void hideInShell();
-    void kick();
-    void patrol() override;
+    void kick(double dtSeconds);
+    void patrol(double dtSeconds) override;
 
 private:
     bool shellMode;
