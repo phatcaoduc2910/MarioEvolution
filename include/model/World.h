@@ -30,6 +30,7 @@ public:
     bool isGameOver() const;
 
     void update();
+    void update(double dtSeconds);
 
 private:
     Player player;

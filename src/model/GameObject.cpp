@@ -27,6 +27,8 @@ int GameObject::getHeight() const {
     return height;
 }
 
-void GameObject::update() {}
+void GameObject::update(double dtSeconds) {
+    (void)dtSeconds;
+}
 
 void GameObject::render() {}
