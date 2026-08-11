@@ -65,16 +65,9 @@ void Player::setMoveDirection(int direction) {
     }
 }
 void Player::collect(Item& item) {
-    if (!isAlive() || item.isCollected()) { return; }
+    if (!isAlive()) { return; }
 
     item.applyTo(*this);
-
-    if (dynamic_cast<FireFlower*>(&item) != nullptr) {
-        upgradeToFire();
-    } else if (dynamic_cast<Mushroom*>(&item) != nullptr) {
-        grow();
-    }
-    item.collect();
 }
 
 void Player::grow() {
