@@ -11,11 +11,14 @@ public:
 
     PowerUpType getPowerUp() const;
     PlayerState getState() const;
+    bool isAlive() const override;
     bool isInvincible() const;
 
     void jump();
     void setMoveDirection(int direction);
     void collect(Item& item);
+    void grow();
+    void upgradeToFire();
     void takeDamage();
     void captureFlag(Flag& flag);
     void shootFireball();
@@ -24,7 +27,8 @@ public:
     void render() override;
 
 private:
-    PowerUpType powerUp;
+    void startInvincibility();
+
     PlayerState state;
-    bool invincible;
+    int invincibilityFramesRemaining;
 };

@@ -7,7 +7,7 @@ public:
     Actor(double x, double y, int width, int height);
     ~Actor() override = default;
 
-    bool isAlive() const;
+    virtual bool isAlive() const;
     bool isOnGround() const;
     Direction getDirection() const;
     double getVelocityX() const;
