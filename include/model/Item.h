@@ -12,10 +12,12 @@ public:
     ~Item() override = default;
 
     bool isCollected() const;
-    virtual void applyTo(Player& player);
-    virtual void collect();
+    void applyTo(Player& player);
 
 protected:
+    virtual void applyEffect(Player& player) = 0;
+
+private:
     bool collected;
 };
 
@@ -26,9 +28,10 @@ public:
     Coin(double x, double y, int value);
 
     int getValue() const;   // Trả về số điểm của đồng xu
-    void applyTo(Player& player) override;
 
 private:
+    void applyEffect(Player& player) override;
+
     int value;
 };
 
@@ -37,7 +40,8 @@ class Mushroom : public Item{
 public:
     Mushroom(double x, double y);
 
-    void applyTo(Player& player) override;
+private:
+    void applyEffect(Player& player) override;
 };
 
 // Lớp FireFlower: chuyển người chơi sang trạng thái Fire
@@ -45,5 +49,6 @@ class FireFlower : public Item{
 public:
     FireFlower(double x, double y);
 
-    void applyTo(Player& player) override;
+private:
+    void applyEffect(Player& player) override;
 };
