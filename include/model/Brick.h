@@ -18,29 +18,37 @@ public:
     bool isOpened() const;
 
 protected:
+    bool isActive() const;
+    void markUsed();
+
+private:
+    enum class State {
+        Active,
+        Broken,
+        Used
+    };
+
+    void markBroken();
+
     bool breakable;
-    bool opened;
+    State state;
 };
 
 // Brick thường
 class StandardBrick : public Brick{
 public:
     StandardBrick(double x, double y);
-
-    void breakBrick();    
 };
 
 // Brick chứa item
 class SpecialBrick : public Brick{
 public:
-    SpecialBrick(double x, double y, ItemType content);
     ~SpecialBrick() override = default;
 
-    virtual std::unique_ptr<Item> releaseItem();
-    void open();
+    virtual std::unique_ptr<Item> releaseItem() = 0;
 
-protected: 
-    ItemType content;
+protected:
+    SpecialBrick(double x, double y);
 };
 
 // Brick chứa coin
