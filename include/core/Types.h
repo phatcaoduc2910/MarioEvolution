@@ -49,12 +49,30 @@ enum class ItemType {
 };
 
 enum class Key {
+    None,
     Left,
     Right,
     Up,
     Down,
     Jump,
     Fire,
-    Pause,
-    Enter
+    Esc,
+    Enter,
+    Edit
+};
+
+enum GameState {
+    StartMenu,
+    Playing,
+    Paused,
+    Editing,
+    LevelComplete,
+    GameOver,
+    Exit
+};
+
+enum class Option {
+    None,          
+    StartGame,      
+    ExitGame,          
 };

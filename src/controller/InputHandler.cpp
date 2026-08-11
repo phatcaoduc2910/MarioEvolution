@@ -14,40 +14,47 @@ void InputHandler::release(Key key) {
 }
 
 //Gán key cho input
-bool InputHandler::mapKey(SDL_Keycode keycode, Key& key) {
+Key InputHandler::mapKey(SDL_Keycode keycode) const {
     switch (keycode) {
         case SDLK_LEFT:
         case SDLK_a:
-            key = Key::Left;
-            return true;
+            return Key::Left;
         case SDLK_RIGHT:
         case SDLK_d:
-            key = Key::Right;
-            return true;
+            return Key::Right;
         case SDLK_UP:
         case SDLK_w:
-            key = Key::Up;
-            return true;
+            return Key::Up;
         case SDLK_DOWN:
         case SDLK_s:
-            key = Key::Down;
-            return true;
+            return Key::Down;
         case SDLK_SPACE:
-            key = Key::Jump;
-            return true;
+            return Key::Jump;
         case SDLK_f:
-            key = Key::Fire;
-            return true;
+            return Key::Fire;
         case SDLK_p:
         case SDLK_ESCAPE:
-            key = Key::Pause;
-            return true;
+            return Key::Esc;
         case SDLK_RETURN:
-            key = Key::Enter;
-            return true;
+            return Key::Enter;
+        case SDLK_0:
+            return Key::Edit;
         default:
-            return false;
+            return Key::None;
     }
 }
 
-void InputHandler::update() {}
+Option InputHandler::getMenuOption(Option &option) const {
+
+    if (isPressed(Key::Up)) {
+        option = Option::StartGame;
+    } else if (isPressed(Key::Down)) {
+        option = Option::ExitGame;
+    }
+    
+    if (isPressed(Key::Enter)) {
+        return option;
+    }
+    // Chưa bấm Enter -> Trả về None
+    return Option::None;
+}
