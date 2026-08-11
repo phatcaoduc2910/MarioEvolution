@@ -117,7 +117,9 @@ void Player::shootFireball() {
     // TODO: nối Fireball vào World rồi mới bật phím bắn.
 }
 
-void Player::update() {
+void Player::update(double dtSeconds) {
+    (void)dtSeconds;
+
     if (!isAlive()) {
         return;
     }

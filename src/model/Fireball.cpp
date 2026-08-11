@@ -12,7 +12,9 @@ Fireball::Fireball(double x, double y, Direction dir)
         velocityY = 0.0;
     }
 
-void Fireball::update() {
+void Fireball::update(double dtSeconds) {
+    (void)dtSeconds;
+
     if (!alive) { return; }
     applyGravity();
     move();

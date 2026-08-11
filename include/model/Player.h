@@ -23,7 +23,7 @@ public:
     void captureFlag(Flag& flag);
     void shootFireball();
 
-    void update() override;
+    void update(double dtSeconds) override;
     void render() override;
 
 private:
