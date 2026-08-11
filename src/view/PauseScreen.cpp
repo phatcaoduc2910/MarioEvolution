@@ -36,16 +36,7 @@ void PauseScreen::render(SDL_Renderer* renderer) const {
         renderer, "PAUSED", screenWidth, centerY - 70, 5, kTitleColor
     );
     UiRenderer::drawCenteredText(
-        renderer, "PRESS P OR ENTER TO CONTINUE", screenWidth, centerY + 25, 2,
+        renderer, "PRESS P TO CONTINUE", screenWidth, centerY + 25, 2,
         kTextColor
     );
-}
-
-// Nhấn phím Paused hoặc Enter để tiếp tục game
-ScreenAction PauseScreen::handleInput(InputHandler& input) {
-    if (input.isPressed(Key::Pause) || input.isPressed(Key::Enter)) {
-        return ScreenAction::ResumeGame;
-    }
-
-    return ScreenAction::None;      // Trả về None nếu không nhấn
 }
