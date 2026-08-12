@@ -13,8 +13,8 @@ public:
     double getVelocityX() const;
     double getVelocityY() const;
 
-    virtual void move();
-    virtual void applyGravity();
+    virtual void move(double dtSeconds);
+    virtual void applyGravity(double dtSeconds);
     virtual void resolveCollision(GameObject& object);
 
 protected:

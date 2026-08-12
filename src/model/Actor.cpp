@@ -3,8 +3,8 @@
 #include <algorithm>
 
 namespace {
-constexpr double kGravity = 0.45;
-constexpr double kMaxFallSpeed = 12.0;
+constexpr double kGravityPixelsPerSecondSquared = 1620.0;
+constexpr double kMaxFallSpeedPixelsPerSecond = 720.0;
 
 bool intersects(const Rectangle& a, const Rectangle& b) {
     return a.x < b.x + b.width &&
@@ -47,9 +47,9 @@ double Actor::getVelocityY() const {
     return velocityY;
 }
 
-void Actor::move() {
-    x += velocityX;
-    y += velocityY;
+void Actor::move(double dtSeconds) {
+    x += velocityX * dtSeconds;
+    y += velocityY * dtSeconds;
 
     if (velocityX < 0.0) {
         direction = Direction::Left;
@@ -58,9 +58,11 @@ void Actor::move() {
     }
 }
 
-void Actor::applyGravity() {
+void Actor::applyGravity(double dtSeconds) {
     onGround = false;
-    velocityY = std::min(velocityY + kGravity, kMaxFallSpeed);
+    velocityY = std::min(
+        velocityY + kGravityPixelsPerSecondSquared * dtSeconds,
+        kMaxFallSpeedPixelsPerSecond);
 }
 
 void Actor::resolveCollision(GameObject& object) {

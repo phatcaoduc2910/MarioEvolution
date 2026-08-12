@@ -6,16 +6,17 @@
 #include <cmath>
 
 namespace {
-constexpr double kJumpVelocity = -10.0;
-constexpr double kMoveSpeed = 4.0;
-constexpr double kMinVelocity = 0.001;
-constexpr int kInvincibleFrames = 90;
+constexpr double kJumpVelocityPixelsPerSecond = -600.0;
+constexpr double kMoveSpeedPixelsPerSecond = 240.0;
+constexpr double kMinVelocityPixelsPerSecond = 0.06;
+constexpr double kInvincibilityDurationSeconds = 1.5;
+constexpr double kTimerEpsilonSeconds = 1e-9;
 }
 
 Player::Player(double x, double y)
     : Actor(x, y, 32, 48),
       state(PlayerState::Small),
-      invincibilityFramesRemaining(0) {
+      invincibilityRemainingSeconds(0.0) {
     SDL_Log("Player created at x=%.2f, y=%.2f", x, y);
 }
 
@@ -41,12 +42,13 @@ bool Player::isAlive() const {
 }
 
 bool Player::isInvincible() const {
-    return invincibilityFramesRemaining > 0;
+    return invincibilityRemainingSeconds > 0.0;
 }
 
 void Player::jump() {
-    if (isAlive() && std::abs(velocityY) < kMinVelocity) {
-        velocityY = kJumpVelocity;
+    if (isAlive() &&
+        std::abs(velocityY) < kMinVelocityPixelsPerSecond) {
+        velocityY = kJumpVelocityPixelsPerSecond;
     }
 }
 
@@ -57,9 +59,9 @@ void Player::setMoveDirection(int direction) {
     }
 
     if (direction < 0) {
-        velocityX = -kMoveSpeed;
+        velocityX = -kMoveSpeedPixelsPerSecond;
     } else if (direction > 0) {
-        velocityX = kMoveSpeed;
+        velocityX = kMoveSpeedPixelsPerSecond;
     } else {
         velocityX = 0.0;
     }
@@ -95,7 +97,7 @@ void Player::takeDamage() {
         startInvincibility();
     } else {
         state = PlayerState::Dead;
-        invincibilityFramesRemaining = 0;
+        invincibilityRemainingSeconds = 0.0;
         velocityX = 0.0;
         velocityY = 0.0;
     }
@@ -117,21 +119,26 @@ void Player::shootFireball() {
     // TODO: nối Fireball vào World rồi mới bật phím bắn.
 }
 
-void Player::update() {
+void Player::update(double dtSeconds) {
     if (!isAlive()) {
         return;
     }
 
-    if (invincibilityFramesRemaining > 0) {
-        --invincibilityFramesRemaining;
+    if (invincibilityRemainingSeconds > 0.0) {
+        if (dtSeconds >=
+            invincibilityRemainingSeconds - kTimerEpsilonSeconds) {
+            invincibilityRemainingSeconds = 0.0;
+        } else {
+            invincibilityRemainingSeconds -= dtSeconds;
+        }
     }
 
-    applyGravity();
-    move();
+    applyGravity(dtSeconds);
+    move(dtSeconds);
 }
 
 void Player::startInvincibility() {
-    invincibilityFramesRemaining = kInvincibleFrames;
+    invincibilityRemainingSeconds = kInvincibilityDurationSeconds;
 }
 
 void Player::render() {}
