@@ -10,8 +10,8 @@ public:
     bool isPressed(Key key) const;
     void press(Key key);
     void release(Key key);
-    bool mapKey(SDL_Keycode keycode, Key& key);
-    void update();
+    Key mapKey(SDL_Keycode keycode) const;
+    Option getMenuOption(Option &option) const;
 
 private:
     std::set<Key> pressedKeys;

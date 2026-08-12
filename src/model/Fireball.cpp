@@ -1,21 +1,23 @@
 #include "model/Fireball.h"
 
 namespace {
-    constexpr double kFireballSpeed = 7.0;
+    constexpr double kFireballSpeedPixelsPerSecond = 420.0;
     constexpr int kFireballSize = 16;
 }
 
 Fireball::Fireball(double x, double y, Direction dir)
     :  Actor(x, y, kFireballSize, kFireballSize) {
         direction = dir;
-        velocityX = (dir == Direction::Left) ? -kFireballSpeed : kFireballSpeed;
+        velocityX = (dir == Direction::Left)
+                        ? -kFireballSpeedPixelsPerSecond
+                        : kFireballSpeedPixelsPerSecond;
         velocityY = 0.0;
     }
 
-void Fireball::update() {
+void Fireball::update(double dtSeconds) {
     if (!alive) { return; }
-    applyGravity();
-    move();
+    applyGravity(dtSeconds);
+    move(dtSeconds);
 }
 
 void Fireball::destroy() {

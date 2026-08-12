@@ -14,10 +14,11 @@ bool Item::isCollected() const {
 }
 
 void Item::applyTo(Player& player) {
-    (void)player;
-}
+    if (collected) {
+        return;
+    }
 
-void Item::collect() {
+    applyEffect(player);
     collected = true;
 }
 
@@ -30,7 +31,7 @@ int Coin::getValue() const {
     return value;
 }
 
-void Coin::applyTo(Player& player) {
+void Coin::applyEffect(Player& player) {
     // Score thuộc World nên CollisionSystem cộng điểm, Coin chỉ dùng chung hook.
     (void)player;
 }
@@ -38,13 +39,13 @@ void Coin::applyTo(Player& player) {
 Mushroom::Mushroom(double x, double y)
     : Item(x, y, 32, 32) {}
 
-void Mushroom::applyTo(Player& player) {
-    (void)player;
+void Mushroom::applyEffect(Player& player) {
+    player.grow();
 }
 
 FireFlower::FireFlower(double x, double y)
     : Item(x, y, 32, 32) {}
 
-void FireFlower::applyTo(Player& player) {
-    (void)player;
+void FireFlower::applyEffect(Player& player) {
+    player.upgradeToFire();
 }

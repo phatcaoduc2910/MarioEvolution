@@ -43,10 +43,10 @@ int main() {
     SDL_Event e;
 
     constexpr SpriteSheetLayout kPlayerSpriteLayout{
-        0, 16, 14, 32, 16, 32
+        0, 0, 32, 56, 32, 56
     };
-    SpriteAnimation animation(kPlayerSpriteLayout, 0, 0, 8, 160);
-    SDL_Surface* surface = IMG_Load("assets/Player.png");
+    SpriteAnimation animation(kPlayerSpriteLayout, 1, 0, 4, 160);
+    SDL_Surface* surface = IMG_Load("assets/runtime/mario_super.png");
     if (!surface) {
         std::cout << "Image load error: " << IMG_GetError() << std::endl;
         SDL_DestroyRenderer(renderer);
@@ -83,7 +83,7 @@ int main() {
         animation.update(deltaMs);
 
         SDL_Rect src = animation.getCurrentFrame();
-        SDL_Rect dst = {100, 100, 28, 64};
+        SDL_Rect dst = {100, 100, 32, 56};
 
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, playerTexture, &src, &dst);

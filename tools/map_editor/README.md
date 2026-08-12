@@ -30,7 +30,7 @@ nhấn `0` để bật palette.
   Phím tắt tương ứng là `[`/`]` cho chiều rộng, `-`/`=` cho chiều cao.
 - `N`/`NEW` tạo map mới; `Ctrl+S`/`SAVE` lưu file hiện tại.
 - `F2`, `Ctrl+Shift+S` hoặc `SAVE AS` nhập tên file mới; `Enter` lưu, `Esc` hủy.
-- Danh sách `SAVED MAPS` hiển thị mọi file `.map` trong `assets/`; click để mở,
+- Danh sách `SAVED MAPS` hiển thị mọi file `.map` trong `assets/maps/`; click để mở,
   lăn chuột để cuộn và nhấn `F5` để làm mới.
 - Thao tác tạo/mở làm mất thay đổi chưa lưu phải được lặp lại để xác nhận.
 - Giữ chuột trái và kéo để vẽ; bắt đầu trên tile đang chọn sẽ xóa cả nét.

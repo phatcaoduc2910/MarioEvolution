@@ -13,7 +13,7 @@ public:
     int getWidth() const;
     int getHeight() const;
 
-    virtual void update();
+    virtual void update(double dtSeconds);
     virtual void render();
 
 protected:

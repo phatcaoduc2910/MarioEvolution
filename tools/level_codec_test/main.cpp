@@ -10,7 +10,7 @@
 
 int main() {
     constexpr int kTileSize = 32;
-    const std::string sourcePath = "assets/level1.map";
+    const std::string sourcePath = "assets/maps/level1.map";
     const std::string copyPath = "builds/tests/level1.roundtrip.map";
 
     const LevelData source = LevelCodec::load(sourcePath, kTileSize);
