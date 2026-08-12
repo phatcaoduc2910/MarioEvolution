@@ -5,15 +5,15 @@ constexpr std::array<TileDefinition, 6> kTileDefinitions{{
     {kEmptyTileId, kEmptyTileId, kManualTileMask,
      {0, 0, 0, 0}, "EMPTY", false},
     {kStandardBrickTileId, kStandardBrickTileId, kManualTileMask,
-     {160, 1104, 16, 16}, "BRICK", true},
+     {0, 0, 32, 32}, "BRICK", true},
     {kCoinBrickTileId, kCoinBrickTileId, kManualTileMask,
-     {0, 1120, 16, 16}, "COIN BRICK", true},
+     {32, 0, 32, 32}, "COIN BRICK", true},
     {kMushroomBrickTileId, kMushroomBrickTileId, kManualTileMask,
-     {0, 1120, 16, 16}, "MUSHROOM", true},
+     {32, 0, 32, 32}, "MUSHROOM", true},
     {kFlowerBrickTileId, kFlowerBrickTileId, kManualTileMask,
-     {0, 1120, 16, 16}, "FLOWER", true},
+     {32, 0, 32, 32}, "FLOWER", true},
     {kCoinTileId, kCoinTileId, kManualTileMask,
-     {0, 1312, 16, 16}, "COIN", true}
+     {64, 0, 32, 32}, "COIN", true}
 }};
 }
 

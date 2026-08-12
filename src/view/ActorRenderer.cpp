@@ -5,15 +5,15 @@
 
 namespace {
 constexpr SpriteSheetLayout kPlayerSpriteLayout{
-    0, 16, 14, 32, 16, 32
+    0, 0, 32, 56, 32, 56
 };
-constexpr int kPlayerRenderScale = 2;
+constexpr int kPlayerRenderScale = 1;
 }
 
 ActorRenderer::ActorRenderer()
-    : idleAnimation(kPlayerSpriteLayout, 0, 0, 8, 160),
-      walkAnimation(kPlayerSpriteLayout, 2, 0, 4, 100),
-      jumpAnimation(kPlayerSpriteLayout, 1, 0, 4, 120),
+    : idleAnimation(kPlayerSpriteLayout, 0, 0, 1, 160),
+      walkAnimation(kPlayerSpriteLayout, 1, 0, 4, 100),
+      jumpAnimation(kPlayerSpriteLayout, 2, 0, 1, 120),
       currentState(PlayerAnimationState::Idle) {}
 
 ActorRenderer::PlayerAnimationState

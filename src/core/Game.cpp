@@ -7,7 +7,7 @@
 #include <algorithm>
 
 namespace {
-constexpr const char* kLevelPath = "assets/level1.map";
+constexpr const char* kLevelPath = "assets/maps/level1.map";
 constexpr int kMapWidth = 25;
 constexpr int kMapHeight = 19;
 constexpr int kTileSize = 32;
@@ -63,17 +63,12 @@ bool Game::start() {
         return false;
     }
 
-    SDL_Surface* worldSurface = IMG_Load("assets/WorldTiles.png");
+    SDL_Surface* worldSurface = IMG_Load("assets/runtime/world_tiles.png");
     if (worldSurface == nullptr) {
         SDL_Log("World texture loading failed: %s", IMG_GetError());
         return false;
     }
 
-    SDL_SetColorKey(
-        worldSurface,
-        SDL_TRUE,
-        SDL_MapRGB(worldSurface->format, 0, 0, 0)
-    );
     worldTiles = SDL_CreateTextureFromSurface(renderer, worldSurface);
     SDL_FreeSurface(worldSurface);
 
@@ -82,7 +77,7 @@ bool Game::start() {
         return false;
     }
 
-    playerTexture = IMG_LoadTexture(renderer, "assets/Player.png");
+    playerTexture = IMG_LoadTexture(renderer, "assets/runtime/mario_super.png");
     if (playerTexture == nullptr) {
         SDL_Log("Player texture load failed: %s", IMG_GetError());
         return false;

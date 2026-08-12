@@ -6,7 +6,7 @@
 #include "view/TileCatalog.h"
 
 namespace {
-    constexpr SDL_Rect OPENED_BRICK_SPRITE{64, 1104, 16, 16};
+    constexpr SDL_Rect OPENED_BRICK_SPRITE{96, 0, 32, 32};
 
     SDL_Rect destination(const GameObject& object) {
         return {

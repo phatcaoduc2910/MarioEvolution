@@ -14,9 +14,15 @@ make test
 make clean
 ```
 
+## Assets
+
+Asset đang dùng được phân loại trong [`assets/`](assets/README.md). Hai atlas ở
+`assets/runtime/` được tạo từ sprite mới cho renderer hiện tại. Bộ asset cũ được
+giữ nguyên tại `backups/assets_before_tile_scrolling_import_2026-08-12/`.
+
 ## Map
 
-Game và map editor dùng chung `assets/level1.map`:
+Game và map editor dùng chung `assets/maps/level1.map`:
 
 ```text
 B  StandardBrick
@@ -42,7 +48,7 @@ hoặc đóng editor.
 - `N` hoặc nút `NEW` tạo map mới với kích thước hiện tại.
 - `Ctrl+S` hoặc nút `SAVE` lưu map hiện tại.
 - `F2`, `Ctrl+Shift+S` hoặc nút `SAVE AS` để nhập tên map mới; `Enter` lưu,
-  `Esc` hủy. Tên nhận chữ, số, `_`, `-` và được lưu trong `assets/`.
+  `Esc` hủy. Tên nhận chữ, số, `_`, `-` và được lưu trong `assets/maps/`.
 - Click tên trong `SAVED MAPS` để mở map; lăn chuột để xem danh sách dài và
   nhấn `F5` để quét lại thư mục.
 - Khi có thay đổi chưa lưu, lặp lại thao tác `NEW`/mở map để xác nhận bỏ thay đổi.
