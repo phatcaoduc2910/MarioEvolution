@@ -5,22 +5,23 @@
 #include <cmath>
 
 namespace {
-constexpr double kShellKickSpeed = 5.0;
-constexpr double kStillVelocity = 0.001;
+constexpr double kWalkingSpeedPixelsPerSecond = 60.0;
+constexpr double kShellKickSpeedPixelsPerSecond = 300.0;
+constexpr double kStillVelocityPixelsPerSecond = 0.06;
 }
 
 Enemy::Enemy(double x, double y, int width, int height)
     : Actor(x, y, width, height),
-      walkingSpeed(1),
+      walkingSpeed(kWalkingSpeedPixelsPerSecond),
       state(EnemyState::Walking) {}
 
-void Enemy::patrol() {
+void Enemy::patrol(double dtSeconds) {
     if (!alive || state == EnemyState::Dead) {
         return;
     }
 
     velocityX = (direction == Direction::Left) ? -walkingSpeed : walkingSpeed;
-    move();
+    move(dtSeconds);
 }
 
 void Enemy::die() {
@@ -41,8 +42,8 @@ Goomba::Goomba(double x, double y)
     direction = Direction::Left;
 }
 
-void Goomba::patrol() {
-    Enemy::patrol();
+void Goomba::patrol(double dtSeconds) {
+    Enemy::patrol(dtSeconds);
 }
 
 void Goomba::die() {
@@ -65,28 +66,30 @@ void Koopa::hideInShell() {
     velocityX = 0.0;
 }
 
-void Koopa::kick() {
+void Koopa::kick(double dtSeconds) {
     if (!alive) {
         return;
     }
 
     shellMode = true;
     state = EnemyState::Shell;
-    velocityX = (direction == Direction::Left) ? -kShellKickSpeed : kShellKickSpeed;
-    move();
+    velocityX = (direction == Direction::Left)
+                    ? -kShellKickSpeedPixelsPerSecond
+                    : kShellKickSpeedPixelsPerSecond;
+    move(dtSeconds);
 }
 
-void Koopa::patrol() {
+void Koopa::patrol(double dtSeconds) {
     if (!alive || state == EnemyState::Dead) {
         return;
     }
 
     if (shellMode) {
-        if (std::abs(velocityX) > kStillVelocity) {
-            move();
+        if (std::abs(velocityX) > kStillVelocityPixelsPerSecond) {
+            move(dtSeconds);
         }
         return;
     }
 
-    Enemy::patrol();
+    Enemy::patrol(dtSeconds);
 }

@@ -7,6 +7,10 @@
 #include <stdexcept>
 #include <utility>
 
+namespace {
+constexpr double kIntegratedFixedStepSeconds = 0.011;
+}
+
 World::World()
     : player(100.0, 502.0),
       score(0),
@@ -105,16 +109,20 @@ bool World::isGameOver() const {
 }
 
 void World::update() {
-    player.update();
+    update(kIntegratedFixedStepSeconds);
+}
+
+void World::update(double dtSeconds) {
+    player.update(dtSeconds);
 
     for (auto& actor : actors) {
         if (actor->isAlive()) {
-            actor->update();
+            actor->update(dtSeconds);
         }
     }
 
     for (auto& item : items) {
-        item->update();
+        item->update(dtSeconds);
     }
 
     if (player.getY() > 600.0) {
