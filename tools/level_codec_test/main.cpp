@@ -5,7 +5,9 @@
 #include <array>
 #include <cassert>
 #include <cstdio>
+#include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 int main() {
@@ -45,7 +47,36 @@ int main() {
     resized.resize(3, 2);
     assert(resized.getTile(1, 1) == kEmptyTileId);
 
+    const std::string unknownSymbolPath =
+        "builds/tests/level1.unknown_symbol.map";
+    const std::string inconsistentWidthPath =
+        "builds/tests/level1.inconsistent_width.map";
+
+    const auto writeFixture = [](const std::string& path, const char* contents) {
+        std::ofstream output(path, std::ios::binary | std::ios::trunc);
+        assert(output);
+        output << contents;
+        output.close();
+        assert(output);
+    };
+    writeFixture(unknownSymbolPath, "...\n.Z.\n");
+    writeFixture(inconsistentWidthPath, "...\n..\n");
+
+    const auto expectRuntimeError = [kTileSize](const std::string& path) {
+        bool threwRuntimeError = false;
+        try {
+            (void)LevelCodec::load(path, kTileSize);
+        } catch (const std::runtime_error&) {
+            threwRuntimeError = true;
+        }
+        assert(threwRuntimeError);
+    };
+    expectRuntimeError(unknownSymbolPath);
+    expectRuntimeError(inconsistentWidthPath);
+
     std::remove(copyPath.c_str());
+    std::remove(unknownSymbolPath.c_str());
+    std::remove(inconsistentWidthPath.c_str());
     std::cout << "Level codec round-trip passed\n";
     return 0;
 }
