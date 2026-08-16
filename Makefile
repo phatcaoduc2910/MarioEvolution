@@ -7,7 +7,7 @@ CXX = $(MSYS2_PREFIX)/bin/g++
 PKG_CONFIG = $(MSYS2_PREFIX)/bin/pkg-config
 SDL_IMAGE_LIBS = $(filter-out -mwindows -lSDL2main,$(shell $(PKG_CONFIG) --static --libs SDL2_image))
 
-CXXFLAGS = -Wall -Wextra -std=c++17 -Iinclude -I$(MSYS2_PREFIX)/include -DSDL_MAIN_HANDLED
+CXXFLAGS = -Wall -Wextra -std=c++17 -MMD -MP -Iinclude -I$(MSYS2_PREFIX)/include -DSDL_MAIN_HANDLED
 LDFLAGS = -static
 LDLIBS = $(SDL_IMAGE_LIBS)
 
@@ -15,6 +15,7 @@ APP = MarioEvolution.exe
 SRC = $(wildcard src/*.cpp src/*/*.cpp)
 OBJDIR = builds
 OBJ = $(SRC:src/%.cpp=$(OBJDIR)/%.o)
+DEP = $(OBJ:.o=.d)
 
 RENDER_PREVIEW_APP = $(OBJDIR)/render_preview/RenderPreview.exe
 RENDER_PREVIEW_SRC = tools/render_preview/main.cpp \
@@ -101,3 +102,5 @@ clean:
 	@echo "Đang dọn dep..."
 	rm -f "$(APP)"
 	rm -rf "$(OBJDIR)"
+
+-include $(DEP)
