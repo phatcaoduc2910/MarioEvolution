@@ -2,6 +2,8 @@
 
 #include "model/Actor.h"
 #include "model/Brick.h"
+#include "model/Enemy.h"
+#include "model/Flag.h"
 #include "model/LevelData.h"
 
 #include <stdexcept>
@@ -78,6 +80,14 @@ void World::loadLevel(const LevelData& level) {
                     break;
                 case kCoinTileId:
                     addItem(std::make_unique<Coin>(x + 8.0, y + 8.0, 1));
+                    break;
+                case kGoombaTileId:
+                    addActor(std::make_unique<Goomba>(x, y));
+                    break;
+                case kFlagTileId:
+                    // Marker '!' nằm ở cell ngay trên ground. Flag cao 160 px
+                    // nên y - 128 kéo đáy cờ trùng mặt ground ở y + 32.
+                    addObject(std::make_unique<Flag>(x, y - 128.0));
                     break;
                 default:
                     throw std::invalid_argument("World received an unknown tile id");
