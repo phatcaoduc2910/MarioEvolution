@@ -19,4 +19,6 @@ public:
 private:
     AssetRenderer assetRenderer;
     SpriteAnimation coinAnimation{{"coin.1", "coin.2", "coin.3", "coin.4"}, 120};
+    SpriteAnimation flagAnimation{
+        {"flag.1", "flag.2", "flag.3", "flag.4", "flag.5"}, 120};
 };

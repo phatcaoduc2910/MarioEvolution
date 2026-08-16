@@ -28,31 +28,28 @@ namespace {
         };
     }
 
-    void fill(SDL_Renderer* renderer, const SDL_Rect& rect, SDL_Color color) {
-        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-        SDL_RenderFillRect(renderer, &rect);
-    }
+    constexpr int FLAG_CANVAS_SIZE = 554;
+    constexpr int FLAG_POLE_LEFT = 234;
+    constexpr int FLAG_POLE_TOP = 126;
+    constexpr int FLAG_POLE_HEIGHT = 304;
 
-    // Chưa có asset cột cờ nên vẽ bằng hình khối.
-    void renderFlag(SDL_Renderer* renderer, const SDL_Rect& dst, bool captured) {
-        const int poleX = dst.x + dst.w / 2;
-        const int bannerHeight = dst.h / 8;
-        const int bannerY = captured
-                                ? dst.y + dst.h - bannerHeight - 4
-                                : dst.y + 16;
+    SDL_Rect flagDestination(const SDL_Rect& poleBox) {
+        const double scale =
+            static_cast<double>(poleBox.h) / FLAG_POLE_HEIGHT;
+        const int canvasSize = static_cast<int>(FLAG_CANVAS_SIZE * scale);
 
-        const SDL_Rect pole{poleX - 2, dst.y, 4, dst.h};
-        const SDL_Rect knob{poleX - 6, dst.y, 12, 12};
-        const SDL_Rect banner{poleX + 2, bannerY, dst.w / 2 + 8, bannerHeight};
-
-        fill(renderer, pole, {228, 228, 228, 255});
-        fill(renderer, knob, {40, 190, 90, 255});
-        fill(renderer, banner, {235, 60, 45, 255});
+        return {
+            poleBox.x - static_cast<int>(FLAG_POLE_LEFT * scale),
+            poleBox.y - static_cast<int>(FLAG_POLE_TOP * scale),
+            canvasSize,
+            canvasSize
+        };
     }
 }
 
 void WorldRenderer::update(int deltaMs) {
     coinAnimation.update(deltaMs);
+    flagAnimation.update(deltaMs);
 }
 
 void WorldRenderer::renderBackground(SDL_Renderer* renderer,
@@ -104,7 +101,12 @@ void WorldRenderer::render(SDL_Renderer* renderer, const TextureManager& texture
     for (const auto& object : world.getObjects()) {
         const auto* flag = dynamic_cast<const Flag*>(object.get());
         if (flag != nullptr) {
-            renderFlag(renderer, destination(*flag), flag->isCaptured());
+            const SDL_Rect dst = flagDestination(destination(*flag));
+            assetRenderer.render(
+                renderer,
+                textures.getTexture(flagAnimation.getCurrentFrameId()),
+                nullptr,
+                &dst);
             continue;
         }
 
