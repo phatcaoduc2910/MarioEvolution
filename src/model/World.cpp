@@ -85,11 +85,12 @@ void World::loadLevel(const LevelData& level) {
                 case kGoombaTileId:
                     addActor(std::make_unique<Goomba>(x, y));
                     break;
-                case kFlagTileId:
-                    // Marker '!' nằm ở cell ngay trên ground. Flag cao 160 px
-                    // nên y - 128 kéo đáy cờ trùng mặt ground ở y + 32.
-                    addObject(std::make_unique<Flag>(x, y - 128.0));
+                case kFlagTileId: {
+                    const double poleX =
+                        x + (kObjectTileSize - Flag::kPoleWidth) / 2.0;
+                    addObject(std::make_unique<Flag>(poleX, y - 128.0));
                     break;
+                }
                 default:
                     throw std::invalid_argument("World received an unknown tile id");
             }

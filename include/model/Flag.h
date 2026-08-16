@@ -4,9 +4,11 @@
 
 class Player;
 
-// Flag đại diện cho cột cờ cuối màn, là một vật thể đứng yên và có va chạm rắn
 class Flag : public StaticObject {
 public:
+    static constexpr int kPoleWidth = 8;
+    static constexpr int kPoleHeight = 160;
+
     Flag(double x, double y);
 
     bool isCaptured() const;
@@ -14,10 +16,5 @@ public:
     void showGameOverMessage();
 
 private:
-    /*
-        Biến lưu trạng thái:
-            false: người chơi chưa chạm được cờ
-            true: cờ đã được chiếm, màn chơi hoàn thành
-    */ 
     bool captured;
 };

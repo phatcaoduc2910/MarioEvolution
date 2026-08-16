@@ -4,12 +4,10 @@
 
 #include <SDL2/SDL.h>
 
-// Khởi tạo cờ chưa được chiếm với kích thước 32 x 160
 Flag::Flag(double x, double y)
-    : StaticObject(x, y, 32, 160),
+    : StaticObject(x, y, kPoleWidth, kPoleHeight),
       captured(false) {}
 
-// Trả về cờ đã được chiếm hay chưa
 bool Flag::isCaptured() const {
     return captured;
 }
