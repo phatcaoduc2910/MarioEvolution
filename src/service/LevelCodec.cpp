@@ -17,6 +17,8 @@ TileId decodeTile(char symbol) {
         case 'M': return kMushroomBrickTileId;
         case 'F': return kFlowerBrickTileId;
         case 'o': return kCoinTileId;
+        case 'g': return kGoombaTileId;
+        case '!': return kFlagTileId;
         default:
             throw std::runtime_error(
                 std::string("Unknown map symbol: '") + symbol + "'"
@@ -32,6 +34,8 @@ char encodeTile(TileId tileId) {
         case kMushroomBrickTileId: return 'M';
         case kFlowerBrickTileId: return 'F';
         case kCoinTileId: return 'o';
+        case kGoombaTileId: return 'g';
+        case kFlagTileId: return '!';
         default:
             throw std::runtime_error(
                 "Level contains a tile that has no map symbol"

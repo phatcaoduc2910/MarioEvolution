@@ -10,6 +10,8 @@ inline constexpr TileId kCoinBrickTileId = 2;
 inline constexpr TileId kMushroomBrickTileId = 3;
 inline constexpr TileId kFlowerBrickTileId = 4;
 inline constexpr TileId kCoinTileId = 5;
+inline constexpr TileId kGoombaTileId = 6;
+inline constexpr TileId kFlagTileId = 7;
 
 struct Rectangle {
     double x;
