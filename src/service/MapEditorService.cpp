@@ -45,6 +45,16 @@ void setDrawColor(SDL_Renderer* renderer, SDL_Color color) {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
 }
 
+constexpr const char* kDefaultPaletteBoxId = "ui.end_box.default";
+
+const char* paletteBoxTextureId(TileId tileId) {
+    switch (tileId) {
+        case kMushroomBrickTileId: return "ui.end_box.mushroom";
+        case kFlowerBrickTileId: return "ui.end_box.flower";
+        default: return kDefaultPaletteBoxId;
+    }
+}
+
 const TileDefinition* paletteDefinition(std::size_t index) {
     std::size_t visibleIndex = 0;
     for (const TileDefinition& definition : tileDefinitions()) {
@@ -820,15 +830,23 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
             kPaletteCellWidth - 8,
             kPaletteCellHeight - 8
         };
-        UiRenderer::fillRect(renderer, card, kCardColor);
+        const char* boxTextureId = paletteBoxTextureId(definition->tileId);
+        SDL_Texture* box = textures.getTexture(boxTextureId);
+        if (box != nullptr) {
+            SDL_RenderCopy(renderer, box, nullptr, &card);
+        } else {
+            UiRenderer::fillRect(renderer, card, kCardColor);
+        }
 
-        const SDL_Rect preview{
-            card.x + (card.w - kPalettePreviewSize) / 2,
-            card.y + 5,
-            kPalettePreviewSize,
-            kPalettePreviewSize
-        };
-        renderTile(renderer, textures, definition->tileId, preview);
+        if (boxTextureId == kDefaultPaletteBoxId) {
+            const SDL_Rect preview{
+                card.x + (card.w - kPalettePreviewSize) / 2,
+                card.y + 5,
+                kPalettePreviewSize,
+                kPalettePreviewSize
+            };
+            renderTile(renderer, textures, definition->tileId, preview);
+        }
         UiRenderer::drawText(
             renderer,
             definition->label,
