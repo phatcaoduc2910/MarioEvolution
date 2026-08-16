@@ -2,6 +2,7 @@
 
 #include "model/Actor.h"
 #include "model/Brick.h"
+#include "model/Enemy.h"
 #include "model/Flag.h"
 #include "model/GameObject.h"
 #include "model/Item.h"
@@ -19,6 +20,21 @@ bool hitsFromBelow(const Actor& actor, const GameObject& object) {
     const double objectCenterY = objectBounds.y + objectBounds.height / 2.0;
 
     return actor.getVelocityY() < 0.0 && actorCenterY > objectCenterY;
+}
+
+bool isStomp(const Player& player, const Enemy& enemy) {
+    if (player.getVelocityY() <= 0.0) {
+        return false;
+    }
+
+    const Rectangle playerBounds = player.getBounds();
+    const Rectangle enemyBounds = enemy.getBounds();
+    const double playerBottom = playerBounds.y + playerBounds.height;
+    const double verticalPenetration = playerBottom - enemyBounds.y;
+
+    return playerBounds.y < enemyBounds.y &&
+           verticalPenetration >= 0.0 &&
+           verticalPenetration <= 14.0;
 }
 }
 
@@ -79,7 +95,25 @@ void CollisionSystem::resolve(World& world) {
         }
         player.collect(*item);
     }
-    //Xử lý các actor với brick
+
+    // A4: Va chạm Enemy là xử lý gameplay, không phải resolve vật cản rắn.
+    for (const auto& actor : world.getActors()) {
+        auto* enemy = dynamic_cast<Enemy*>(actor.get());
+        if (enemy == nullptr || !enemy->isAlive() ||
+            !check(player, *enemy)) {
+            continue;
+        }
+
+        if (isStomp(player, *enemy)) {
+            enemy->die();
+            player.bounceAfterStomp();
+            world.addScore(100);
+        } else {
+            enemy->damagePlayer(player);
+        }
+    }
+
+    // A5: Giữ resolve Actor-vật cản cho tới khi B bổ sung Enemy::reverseDirection().
     for (const auto& actor : world.getActors()) {
         if (!actor->isAlive()) {
             continue;
