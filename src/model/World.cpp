@@ -14,7 +14,9 @@ constexpr double kIntegratedFixedStepSeconds = 0.011;
 World::World()
     : player(100.0, 502.0),
       score(0),
-      gameOver(false) {}
+      gameOver(false),
+      levelComplete(false),
+      killPlaneY(700.0) {}
 
 
 Player& World::getPlayer() {
@@ -49,6 +51,8 @@ void World::loadLevel(const LevelData& level) {
     items.clear();
     score = 0;
     gameOver = false;
+    levelComplete = false;
+    killPlaneY = static_cast<double>(level.getHeight() * level.getTileSize()) + 96.0;
 
     for (int row = 0; row < level.getHeight(); ++row) {
         for (int column = 0; column < level.getWidth(); ++column) {
@@ -106,6 +110,16 @@ int World::getScore() const {
 
 bool World::isGameOver() const {
     return gameOver;
+}
+
+bool World::isLevelComplete() const {
+    return levelComplete;
+}
+
+void World::markLevelComplete() {
+    if (!gameOver) {
+        levelComplete = true;
+    }
 }
 
 void World::update() {

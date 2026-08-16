@@ -12,6 +12,9 @@ public:
     virtual void patrol(double dtSeconds);
     virtual void die();
     virtual void damagePlayer(Player& player);
+    void reverseDirection();
+
+    void update(double dtSeconds) override;
 
 protected:
     double walkingSpeed;

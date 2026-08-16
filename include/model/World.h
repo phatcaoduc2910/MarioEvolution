@@ -28,6 +28,8 @@ public:
 
     int getScore() const;
     bool isGameOver() const;
+    bool isLevelComplete() const;
+    void markLevelComplete();
 
     void update();
     void update(double dtSeconds);
@@ -39,4 +41,6 @@ private:
     std::vector<std::unique_ptr<Item>> items;
     int score;
     bool gameOver;
+    bool levelComplete;
+    double killPlaneY;
 };
