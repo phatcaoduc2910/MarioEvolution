@@ -2,6 +2,7 @@
 
 #include "model/Actor.h"
 #include "model/Brick.h"
+#include "model/Flag.h"
 #include "model/GameObject.h"
 #include "model/Item.h"
 #include "model/StaticObject.h"
@@ -36,8 +37,17 @@ bool CollisionSystem::check(
 
 void CollisionSystem::resolve(World& world) {
     Player& player = world.getPlayer();
-    //Xử lý player với brick
+
+    // A2/A6: Xử lý Flag trước để không xem Flag như brick hoặc vật cản rắn.
     for (const auto& object : world.getObjects()) {
+        if (auto* flag = dynamic_cast<Flag*>(object.get())) {
+            if (!flag->isCaptured() && check(player, *flag)) {
+                player.captureFlag(*flag);
+                // A6: Gọi World::markLevelComplete() tại đây sau khi B bổ sung contract.
+            }
+            continue;
+        }
+
         if (object->isSolid() && check(player, *object)) {
             if (hitsFromBelow(player, *object)) {
                 if (auto* specialBrick =
