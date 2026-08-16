@@ -556,11 +556,46 @@ void MapEditorService::resizeLevel(int newWidth, int newHeight) {
         return;
     }
 
+    const int oldWidth = level.getWidth();
+    const int oldHeight = level.getHeight();
+    const std::vector<TileId> oldTiles = level.getTiles();
+
     level.resize(newWidth, newHeight);
+    rebuildBorderedLevel(oldTiles, oldWidth, oldHeight);
+
     dirty = true;
     pendingDiscardTarget.clear();
     updateCamera();
     statusMessage = "MAP RESIZED";
+}
+
+void MapEditorService::rebuildBorderedLevel(const std::vector<TileId>& oldTiles,
+                                            int oldWidth, int oldHeight) {
+    const int newWidth = level.getWidth();
+    const int newHeight = level.getHeight();
+    const int rowShift = newHeight - oldHeight;
+
+    for (int row = 0; row < newHeight; ++row) {
+        for (int column = 0; column < newWidth; ++column) {
+            const bool onNewBorder = row == 0 || row == newHeight - 1 ||
+                                     column == 0 || column == newWidth - 1;
+            if (onNewBorder) {
+                level.setTile(column, row, kStandardBrickTileId);
+                continue;
+            }
+
+            const int oldRow = row - rowShift;
+            const bool insideOldMap = oldRow > 0 && oldRow < oldHeight - 1 &&
+                                      column > 0 && column < oldWidth - 1;
+            level.setTile(
+                column,
+                row,
+                insideOldMap
+                    ? oldTiles[static_cast<std::size_t>(oldRow) * oldWidth +
+                               static_cast<std::size_t>(column)]
+                    : kEmptyTileId);
+        }
+    }
 }
 
 void MapEditorService::refreshSavedMaps() {
