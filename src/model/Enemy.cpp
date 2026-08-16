@@ -28,9 +28,13 @@ void Enemy::reverseDirection() {
     direction = (direction == Direction::Left) ? Direction::Right : Direction::Left;
 }
 
-// TODO: Implement gravity + patrol logic in B3.
 void Enemy::update(double dtSeconds) {
-    (void)dtSeconds;
+    if (!alive) {
+        return;
+    }
+
+    applyGravity(dtSeconds);
+    patrol(dtSeconds);
 }
 
 void Enemy::die() {
