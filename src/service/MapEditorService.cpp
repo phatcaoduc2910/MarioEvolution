@@ -262,7 +262,7 @@ bool MapEditorService::handleEvent(const SDL_Event& event) {
                 (event.key.keysym.mod & KMOD_CTRL) != 0 &&
                 (event.key.keysym.mod & KMOD_SHIFT) != 0)) {
         beginSaveAs();
-    } else if (key >= SDLK_1 && key <= SDLK_5) {
+    } else if (key >= SDLK_1 && key <= SDLK_6) {
         selectBrush(static_cast<int>(key - SDLK_0));
     } else if (key == SDLK_e) {
         pickTile();
