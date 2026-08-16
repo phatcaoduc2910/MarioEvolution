@@ -6,6 +6,7 @@
 
 namespace {
 constexpr double kJumpVelocityPixelsPerSecond = -600.0;
+constexpr double kStompBounceVelocityPixelsPerSecond = -360.0;
 constexpr double kMoveSpeedPixelsPerSecond = 240.0;
 constexpr double kInvincibilityDurationSeconds = 1.5;
 constexpr double kTimerEpsilonSeconds = 1e-9;
@@ -50,6 +51,16 @@ void Player::jump() {
     }
 
     velocityY = kJumpVelocityPixelsPerSecond;
+    onGround = false;
+}
+
+void Player::bounceAfterStomp() {
+    // A4: Cú stomp tạo lực bật ngắn hơn một lần nhảy thường.
+    if (!isAlive()) {
+        return;
+    }
+
+    velocityY = kStompBounceVelocityPixelsPerSecond;
     onGround = false;
 }
 
