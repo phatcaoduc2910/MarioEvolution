@@ -10,7 +10,7 @@
 
 #include <memory>
 #include <utility>
-//Check nếu player nhảy lên trên block
+
 namespace {
 bool hitsFromBelow(const Actor& actor, const GameObject& object) {
     const Rectangle actorBounds = actor.getBounds();
@@ -21,7 +21,7 @@ bool hitsFromBelow(const Actor& actor, const GameObject& object) {
     return actor.getVelocityY() < 0.0 && actorCenterY > objectCenterY;
 }
 }
-//Kiểm tra va chạm kiểu AABB
+
 bool CollisionSystem::check(
     const Actor& actor,
     const GameObject& object
@@ -48,23 +48,27 @@ void CollisionSystem::resolve(World& world) {
             continue;
         }
 
-        if (object->isSolid() && check(player, *object)) {
-            if (hitsFromBelow(player, *object)) {
-                if (auto* specialBrick =
-                        dynamic_cast<SpecialBrick*>(object.get())) {
-                    std::unique_ptr<Item> item = specialBrick->releaseItem();
-                    if (item != nullptr) {
-                        world.addItem(std::move(item));
-                    }
-                } else if (auto* brick = dynamic_cast<Brick*>(object.get())) {
-                    brick->hitBy(player);
-                }
-            }
-
-            object->onCollision(player);
+        if (!object->isSolid() || !check(player, *object)) {
+            continue;
         }
+
+        // A2: Chỉ Brick mới phản ứng khi bị đập từ phía dưới.
+        if (auto* brick = dynamic_cast<Brick*>(object.get());
+            brick != nullptr && hitsFromBelow(player, *brick)) {
+            if (auto* specialBrick = dynamic_cast<SpecialBrick*>(brick)) {
+                std::unique_ptr<Item> item = specialBrick->releaseItem();
+                if (item != nullptr) {
+                    world.addItem(std::move(item));
+                }
+            } else {
+                brick->hitBy(player);
+            }
+        }
+
+        object->onCollision(player);
     }
-    //Xử lý player với item rơi ra
+
+    // A3: Trạng thái collected ngăn áp dụng hiệu ứng và cộng điểm nhiều lần.
     for (const auto& item : world.getItems()) {
         if (item->isCollected() || !check(player, *item)) {
             continue;
