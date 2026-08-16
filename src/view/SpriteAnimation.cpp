@@ -1,17 +1,16 @@
 #include "view/SpriteAnimation.h"
 
-SpriteAnimation::SpriteAnimation(SpriteSheetLayout layout, int row,
-                                 int startCol, int frameCount, int frameDurationMs)
-    : layout(layout),
-      row(row),
-      startCol(startCol),
-      frameCount(frameCount),
+#include <utility>
+
+SpriteAnimation::SpriteAnimation(std::vector<std::string> frameIds,
+                                 int frameDurationMs)
+    : frameIds(std::move(frameIds)),
       frameDurationMs(frameDurationMs),
       elapsedMs(0),
       currentFrame(0) {}
 
 void SpriteAnimation::update(int deltaMs) {
-    if (frameCount <= 1 || frameDurationMs <= 0) {
+    if (frameIds.size() <= 1 || frameDurationMs <= 0) {
         return;
     }
 
@@ -20,7 +19,7 @@ void SpriteAnimation::update(int deltaMs) {
     // Dùng while để không mất frame khi một nhịp render bị khựng.
     while (elapsedMs >= frameDurationMs) {
         elapsedMs -= frameDurationMs;
-        currentFrame = (currentFrame + 1) % frameCount;
+        currentFrame = (currentFrame + 1) % frameIds.size();
     }
 }
 
@@ -29,11 +28,10 @@ void SpriteAnimation::reset() {
     currentFrame = 0;
 }
 
-SDL_Rect SpriteAnimation::getCurrentFrame() const {
-    return {
-        layout.originX + (startCol + currentFrame) * layout.strideX,
-        layout.originY + row * layout.strideY,
-        layout.frameWidth,
-        layout.frameHeight
-    };
+const std::string& SpriteAnimation::getCurrentFrameId() const {
+    static const std::string empty;
+    if (currentFrame >= frameIds.size()) {
+        return empty;
+    }
+    return frameIds[currentFrame];
 }

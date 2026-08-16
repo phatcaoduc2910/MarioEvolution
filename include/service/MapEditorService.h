@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/LevelData.h"
+#include "view/TextureManager.h"
 
 #include <SDL2/SDL.h>
 #include <cstddef>
@@ -20,7 +21,7 @@ public:
     bool isDirty() const;
     bool handleEvent(const SDL_Event& event);
     void update();
-    void render(SDL_Renderer* renderer, SDL_Texture* worldTiles);
+    void render(SDL_Renderer* renderer, const TextureManager& textures);
 
     const LevelData& getLevel() const;
     int getCameraX() const;
@@ -56,9 +57,9 @@ private:
     bool canDiscardChanges(const std::string& target);
     void saveLevel();
 
-    void renderGrid(SDL_Renderer* renderer, SDL_Texture* worldTiles);
-    void renderBrushCursor(SDL_Renderer* renderer, SDL_Texture* worldTiles);
-    void renderPalette(SDL_Renderer* renderer, SDL_Texture* worldTiles);
+    void renderGrid(SDL_Renderer* renderer, const TextureManager& textures);
+    void renderBrushCursor(SDL_Renderer* renderer, const TextureManager& textures);
+    void renderPalette(SDL_Renderer* renderer, const TextureManager& textures);
     void renderMapPalette(SDL_Renderer* renderer);
 
     LevelData level;

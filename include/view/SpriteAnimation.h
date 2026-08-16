@@ -1,30 +1,19 @@
 #pragma once
 
-#include <SDL2/SDL.h>
-
-struct SpriteSheetLayout {
-    int originX;
-    int originY;
-    int frameWidth;
-    int frameHeight;
-    int strideX;
-    int strideY;
-};
+#include <cstddef>
+#include <string>
+#include <vector>
 
 class SpriteAnimation {
 public:
-    SpriteAnimation(SpriteSheetLayout layout, int row,
-                    int startCol, int frameCount, int frameDurationMs);
+    SpriteAnimation(std::vector<std::string> frameIds, int frameDurationMs);
     void update(int deltaMs);
     void reset();
-    SDL_Rect getCurrentFrame() const;
+    const std::string& getCurrentFrameId() const;
 
 private:
-    SpriteSheetLayout layout;
-    int row;
-    int startCol;
-    int frameCount;
+    std::vector<std::string> frameIds;
     int frameDurationMs;
     int elapsedMs;
-    int currentFrame;
+    std::size_t currentFrame;
 };

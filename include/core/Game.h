@@ -11,6 +11,7 @@
 #include "view/PauseScreen.h"
 #include "view/StartScreen.h"
 #include "view/WorldRenderer.h"
+#include "view/TextureManager.h"
 
 #include <memory>
 
@@ -40,11 +41,9 @@ private:
     ActorRenderer playerRenderer;
     SDL_Window* window{nullptr};
     SDL_Renderer* renderer{nullptr};
-    SDL_Texture* worldTiles{nullptr};
-    SDL_Texture* playerTexture{nullptr};
     Uint32 lastFrameTicks{0};
     GameState currentGameState{StartMenu};
     PauseScreen pauseScreen;
     StartScreen startScreen;
-    
+    std::unique_ptr<TextureManager> textureManager;
 };

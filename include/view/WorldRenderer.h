@@ -1,13 +1,22 @@
 #pragma once
 
 #include "view/AssetRenderer.h"
+#include "view/SpriteAnimation.h"
+#include "view/TextureManager.h"
 
 class World;
 
 class WorldRenderer {
 public:
-    void render(SDL_Renderer* renderer, SDL_Texture* worldTiles, const World& world);
+    void update(int deltaMs);
+
+    void renderBackground(SDL_Renderer* renderer, const TextureManager& textures,
+                          int viewWidth, int viewHeight);
+    void render(SDL_Renderer* renderer, const TextureManager& textures,
+                const World& world);
+    void renderHud(SDL_Renderer* renderer, const World& world);
 
 private:
     AssetRenderer assetRenderer;
+    SpriteAnimation coinAnimation{{"coin.1", "coin.2", "coin.3", "coin.4"}, 120};
 };

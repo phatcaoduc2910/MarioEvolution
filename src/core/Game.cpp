@@ -18,8 +18,8 @@ Game::Game()
       audioService(std::make_unique<SoundManager>()) {}
 
 Game::~Game() {
-    SDL_DestroyTexture(playerTexture);
-    SDL_DestroyTexture(worldTiles);
+    mapEditor.reset();
+    textureManager.reset();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     IMG_Quit();
@@ -63,23 +63,9 @@ bool Game::start() {
         return false;
     }
 
-    SDL_Surface* worldSurface = IMG_Load("assets/runtime/world_tiles.png");
-    if (worldSurface == nullptr) {
-        SDL_Log("World texture loading failed: %s", IMG_GetError());
-        return false;
-    }
-
-    worldTiles = SDL_CreateTextureFromSurface(renderer, worldSurface);
-    SDL_FreeSurface(worldSurface);
-
-    if (worldTiles == nullptr) {
-        SDL_Log("World texture creation failed: %s", SDL_GetError());
-        return false;
-    }
-
-    playerTexture = IMG_LoadTexture(renderer, "assets/runtime/mario_super.png");
-    if (playerTexture == nullptr) {
-        SDL_Log("Player texture load failed: %s", IMG_GetError());
+    textureManager = std::make_unique<TextureManager>(renderer);
+    if (!textureManager->gameTextureLoad()) {
+        SDL_Log("Failed to load game textures.");
         return false;
     }
 
@@ -235,21 +221,35 @@ void Game::gameLoop() {
                 }
                 accumulatorMs -= kFixedStepMs;
             }
+            worldRenderer.update(deltaMs);
             playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
-            worldRenderer.render(renderer, worldTiles, world);
-            playerRenderer.renderPlayer(renderer, playerTexture, world.getPlayer());
+            playerRenderer.updateEnemies(deltaMs);
+
+            worldRenderer.renderBackground(
+                renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT);
+            worldRenderer.render(renderer, *textureManager, world);
+            playerRenderer.renderEnemies(renderer, *textureManager, world);
+            playerRenderer.renderPlayer(renderer, *textureManager, world.getPlayer());
+            worldRenderer.renderHud(renderer, world);
             break;
         }
         case Editing:{
             mapEditor->update();
-            mapEditor->render(renderer, worldTiles);
+            mapEditor->render(renderer, *textureManager);
 
             playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
+            playerRenderer.updateEnemies(deltaMs);
             const SDL_Rect viewport = mapEditor->getMapViewport();
             SDL_RenderSetClipRect(renderer, &viewport);
+            playerRenderer.renderEnemies(
+                renderer,
+                *textureManager,
+                world,
+                -mapEditor->getCameraX(),
+                -mapEditor->getCameraY());
             playerRenderer.renderPlayer(
                 renderer,
-                playerTexture,
+                *textureManager,
                 world.getPlayer(),
                 -mapEditor->getCameraX(),
                 -mapEditor->getCameraY());

@@ -59,18 +59,24 @@ const TileDefinition* paletteDefinition(std::size_t index) {
     return nullptr;
 }
 
-bool renderTile(SDL_Renderer* renderer, SDL_Texture* texture, TileId tileId,
-                const SDL_Rect& destination, Uint8 alpha = 255) {
+bool renderTile(SDL_Renderer* renderer, const TextureManager& textures,
+                TileId tileId, const SDL_Rect& destination,
+                Uint8 alpha = 255) {
     const TileDefinition* definition = findTileDefinition(tileId);
-    if (renderer == nullptr || texture == nullptr || definition == nullptr ||
-        definition->source.w <= 0 || definition->source.h <= 0) {
+    if (renderer == nullptr || definition == nullptr ||
+        definition->textureId == nullptr) {
+        return false;
+    }
+
+    SDL_Texture* texture = textures.getTexture(definition->textureId);
+    if (texture == nullptr) {
         return false;
     }
 
     Uint8 oldAlpha = 255;
     SDL_GetTextureAlphaMod(texture, &oldAlpha);
     SDL_SetTextureAlphaMod(texture, alpha);
-    SDL_RenderCopy(renderer, texture, &definition->source, &destination);
+    SDL_RenderCopy(renderer, texture, nullptr, &destination);
     // Preview mượn alpha của texture, xong phải trả lại cho lượt vẽ sau.
     SDL_SetTextureAlphaMod(texture, oldAlpha);
     return true;
@@ -279,8 +285,8 @@ void MapEditorService::update() {
 }
 
 void MapEditorService::render(SDL_Renderer* renderer,
-                              SDL_Texture* worldTiles) {
-    if (!editorEnabled || renderer == nullptr || worldTiles == nullptr) {
+                              const TextureManager& textures) {
+    if (!editorEnabled || renderer == nullptr) {
         return;
     }
 
@@ -289,10 +295,10 @@ void MapEditorService::render(SDL_Renderer* renderer,
 
     const SDL_Rect viewport = getMapViewport();
     SDL_RenderSetClipRect(renderer, &viewport);
-    renderGrid(renderer, worldTiles);
-    renderBrushCursor(renderer, worldTiles);
+    renderGrid(renderer, textures);
+    renderBrushCursor(renderer, textures);
     SDL_RenderSetClipRect(renderer, nullptr);
-    renderPalette(renderer, worldTiles);
+    renderPalette(renderer, textures);
 }
 
 
@@ -711,7 +717,7 @@ void MapEditorService::saveLevel() {
 }
 
 void MapEditorService::renderGrid(SDL_Renderer* renderer,
-                                  SDL_Texture* worldTiles) {
+                                  const TextureManager& textures) {
     const int tileSize = level.getTileSize();
     const int firstColumn = cameraX / tileSize;
     const int firstRow = cameraY / tileSize;
@@ -731,7 +737,7 @@ void MapEditorService::renderGrid(SDL_Renderer* renderer,
                 tileSize
             };
 
-            renderTile(renderer, worldTiles, level.getTile(column, row), cell);
+            renderTile(renderer, textures, level.getTile(column, row), cell);
             setDrawColor(renderer, kGridColor);
             SDL_RenderDrawRect(renderer, &cell);
         }
@@ -739,7 +745,7 @@ void MapEditorService::renderGrid(SDL_Renderer* renderer,
 }
 
 void MapEditorService::renderBrushCursor(SDL_Renderer* renderer,
-                                         SDL_Texture* worldTiles) {
+                                         const TextureManager& textures) {
     int column = 0;
     int row = 0;
     if (!screenToCell(mouseX, mouseY, column, row)) {
@@ -755,7 +761,7 @@ void MapEditorService::renderBrushCursor(SDL_Renderer* renderer,
     };
     const TileId previewTile = strokeActive ? strokeTile : selectedTile;
 
-    if (!renderTile(renderer, worldTiles, previewTile, cursor, 155)) {
+    if (!renderTile(renderer, textures, previewTile, cursor, 155)) {
         setDrawColor(renderer, {210, 60, 60, 120});
         SDL_RenderFillRect(renderer, &cursor);
     }
@@ -765,7 +771,7 @@ void MapEditorService::renderBrushCursor(SDL_Renderer* renderer,
 }
 
 void MapEditorService::renderPalette(SDL_Renderer* renderer,
-                                     SDL_Texture* worldTiles) {
+                                     const TextureManager& textures) {
     const int panelX = getViewportWidth();
     UiRenderer::fillRect(
         renderer,
@@ -822,7 +828,7 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
             kPalettePreviewSize,
             kPalettePreviewSize
         };
-        renderTile(renderer, worldTiles, definition->tileId, preview);
+        renderTile(renderer, textures, definition->tileId, preview);
         UiRenderer::drawText(
             renderer,
             definition->label,

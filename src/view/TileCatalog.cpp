@@ -3,17 +3,17 @@
 namespace {
 constexpr std::array<TileDefinition, 6> kTileDefinitions{{
     {kEmptyTileId, kEmptyTileId, kManualTileMask,
-     {0, 0, 0, 0}, "EMPTY", false},
+     nullptr, "EMPTY", false},
     {kStandardBrickTileId, kStandardBrickTileId, kManualTileMask,
-     {0, 0, 32, 32}, "BRICK", true},
+     "wood", "BRICK", true},
     {kCoinBrickTileId, kCoinBrickTileId, kManualTileMask,
-     {32, 0, 32, 32}, "COIN BRICK", true},
+     "question_1", "COIN BRICK", true},
     {kMushroomBrickTileId, kMushroomBrickTileId, kManualTileMask,
-     {32, 0, 32, 32}, "MUSHROOM", true},
+     "question_1", "MUSHROOM", true},
     {kFlowerBrickTileId, kFlowerBrickTileId, kManualTileMask,
-     {32, 0, 32, 32}, "FLOWER", true},
+     "question_1", "FLOWER", true},
     {kCoinTileId, kCoinTileId, kManualTileMask,
-     {64, 0, 32, 32}, "COIN", true}
+     "coin.1", "COIN", true}
 }};
 }
 

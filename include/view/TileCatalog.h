@@ -17,7 +17,7 @@ struct TileDefinition {
     TileId tileId;
     TileId groupId;
     std::uint8_t connectionMask;
-    SDL_Rect source;
+    const char* textureId;
     const char* label;
     bool paletteVisible;
 };
