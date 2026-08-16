@@ -2,6 +2,8 @@
 
 #include "model/Actor.h"
 #include "model/Brick.h"
+#include "model/Enemy.h"
+#include "model/Flag.h"
 #include "model/GameObject.h"
 #include "model/Item.h"
 #include "model/StaticObject.h"
@@ -9,7 +11,7 @@
 
 #include <memory>
 #include <utility>
-//Check nếu player nhảy lên trên block
+
 namespace {
 bool hitsFromBelow(const Actor& actor, const GameObject& object) {
     const Rectangle actorBounds = actor.getBounds();
@@ -19,8 +21,23 @@ bool hitsFromBelow(const Actor& actor, const GameObject& object) {
 
     return actor.getVelocityY() < 0.0 && actorCenterY > objectCenterY;
 }
+
+bool isStomp(const Player& player, const Enemy& enemy) {
+    if (player.getVelocityY() <= 0.0) {
+        return false;
+    }
+
+    const Rectangle playerBounds = player.getBounds();
+    const Rectangle enemyBounds = enemy.getBounds();
+    const double playerBottom = playerBounds.y + playerBounds.height;
+    const double verticalPenetration = playerBottom - enemyBounds.y;
+
+    return playerBounds.y < enemyBounds.y &&
+           verticalPenetration >= 0.0 &&
+           verticalPenetration <= 14.0;
 }
-//Kiểm tra va chạm kiểu AABB
+}
+
 bool CollisionSystem::check(
     const Actor& actor,
     const GameObject& object
@@ -36,25 +53,38 @@ bool CollisionSystem::check(
 
 void CollisionSystem::resolve(World& world) {
     Player& player = world.getPlayer();
-    //Xử lý player với brick
-    for (const auto& object : world.getObjects()) {
-        if (object->isSolid() && check(player, *object)) {
-            if (hitsFromBelow(player, *object)) {
-                if (auto* specialBrick =
-                        dynamic_cast<SpecialBrick*>(object.get())) {
-                    std::unique_ptr<Item> item = specialBrick->releaseItem();
-                    if (item != nullptr) {
-                        world.addItem(std::move(item));
-                    }
-                } else if (auto* brick = dynamic_cast<Brick*>(object.get())) {
-                    brick->hitBy(player);
-                }
-            }
 
-            object->onCollision(player);
+    // A2/A6: Xử lý Flag trước để không xem Flag như brick hoặc vật cản rắn.
+    for (const auto& object : world.getObjects()) {
+        if (auto* flag = dynamic_cast<Flag*>(object.get())) {
+            if (!flag->isCaptured() && check(player, *flag)) {
+                player.captureFlag(*flag);
+                // A6: Gọi World::markLevelComplete() tại đây sau khi B bổ sung contract.
+            }
+            continue;
         }
+
+        if (!object->isSolid() || !check(player, *object)) {
+            continue;
+        }
+
+        // A2: Chỉ Brick mới phản ứng khi bị đập từ phía dưới.
+        if (auto* brick = dynamic_cast<Brick*>(object.get());
+            brick != nullptr && hitsFromBelow(player, *brick)) {
+            if (auto* specialBrick = dynamic_cast<SpecialBrick*>(brick)) {
+                std::unique_ptr<Item> item = specialBrick->releaseItem();
+                if (item != nullptr) {
+                    world.addItem(std::move(item));
+                }
+            } else {
+                brick->hitBy(player);
+            }
+        }
+
+        object->onCollision(player);
     }
-    //Xử lý player với item rơi ra
+
+    // A3: Trạng thái collected ngăn áp dụng hiệu ứng và cộng điểm nhiều lần.
     for (const auto& item : world.getItems()) {
         if (item->isCollected() || !check(player, *item)) {
             continue;
@@ -65,7 +95,25 @@ void CollisionSystem::resolve(World& world) {
         }
         player.collect(*item);
     }
-    //Xử lý các actor với brick
+
+    // A4: Va chạm Enemy là xử lý gameplay, không phải resolve vật cản rắn.
+    for (const auto& actor : world.getActors()) {
+        auto* enemy = dynamic_cast<Enemy*>(actor.get());
+        if (enemy == nullptr || !enemy->isAlive() ||
+            !check(player, *enemy)) {
+            continue;
+        }
+
+        if (isStomp(player, *enemy)) {
+            enemy->die();
+            player.bounceAfterStomp();
+            world.addScore(100);
+        } else {
+            enemy->damagePlayer(player);
+        }
+    }
+
+    // A5: Giữ resolve Actor-vật cản cho tới khi B bổ sung Enemy::reverseDirection().
     for (const auto& actor : world.getActors()) {
         if (!actor->isAlive()) {
             continue;

@@ -15,6 +15,7 @@ public:
     bool isInvincible() const;
 
     void jump();
+    void bounceAfterStomp();
     void setMoveDirection(int direction);
     void collect(Item& item);
     void grow();
