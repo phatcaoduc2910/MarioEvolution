@@ -2,23 +2,25 @@
 
 ## Build
 
-Toàn bộ game và tool dùng Makefile tại thư mục gốc:
+Toàn bộ game và test dùng Makefile tại thư mục gốc:
 
 ```powershell
 make create
 make run
-make run-map-editor
-make render-preview
-make run-render-preview
 make test
+make run-map-editor
 make clean
 ```
 
+Project dùng C++17 trên MSYS2 UCRT64 với SDL2, SDL2_image và SDL2_mixer.
+`make create` tạo `MarioEvolution.exe`; `make run` build nếu cần rồi chạy game.
+
 ## Assets
 
-Asset đang dùng được phân loại trong [`assets/`](assets/README.md). Hai atlas ở
-`assets/runtime/` được tạo từ sprite mới cho renderer hiện tại. Bộ asset cũ được
-giữ nguyên tại `backups/assets_before_tile_scrolling_import_2026-08-12/`.
+Asset đang dùng được phân loại trong [`assets/`](assets/README.md).
+`TextureManager` nạp trực tiếp texture từ các thư mục `backgrounds/`,
+`characters/`, `effects/`, `enemies/`, `items/`, `tiles/` và `ui/`.
+Âm thanh được nạp từ `assets/audio/`.
 
 ## Map
 
@@ -30,8 +32,21 @@ B  StandardBrick
 M  MushroomBrick
 F  FlowerBrick
 o  Coin tự do
+g  Goomba
+!  Flag
 .  Ô trống
 ```
+
+## Controls
+
+### Menu và gameplay
+
+- `Up`/`Down`: chọn mục trong menu; `Enter`: xác nhận.
+- `A`/`Left`: đi trái; `D`/`Right`: đi phải.
+- `Space`: nhảy.
+- `P` hoặc `Esc`: tạm dừng/tiếp tục.
+- `0`: mở map editor khi đang chơi.
+- Tại màn hình hoàn thành hoặc game over: `Enter` chơi lại, `Esc` về menu.
 
 ## Map Editor
 
