@@ -6,6 +6,7 @@
 #include "model/Flag.h"
 #include "model/LevelData.h"
 
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -156,4 +157,22 @@ void World::update(double dtSeconds) {
     if (player.getY() > killPlaneY) {
         gameOver = true;
     }
+
+    actors.erase(
+        std::remove_if(
+            actors.begin(),
+            actors.end(),
+            [](const std::unique_ptr<Actor>& actor) {
+                return !actor->isAlive();
+            }),
+        actors.end());
+
+    items.erase(
+        std::remove_if(
+            items.begin(),
+            items.end(),
+            [](const std::unique_ptr<Item>& item) {
+                return item->isCollected();
+            }),
+        items.end());
 }
