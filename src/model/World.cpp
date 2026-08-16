@@ -149,7 +149,11 @@ void World::update(double dtSeconds) {
         item->update(dtSeconds);
     }
 
-    if (player.getY() > 600.0) {
+    if (!player.isAlive() || player.getState() == PlayerState::Dead) {
+        gameOver = true;
+    }
+
+    if (player.getY() > killPlaneY) {
         gameOver = true;
     }
 }
