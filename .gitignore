@@ -1,2 +1,14 @@
+# Build output
 MarioEvolution.exe
 builds/
+*.exe
+*.o
+
+# Công cụ nội bộ và backup cục bộ, không đẩy lên remote
+tools/
+backups/
+
+# Rác sinh ra trên Windows
+NUL.exe
+/-p/
+tmp/
