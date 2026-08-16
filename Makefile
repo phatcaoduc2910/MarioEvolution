@@ -18,7 +18,8 @@ OBJ = $(SRC:src/%.cpp=$(OBJDIR)/%.o)
 
 RENDER_PREVIEW_APP = $(OBJDIR)/render_preview/RenderPreview.exe
 RENDER_PREVIEW_SRC = tools/render_preview/main.cpp \
-	src/view/SpriteAnimation.cpp
+	src/view/SpriteAnimation.cpp \
+	src/view/TextureManager.cpp
 
 LEVEL_CODEC_TEST_APP = $(OBJDIR)/tests/LevelCodecTest.exe
 LEVEL_CODEC_TEST_SRC = tools/level_codec_test/main.cpp \
@@ -35,6 +36,7 @@ MAP_EDITOR_TEST_SRC = tools/map_editor_test/main.cpp \
 	src/service/LevelCodec.cpp \
 	src/model/LevelData.cpp \
 	src/view/TileCatalog.cpp \
+	src/view/TextureManager.cpp \
 	src/view/UiRenderer.cpp
 
 .PHONY: all create run tools map-editor run-map-editor \
