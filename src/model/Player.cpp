@@ -3,12 +3,10 @@
 #include "model/Item.h"
 
 #include <SDL2/SDL.h>
-#include <cmath>
 
 namespace {
 constexpr double kJumpVelocityPixelsPerSecond = -600.0;
 constexpr double kMoveSpeedPixelsPerSecond = 240.0;
-constexpr double kMinVelocityPixelsPerSecond = 0.06;
 constexpr double kInvincibilityDurationSeconds = 1.5;
 constexpr double kTimerEpsilonSeconds = 1e-9;
 }
@@ -46,10 +44,13 @@ bool Player::isInvincible() const {
 }
 
 void Player::jump() {
-    if (isAlive() &&
-        std::abs(velocityY) < kMinVelocityPixelsPerSecond) {
-        velocityY = kJumpVelocityPixelsPerSecond;
+    // A1: Trạng thái chạm đất, không phải vận tốc dọc, quyết định quyền nhảy.
+    if (!isAlive() || !isOnGround()) {
+        return;
     }
+
+    velocityY = kJumpVelocityPixelsPerSecond;
+    onGround = false;
 }
 
 void Player::setMoveDirection(int direction) {
