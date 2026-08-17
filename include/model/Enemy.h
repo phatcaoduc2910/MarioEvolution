@@ -12,6 +12,7 @@ public:
     virtual void patrol();
     virtual void die();
     virtual void damagePlayer(Player& player);
+    virtual bool shouldTurnAtEdge() const;
     void reverseDirection();
 
     void update(double dtSeconds) override;

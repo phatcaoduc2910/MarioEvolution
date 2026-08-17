@@ -13,6 +13,16 @@
 #include <utility>
 
 namespace {
+constexpr int kEdgeProbeWidth = 1;
+constexpr int kEdgeProbeHeight = 2;
+
+bool overlaps(const Rectangle& a, const Rectangle& b) {
+    return a.x < b.x + b.width &&
+           a.x + a.width > b.x &&
+           a.y < b.y + b.height &&
+           a.y + a.height > b.y;
+}
+
 bool isStomp(const Player& player, const Enemy& enemy) {
     if (player.getVelocityY() <= 0.0) {
         return false;
@@ -33,13 +43,7 @@ bool CollisionSystem::check(
     const Actor& actor,
     const GameObject& object
 ) const {
-    const Rectangle a = actor.getBounds();
-    const Rectangle b = object.getBounds();
-
-    return a.x < b.x + b.width &&
-           a.x + a.width > b.x &&
-           a.y < b.y + b.height &&
-           a.y + a.height > b.y;
+    return overlaps(actor.getBounds(), object.getBounds());
 }
 
 void CollisionSystem::update(World& world, double dtSeconds) {
@@ -70,12 +74,43 @@ void CollisionSystem::stepActor(
     actor.moveY(dtSeconds);
     resolveY(actor, world);
 
-    // A5: Enemy chỉ lật hướng khi trục X thật sự bị chặn, không đoán theo độ lún.
+    auto* enemy = dynamic_cast<Enemy*>(&actor);
+    if (enemy == nullptr) {
+        return;
+    }
+
     if (blockedByWall) {
-        if (auto* enemy = dynamic_cast<Enemy*>(&actor)) {
-            enemy->reverseDirection();
+        enemy->reverseDirection();
+        return;
+    }
+
+    if (enemy->shouldTurnAtEdge() && enemy->isOnGround() &&
+        !hasGroundAhead(*enemy, world)) {
+        enemy->reverseDirection();
+    }
+}
+
+bool CollisionSystem::hasGroundAhead(
+    const Actor& actor,
+    const World& world
+) const {
+    const Rectangle bounds = actor.getBounds();
+    const Rectangle probe{
+        (actor.getDirection() == Direction::Left)
+            ? bounds.x - kEdgeProbeWidth
+            : bounds.x + bounds.width,
+        bounds.y + bounds.height,
+        kEdgeProbeWidth,
+        kEdgeProbeHeight
+    };
+
+    for (const auto& object : world.getObjects()) {
+        if (object->isSolid() && overlaps(probe, object->getBounds())) {
+            return true;
         }
     }
+
+    return false;
 }
 
 bool CollisionSystem::resolveX(Actor& actor, const World& world) const {

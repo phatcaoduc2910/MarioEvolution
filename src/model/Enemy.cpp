@@ -20,6 +20,10 @@ void Enemy::patrol() {
     velocityX = (direction == Direction::Left) ? -walkingSpeed : walkingSpeed;
 }
 
+bool Enemy::shouldTurnAtEdge() const {
+    return true;
+}
+
 void Enemy::reverseDirection() {
     direction = (direction == Direction::Left) ? Direction::Right : Direction::Left;
 }

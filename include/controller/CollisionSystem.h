@@ -15,6 +15,7 @@ public:
 
 private:
     void stepActor(Actor& actor, World& world, double dtSeconds) const;
+    bool hasGroundAhead(const Actor& actor, const World& world) const;
     bool resolveX(Actor& actor, const World& world) const;
     void resolveY(Actor& actor, World& world) const;
     void hitBrickFromBelow(
