@@ -16,7 +16,7 @@ constexpr double kTimerEpsilonSeconds = 1e-9;
 }
 
 Player::Player(double x, double y)
-    : Actor(x, y, 32, 48),
+    : Actor(x, y, kBodyWidth, kSmallHeight),
       state(PlayerState::Small),
       moveDirection(0),
       invincibilityRemainingSeconds(0.0) {
@@ -86,12 +86,14 @@ void Player::collect(Item& item) {
 void Player::grow() {
     if (state == PlayerState::Small) {
         state = PlayerState::Big;
+        resizeForState();
     }
 }
 
 void Player::upgradeToFire() {
     if (isAlive()) {
         state = PlayerState::Fire;
+        resizeForState();
     }
 }
 
@@ -105,6 +107,7 @@ void Player::takeDamage() {
         startInvincibility();
     } else if (state == PlayerState::Big) {
         state = PlayerState::Small;
+        resizeForState();
         startInvincibility();
     } else {
         state = PlayerState::Dead;
@@ -162,6 +165,22 @@ void Player::update(double dtSeconds) {
 
 void Player::startInvincibility() {
     invincibilityRemainingSeconds = kInvincibilityDurationSeconds;
+}
+
+void Player::resizeForState() {
+    if (state == PlayerState::Dead) {
+        return;
+    }
+
+    const int targetHeight = (state == PlayerState::Small)
+                                 ? kSmallHeight
+                                 : kBigHeight;
+    if (targetHeight == height) {
+        return;
+    }
+
+    y += height - targetHeight;
+    height = targetHeight;
 }
 
 void Player::render() {}

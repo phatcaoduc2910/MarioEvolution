@@ -7,6 +7,10 @@ class Item;
 
 class Player : public Actor {
 public:
+    static constexpr int kBodyWidth = 32;
+    static constexpr int kSmallHeight = 32;
+    static constexpr int kBigHeight = 54;
+
     Player(double x, double y);
 
     PowerUpType getPowerUp() const;
@@ -29,6 +33,7 @@ public:
 
 private:
     void startInvincibility();
+    void resizeForState();
 
     PlayerState state;
     int moveDirection;

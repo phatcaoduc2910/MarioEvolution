@@ -14,9 +14,9 @@ constexpr double kStepSeconds = 0.011;
 constexpr int kTileSize = 32;
 
 constexpr double kSpawnX = 100.0;
-constexpr double kSpawnY = 502.0;
-constexpr int kPlayerWidth = 32;
-constexpr int kPlayerHeight = 48;
+constexpr double kSpawnY = 550.0 - Player::kSmallHeight;
+constexpr int kPlayerWidth = Player::kBodyWidth;
+constexpr int kPlayerHeight = Player::kSmallHeight;
 
 constexpr double kGroundTopY = 576.0;
 constexpr double kStandY = kGroundTopY - kPlayerHeight;
@@ -212,7 +212,7 @@ void testJumpBesideCorner() {
         apexTopY = (player.getY() < apexTopY) ? player.getY() : apexTopY;
     }
 
-    assert(apexTopY < 430.0);
+    assert(apexTopY < kStandY - 90.0);
     assert(player.getY() == kStandY);
     assert(player.isOnGround());
     assert(player.getX() == 160.0);
@@ -238,6 +238,53 @@ void testFallBesideBlock() {
 
     assert(player.getY() == kStandY);
     assert(player.isOnGround());
+}
+
+void addLowCeiling(World& world, int firstColumn, int lastColumn) {
+    for (int column = firstColumn; column <= lastColumn; ++column) {
+        world.addObject(std::make_unique<StandardBrick>(
+            static_cast<double>(column * kTileSize), 512.0));
+    }
+}
+
+void testPlayerHitboxTracksState() {
+    World world;
+    CollisionSystem collisionSystem;
+    addGround(world, 0, 10);
+    addLowCeiling(world, 5, 10);
+
+    Player& player = world.getPlayer();
+    landOnGround(world, collisionSystem);
+    assert(player.getWidth() == Player::kBodyWidth);
+    assert(player.getHeight() == Player::kSmallHeight);
+
+    stepHolding(world, collisionSystem, 60, 1);
+    assert(player.getX() > 160.0);
+    assert(player.getY() == kStandY);
+    assert(player.isOnGround());
+
+    World bigWorld;
+    CollisionSystem bigCollisions;
+    addGround(bigWorld, 0, 10);
+    addLowCeiling(bigWorld, 5, 10);
+
+    Player& big = bigWorld.getPlayer();
+    landOnGround(bigWorld, bigCollisions);
+    const double feetY = big.getY() + big.getHeight();
+
+    big.grow();
+    assert(big.getState() == PlayerState::Big);
+    assert(big.getHeight() == Player::kBigHeight);
+    assert(big.getY() + big.getHeight() == feetY);
+
+    stepHolding(bigWorld, bigCollisions, 60, 1);
+    assert(big.getX() + Player::kBodyWidth <= 160.0);
+    assert(big.getY() + big.getHeight() == feetY);
+
+    big.takeDamage();
+    assert(big.getState() == PlayerState::Small);
+    assert(big.getHeight() == Player::kSmallHeight);
+    assert(big.getY() + big.getHeight() == feetY);
 }
 
 void testStompSurvivesAxisResolve() {
@@ -511,6 +558,7 @@ int main() {
     testWalkIntoWalls();
     testJumpBesideCorner();
     testFallBesideBlock();
+    testPlayerHitboxTracksState();
     testStompSurvivesAxisResolve();
     testEnemyTurnsAtWall();
     testEnemyTurnsAtEdge();

@@ -15,7 +15,7 @@ constexpr double kIntegratedFixedStepSeconds = 0.011;
 }
 
 World::World()
-    : player(100.0, 502.0),
+    : player(100.0, 550.0 - Player::kSmallHeight),
       score(0),
       gameOver(false),
       levelComplete(false),
