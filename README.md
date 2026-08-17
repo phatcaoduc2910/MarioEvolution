@@ -7,12 +7,13 @@ Toàn bộ game và tool dùng Makefile tại thư mục gốc:
 ```powershell
 make create
 make run
-make run-map-editor
-make render-preview
-make run-render-preview
 make test
+make run-map-editor
 make clean
 ```
+
+Project dĂ¹ng C++17 trĂªn MSYS2 UCRT64 vá»›i SDL2, SDL2_image vĂ  SDL2_mixer.
+`make create` táº¡o `MarioEvolution.exe`; `make run` build náº¿u cáº§n rá»“i cháº¡y game.
 
 ## Assets
 
@@ -29,9 +30,22 @@ B  StandardBrick
 ?  CoinBrick
 M  MushroomBrick
 F  FlowerBrick
+g  Goomba
+!  Flag
 o  Coin tự do
 .  Ô trống
 ```
+
+## Controls
+
+### Menu vĂ  gameplay
+
+- `Up`/`Down`: chá»n má»¥c trong menu; `Enter`: xĂ¡c nháº­n.
+- `A`/`Left`: Ä‘i trĂ¡i; `D`/`Right`: Ä‘i pháº£i.
+- `Space`: nháº£y.
+- `P` hoáº·c `Esc`: táº¡m dá»«ng/tiáº¿p tá»¥c.
+- `0`: má»Ÿ map editor khi Ä‘ang chÆ¡i.
+- Táº¡i mĂ n hĂ¬nh hoĂ n thĂ nh hoáº·c game over: `Enter` chÆ¡i láº¡i, `Esc` vá» menu.
 
 ## Map Editor
 
