@@ -7,7 +7,7 @@
 #include <algorithm>
 
 namespace {
-constexpr const char* kLevelPath = "assets/maps/level1.map";
+constexpr const char* kLevelPath = "assets/maps/level_horizontal.map";
 constexpr int kMapWidth = 25;
 constexpr int kMapHeight = 19;
 constexpr int kTileSize = 32;
