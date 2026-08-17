@@ -37,8 +37,13 @@ MAP_EDITOR_TEST_SRC = tests/map_editor_test.cpp \
 	src/view/TextureManager.cpp \
 	src/view/UiRenderer.cpp
 
+CAMERA_TEST_APP = $(OBJDIR)/tests/CameraTest.exe
+CAMERA_TEST_SRC = tests/camera_test.cpp \
+	src/view/Camera.cpp \
+	src/model/GameObject.cpp
+
 .PHONY: all create run map-editor run-map-editor \
-	test test-level-codec \
+	test test-level-codec test-camera \
 	test-tile-catalog test-map-editor clean
 
 all: create
@@ -62,7 +67,7 @@ run-map-editor: create
 	@echo "Starting the game; press 0 while playing to open the editor."
 	PATH="$(MSYS2_PREFIX)/bin:$$PATH" ./$(APP)
 
-test: test-level-codec test-tile-catalog test-map-editor
+test: test-level-codec test-tile-catalog test-map-editor test-camera
 
 test-level-codec: $(LEVEL_CODEC_TEST_APP)
 	./$(LEVEL_CODEC_TEST_APP)
@@ -84,6 +89,13 @@ test-map-editor: $(MAP_EDITOR_TEST_APP)
 $(MAP_EDITOR_TEST_APP): $(MAP_EDITOR_TEST_SRC)
 	mkdir -p "$(@D)"
 	$(CXX) $(CXXFLAGS) $(MAP_EDITOR_TEST_SRC) $(LDFLAGS) $(LDLIBS) -o $@
+
+test-camera: $(CAMERA_TEST_APP)
+	./$(CAMERA_TEST_APP)
+
+$(CAMERA_TEST_APP): $(CAMERA_TEST_SRC)
+	mkdir -p "$(@D)"
+	$(CXX) $(CXXFLAGS) $(CAMERA_TEST_SRC) $(LDFLAGS) -o $@
 
 clean:
 	@echo "Đang dọn dep..."

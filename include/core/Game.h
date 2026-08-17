@@ -6,6 +6,7 @@
 #include "model/World.h"
 #include "service/AudioService.h"
 #include "view/ActorRenderer.h"
+#include "view/Camera.h"
 #include "core/Types.h"
 #include "view/HudRenderer.h"
 #include "view/Screen.h"
@@ -41,6 +42,7 @@ private:
     std::unique_ptr<MapEditorService> mapEditor;
     InputHandler inputHandler;
     CollisionSystem collisionSystem;
+    Camera camera{WINDOW_WIDTH};
     WorldRenderer worldRenderer;
     ActorRenderer actorRenderer;
     HudRenderer hudRenderer;

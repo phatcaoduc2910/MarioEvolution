@@ -106,6 +106,7 @@ void Game::edit() {
 void Game::startLevel() {
     world = World();
     world.loadLevel(mapEditor->getLevel());
+    camera.reset();
     currentGameState = Playing;
 }
 
@@ -247,12 +248,19 @@ void Game::gameLoop() {
             actorRenderer.updatePlayer(world.getPlayer(), deltaMs);
             actorRenderer.updateEnemies(deltaMs);
 
+            const LevelData& level = mapEditor->getLevel();
+            const int worldWidth = level.getWidth() * level.getTileSize();
+            camera.follow(world.getPlayer(), worldWidth);
+            const int offsetX = camera.getOffsetX();
+
             worldRenderer.renderBackground(
                 renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT);
-            worldRenderer.render(renderer, *textureManager, world);
-            actorRenderer.renderEnemies(renderer, *textureManager, world);
+            worldRenderer.render(
+                renderer, *textureManager, world, offsetX, 0);
+            actorRenderer.renderEnemies(
+                renderer, *textureManager, world, offsetX, 0);
             actorRenderer.renderPlayer(
-                renderer, *textureManager, world.getPlayer());
+                renderer, *textureManager, world.getPlayer(), offsetX, 0);
             hudRenderer.render(
                 renderer, world.getScore(), world.getPlayer().getState());
             break;
@@ -284,10 +292,16 @@ void Game::gameLoop() {
         case GameOver:
             worldRenderer.renderBackground(
                 renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT);
-            worldRenderer.render(renderer, *textureManager, world);
-            actorRenderer.renderEnemies(renderer, *textureManager, world);
+            worldRenderer.render(
+                renderer, *textureManager, world, camera.getOffsetX(), 0);
+            actorRenderer.renderEnemies(
+                renderer, *textureManager, world, camera.getOffsetX(), 0);
             actorRenderer.renderPlayer(
-                renderer, *textureManager, world.getPlayer());
+                renderer,
+                *textureManager,
+                world.getPlayer(),
+                camera.getOffsetX(),
+                0);
             terminalScreen.render(renderer, currentGameState, world.getScore());
             break;
         case Exit:

@@ -13,10 +13,10 @@ namespace {
     constexpr const char* MUSHROOM_TEXTURE_ID = "ui.hud.life";
     constexpr const char* BACKGROUND_LAYER_IDS[]{"background.1", "background.2"};
 
-    SDL_Rect destination(const GameObject& object) {
+    SDL_Rect destination(const GameObject& object, int offsetX, int offsetY) {
         return {
-            static_cast<int>(object.getX()),
-            static_cast<int>(object.getY()),
+            static_cast<int>(object.getX()) + offsetX,
+            static_cast<int>(object.getY()) + offsetY,
             object.getWidth(),
             object.getHeight()
         };
@@ -81,7 +81,11 @@ void WorldRenderer::renderBackground(SDL_Renderer* renderer,
     }
 }
 
-void WorldRenderer::render(SDL_Renderer* renderer, const TextureManager& textures, const World& world) {
+void WorldRenderer::render(SDL_Renderer* renderer,
+                           const TextureManager& textures,
+                           const World& world,
+                           int offsetX,
+                           int offsetY) {
     if (renderer == nullptr) {
         return;
     }
@@ -95,7 +99,8 @@ void WorldRenderer::render(SDL_Renderer* renderer, const TextureManager& texture
     for (const auto& object : world.getObjects()) {
         const auto* flag = dynamic_cast<const Flag*>(object.get());
         if (flag != nullptr) {
-            const SDL_Rect dst = flagDestination(destination(*flag));
+            const SDL_Rect dst =
+                flagDestination(destination(*flag, offsetX, offsetY));
             assetRenderer.render(
                 renderer,
                 textures.getTexture(flagAnimation.getCurrentFrameId()),
@@ -121,7 +126,7 @@ void WorldRenderer::render(SDL_Renderer* renderer, const TextureManager& texture
             textureId = definition->textureId;
         }
 
-        const SDL_Rect dst = destination(*brick);
+        const SDL_Rect dst = destination(*brick, offsetX, offsetY);
         assetRenderer.render(
             renderer, textures.getTexture(textureId), nullptr, &dst);
     }
@@ -131,7 +136,7 @@ void WorldRenderer::render(SDL_Renderer* renderer, const TextureManager& texture
             continue;
         }
 
-        const SDL_Rect dst = destination(*item);
+        const SDL_Rect dst = destination(*item, offsetX, offsetY);
         if (dynamic_cast<const Coin*>(item.get()) != nullptr) {
             assetRenderer.render(
                 renderer,

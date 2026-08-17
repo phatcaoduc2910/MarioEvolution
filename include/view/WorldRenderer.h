@@ -13,7 +13,7 @@ public:
     void renderBackground(SDL_Renderer* renderer, const TextureManager& textures,
                           int viewWidth, int viewHeight);
     void render(SDL_Renderer* renderer, const TextureManager& textures,
-                const World& world);
+                const World& world, int offsetX = 0, int offsetY = 0);
 
 private:
     AssetRenderer assetRenderer;
