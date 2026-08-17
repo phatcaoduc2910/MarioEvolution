@@ -39,12 +39,12 @@ ActorRenderer::ActorRenderer()
     : idleAnimation({"walk.1"}, 160),
       walkAnimation({"walk.1", "walk.2", "walk.3"}, 100),
       jumpAnimation({"jump"}, 120),
-      goombaAnimation({"goomba.walk.1", "goomba.walk.2"}, 200),
+      goombaAnimation({"goomba.walk.1", "goomba.walk.2"}, 160),
       currentState(PlayerAnimationState::Idle) {}
 
 ActorRenderer::PlayerAnimationState
 ActorRenderer::selectState(const Player& player) const {
-    constexpr double kMotionEpsilon = 0.001;
+    constexpr double kMotionEpsilon = 0.002;
 
     if (!player.isOnGround()) {
         return PlayerAnimationState::Jump;

@@ -252,4 +252,3 @@ bool TextureManager::gameTextureLoad() {
 TextureManager::~TextureManager() {
     clean();
 }
-

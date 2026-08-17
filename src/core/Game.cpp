@@ -14,12 +14,12 @@ constexpr int kTileSize = 32;
 }
 
 Game::Game()
-    : currentGameState(StartMenu),
-      audioService(std::make_unique<SoundManager>()) {}
+    : audioService(std::make_unique<SoundManager>()) {}
 
 Game::~Game() {
     mapEditor.reset();
     textureManager.reset();
+    audioService.reset();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     IMG_Quit();
@@ -69,6 +69,10 @@ bool Game::start() {
         return false;
     }
 
+    audioService->load("jump", "assets/audio/sfx/jump.wav");
+    audioService->load("win", "assets/audio/sfx/goal.wav");
+    audioService->load("gameover", "assets/audio/sfx/gameover.wav");
+
     mapEditor = std::make_unique<MapEditorService>(
         kMapWidth,
         kMapHeight,
@@ -99,6 +103,12 @@ void Game::edit() {
     currentGameState = Editing;
     audioService->pause("theme");
 }
+void Game::startLevel() {
+    world = World();
+    world.loadLevel(mapEditor->getLevel());
+    currentGameState = Playing;
+}
+
 // Xử lý vòng lặp game
 void Game::gameLoop() {
     SDL_Event event;
@@ -122,9 +132,7 @@ void Game::gameLoop() {
                     
                     Option action = inputHandler.getMenuOption(menuOption);
                     if (action == Option::StartGame) {
-                        world = World();
-                        world.loadLevel(mapEditor->getLevel()); 
-                        currentGameState = Playing;
+                        startLevel();
                     } else if (action == Option::ExitGame) {
                         currentGameState = Exit;
                     }
@@ -135,7 +143,12 @@ void Game::gameLoop() {
                         inputHandler.release(Key::Esc);
                         pause();
                     } else if (inputHandler.isPressed(Key::Jump)) {
-                        world.getPlayer().jump();
+                        Player& player = world.getPlayer();
+                        const bool canJump = player.isAlive() && player.isOnGround();
+                        player.jump();
+                        if (canJump) {
+                            audioService->play("jump");
+                        }
                     } else if (inputHandler.isPressed(Key::Edit)) {
                         inputHandler.release(Key::Edit);
                         currentGameState = Editing;
@@ -169,14 +182,13 @@ void Game::gameLoop() {
 
                     break;
                 }
-                case LevelComplete:{
-                    if (inputHandler.isPressed(Key::Enter) || inputHandler.isPressed(Key::Esc)) {
-                        currentGameState = StartMenu;
-                    }
-                    break;
-                }
+                case LevelComplete:
                 case GameOver:{
-                    if (inputHandler.isPressed(Key::Enter) || inputHandler.isPressed(Key::Esc)) {
+                    if (inputHandler.isPressed(Key::Enter)) {
+                        inputHandler.release(Key::Enter);
+                        startLevel();
+                    } else if (inputHandler.isPressed(Key::Esc)) {
+                        inputHandler.release(Key::Esc);
                         currentGameState = StartMenu;
                     }
                     break;
@@ -188,6 +200,7 @@ void Game::gameLoop() {
         }
 
     constexpr int kFixedStepMs = 11;
+    constexpr double kFixedStepSeconds = kFixedStepMs / 1000.0;
     static int accumulatorMs = 0;
     const Uint32 now = SDL_GetTicks();
     const Uint32 elapsed = now - lastFrameTicks;
@@ -214,40 +227,51 @@ void Game::gameLoop() {
                 if (inputHandler.isPressed(Key::Left)) --horizontalInput;
                 if (inputHandler.isPressed(Key::Right)) ++horizontalInput;
                 world.getPlayer().setMoveDirection(horizontalInput);
-                world.update();
+                world.update(kFixedStepSeconds);
                 collisionSystem.resolve(world);
-                if (world.isGameOver()) {
+                if (world.isLevelComplete()) {
+                    currentGameState = LevelComplete;
+                    audioService->play("win");
+                } else if (world.isGameOver()) {
                     currentGameState = GameOver;
+                    audioService->play("gameover");
+                }
+
+                if (currentGameState != Playing) {
+                    accumulatorMs = 0;
+                    break;
                 }
                 accumulatorMs -= kFixedStepMs;
             }
             worldRenderer.update(deltaMs);
-            playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
-            playerRenderer.updateEnemies(deltaMs);
+            actorRenderer.updatePlayer(world.getPlayer(), deltaMs);
+            actorRenderer.updateEnemies(deltaMs);
 
             worldRenderer.renderBackground(
                 renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT);
             worldRenderer.render(renderer, *textureManager, world);
-            playerRenderer.renderEnemies(renderer, *textureManager, world);
-            playerRenderer.renderPlayer(renderer, *textureManager, world.getPlayer());
-            worldRenderer.renderHud(renderer, world);
+            actorRenderer.renderEnemies(renderer, *textureManager, world);
+            actorRenderer.renderPlayer(
+                renderer, *textureManager, world.getPlayer());
+            hudRenderer.render(
+                renderer, world.getScore(), world.getPlayer().getState());
             break;
         }
         case Editing:{
             mapEditor->update();
             mapEditor->render(renderer, *textureManager);
 
-            playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
-            playerRenderer.updateEnemies(deltaMs);
+            actorRenderer.updatePlayer(world.getPlayer(), deltaMs);
+            actorRenderer.updateEnemies(deltaMs);
             const SDL_Rect viewport = mapEditor->getMapViewport();
             SDL_RenderSetClipRect(renderer, &viewport);
-            playerRenderer.renderEnemies(
+            actorRenderer.renderEnemies(
                 renderer,
                 *textureManager,
                 world,
                 -mapEditor->getCameraX(),
                 -mapEditor->getCameraY());
-            playerRenderer.renderPlayer(
+            actorRenderer.renderPlayer(
                 renderer,
                 *textureManager,
                 world.getPlayer(),
@@ -256,6 +280,18 @@ void Game::gameLoop() {
             SDL_RenderSetClipRect(renderer, nullptr);
         }
         break;
+        case LevelComplete:
+        case GameOver:
+            worldRenderer.renderBackground(
+                renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT);
+            worldRenderer.render(renderer, *textureManager, world);
+            actorRenderer.renderEnemies(renderer, *textureManager, world);
+            actorRenderer.renderPlayer(
+                renderer, *textureManager, world.getPlayer());
+            terminalScreen.render(renderer, currentGameState, world.getScore());
+            break;
+        case Exit:
+            break;
     }
     SDL_RenderPresent(renderer);
 }
