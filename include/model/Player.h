@@ -31,5 +31,6 @@ private:
     void startInvincibility();
 
     PlayerState state;
+    int moveDirection;
     double invincibilityRemainingSeconds;
 };
