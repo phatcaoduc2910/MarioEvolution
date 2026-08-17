@@ -12,6 +12,9 @@ inline constexpr TileId kFlowerBrickTileId = 4;
 inline constexpr TileId kCoinTileId = 5;
 inline constexpr TileId kGoombaTileId = 6;
 inline constexpr TileId kFlagTileId = 7;
+inline constexpr TileId kKoopaGreenTileId = 8;
+inline constexpr TileId kKoopaRedTileId = 9;
+inline constexpr TileId kPiranhaTileId = 10;
 
 struct Rectangle {
     double x;
@@ -41,7 +44,20 @@ enum class PowerUpType {
 enum class EnemyState {
     Walking,
     Dead,
-    Shell
+    Shell,
+    ShellSliding
+};
+
+enum class KoopaColor {
+    Green,
+    Red
+};
+
+enum class PiranhaPhase {
+    Hidden,
+    Rising,
+    Exposed,
+    Sinking
 };
 
 enum class ItemType {

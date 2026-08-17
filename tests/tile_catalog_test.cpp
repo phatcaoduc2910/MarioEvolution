@@ -6,7 +6,7 @@
 #include <iostream>
 
 int main() {
-    std::array<bool, 7> seenTileIds{};
+    std::array<bool, 11> seenTileIds{};
     std::size_t paletteTileCount = 0;
 
     for (const TileDefinition& definition : tileDefinitions()) {
@@ -26,10 +26,18 @@ int main() {
         }
     }
 
-    assert(paletteTileCount == 6);
+    assert(paletteTileCount == 9);
     // Brush spawn Goomba phải nằm trong bảng chọn của editor.
     const TileDefinition* goomba = findTileDefinition(kGoombaTileId);
     assert(goomba != nullptr && goomba->paletteVisible);
+
+    for (const TileId actorTileId :
+         {kKoopaGreenTileId, kKoopaRedTileId, kPiranhaTileId}) {
+        const TileDefinition* definition = findTileDefinition(actorTileId);
+        assert(definition != nullptr && definition->paletteVisible);
+        assert(definition->textureId != nullptr);
+    }
+
     assert(findTileDefinition(999) == nullptr);
 
     std::cout << "Tile catalog validation passed\n";

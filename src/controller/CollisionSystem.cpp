@@ -15,6 +15,7 @@
 namespace {
 constexpr int kEdgeProbeWidth = 1;
 constexpr int kEdgeProbeHeight = 2;
+constexpr int kEnemyDefeatScore = 100;
 
 bool overlaps(const Rectangle& a, const Rectangle& b) {
     return a.x < b.x + b.width &&
@@ -222,12 +223,40 @@ void CollisionSystem::resolveInteractions(World& world) const {
             continue;
         }
 
-        if (isStomp(player, *enemy)) {
-            enemy->die();
+        if (isStomp(player, *enemy) && enemy->isStompable()) {
+            enemy->onStomped(player);
             player.bounceAfterStomp();
-            world.addScore(100);
+            world.addScore(kEnemyDefeatScore);
         } else {
-            enemy->damagePlayer(player);
+            enemy->onPlayerContact(player);
+        }
+    }
+
+    resolveEnemyHits(world);
+}
+
+void CollisionSystem::resolveEnemyHits(World& world) const {
+    const auto& actors = world.getActors();
+
+    for (const auto& attacker : actors) {
+        auto* shell = dynamic_cast<Enemy*>(attacker.get());
+        if (shell == nullptr || !shell->isDeadlyToEnemies()) {
+            continue;
+        }
+
+        for (const auto& target : actors) {
+            if (target.get() == attacker.get()) {
+                continue;
+            }
+
+            auto* victim = dynamic_cast<Enemy*>(target.get());
+            if (victim == nullptr || !victim->isAlive() ||
+                victim->isDeadlyToEnemies() || !check(*shell, *victim)) {
+                continue;
+            }
+
+            victim->die();
+            world.addScore(kEnemyDefeatScore);
         }
     }
 }

@@ -18,6 +18,9 @@ TileId decodeTile(char symbol) {
         case 'F': return kFlowerBrickTileId;
         case 'o': return kCoinTileId;
         case 'g': return kGoombaTileId;
+        case 'k': return kKoopaGreenTileId;
+        case 'r': return kKoopaRedTileId;
+        case 'p': return kPiranhaTileId;
         case '!': return kFlagTileId;
         default:
             throw std::runtime_error(
@@ -35,6 +38,9 @@ char encodeTile(TileId tileId) {
         case kFlowerBrickTileId: return 'F';
         case kCoinTileId: return 'o';
         case kGoombaTileId: return 'g';
+        case kKoopaGreenTileId: return 'k';
+        case kKoopaRedTileId: return 'r';
+        case kPiranhaTileId: return 'p';
         case kFlagTileId: return '!';
         default:
             throw std::runtime_error(

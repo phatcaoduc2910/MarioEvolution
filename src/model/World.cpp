@@ -85,6 +85,22 @@ void World::loadLevel(const LevelData& level) {
                 case kGoombaTileId:
                     addActor(std::make_unique<Goomba>(x, y));
                     break;
+                case kKoopaGreenTileId:
+                    addActor(std::make_unique<Koopa>(
+                        x,
+                        y + kObjectTileSize - Koopa::kWalkHeight,
+                        KoopaColor::Green));
+                    break;
+                case kKoopaRedTileId:
+                    addActor(std::make_unique<Koopa>(
+                        x,
+                        y + kObjectTileSize - Koopa::kWalkHeight,
+                        KoopaColor::Red));
+                    break;
+                case kPiranhaTileId:
+                    addActor(std::make_unique<PiranhaPlant>(
+                        x, y + kObjectTileSize));
+                    break;
                 case kFlagTileId: {
                     const double poleX =
                         x + (kObjectTileSize - Flag::kPoleWidth) / 2.0;

@@ -7,6 +7,9 @@
 #include <SDL2/SDL.h>
 #include <string>
 
+class Goomba;
+class Koopa;
+class PiranhaPlant;
 class Player;
 class World;
 
@@ -39,10 +42,29 @@ private:
     SpriteAnimation& animationFor(PlayerAnimationState state);
     static std::string variantPrefix(const Player& player);
 
+    void renderGoomba(SDL_Renderer* renderer,
+                      const TextureManager& textures,
+                      const Goomba& goomba,
+                      int offsetX,
+                      int offsetY);
+    void renderKoopa(SDL_Renderer* renderer,
+                     const TextureManager& textures,
+                     const Koopa& koopa,
+                     int offsetX,
+                     int offsetY);
+    void renderPiranha(SDL_Renderer* renderer,
+                       const TextureManager& textures,
+                       const PiranhaPlant& plant,
+                       int offsetX,
+                       int offsetY);
+
     AssetRenderer assetRenderer;
     SpriteAnimation idleAnimation;
     SpriteAnimation walkAnimation;
     SpriteAnimation jumpAnimation;
     SpriteAnimation goombaAnimation;
+    SpriteAnimation koopaWalkAnimation;
+    SpriteAnimation koopaShellAnimation;
+    SpriteAnimation piranhaAnimation;
     PlayerAnimationState currentState;
 };

@@ -290,6 +290,125 @@ void testEnemyTurnsAtWall() {
 
     assert(turns >= 2);
 }
+void addLowGround(World& world, int firstColumn, int lastColumn) {
+    for (int column = firstColumn; column <= lastColumn; ++column) {
+        world.addObject(std::make_unique<StandardBrick>(
+            static_cast<double>(column * kTileSize), 640.0));
+    }
+}
+
+void testKoopaStompBecomesShell() {
+    World world;
+    CollisionSystem collisionSystem;
+    addLowGround(world, 0, 12);
+
+    auto koopaOwner = std::make_unique<Koopa>(
+        kSpawnX, 640.0 - Koopa::kWalkHeight, KoopaColor::Green);
+    const Koopa* koopa = koopaOwner.get();
+    world.addActor(std::move(koopaOwner));
+
+    bool becameShell = false;
+    for (int index = 0; index < 60 && !becameShell; ++index) {
+        step(world, collisionSystem, 1);
+        becameShell = koopa->isShell();
+    }
+
+    assert(becameShell);
+    assert(koopa->isAlive());
+    assert(koopa->getHeight() == Koopa::kShellHeight);
+    assert(koopa->getY() + koopa->getHeight() == 640.0);
+    assert(koopa->getVelocityX() == 0.0);
+    assert(!koopa->isDeadlyToEnemies());
+    assert(world.getScore() == 100);
+    assert(world.getPlayer().getState() == PlayerState::Small);
+}
+
+void testKoopaShellSlidesAndKillsEnemy() {
+    World world;
+    CollisionSystem collisionSystem;
+    addLowGround(world, 0, 14);
+    world.addObject(std::make_unique<StandardBrick>(448.0, 608.0));
+
+    auto koopaOwner = std::make_unique<Koopa>(
+        192.0, 640.0 - Koopa::kWalkHeight, KoopaColor::Green);
+    Koopa* koopa = koopaOwner.get();
+    world.addActor(std::move(koopaOwner));
+    world.addActor(std::make_unique<Goomba>(320.0, 608.0));
+
+    step(world, collisionSystem, 5);
+    koopa->hideInShell();
+    koopa->kick(Direction::Right);
+    assert(koopa->isSlidingShell());
+    assert(koopa->isDeadlyToEnemies());
+
+    step(world, collisionSystem, 1);
+    assert(koopa->getVelocityX() > 0.0);
+
+    bool goombaGone = false;
+    for (int index = 0; index < 120 && !goombaGone; ++index) {
+        step(world, collisionSystem, 1);
+        goombaGone = world.getActors().size() == 1;
+    }
+
+    assert(goombaGone);
+    assert(world.getActors().front().get() == koopa);
+    assert(koopa->isSlidingShell());
+    assert(world.getScore() >= 100);
+
+    step(world, collisionSystem, 60);
+    assert(koopa->getX() + Koopa::kWalkWidth <= 448.0);
+    assert(koopa->getDirection() == Direction::Left);
+}
+
+void testPiranhaCycleNotStompable() {
+    World world;
+    CollisionSystem collisionSystem;
+    addGround(world, 0, 8);
+
+    auto plantOwner = std::make_unique<PiranhaPlant>(kSpawnX, kGroundTopY);
+    const PiranhaPlant* plant = plantOwner.get();
+    world.addActor(std::move(plantOwner));
+
+    Player& player = world.getPlayer();
+    assert(!plant->isStompable());
+    assert(!plant->shouldTurnAtEdge());
+    assert(plant->getPhase() == PiranhaPhase::Hidden);
+    assert(plant->getHeight() == 0);
+
+    for (int index = 0; index < 100; ++index) {
+        step(world, collisionSystem, 1);
+        assert(plant->getX() == kSpawnX);
+        assert(plant->getY() + plant->getHeight() == kGroundTopY);
+        assert(plant->getVelocityY() == 0.0);
+    }
+
+    assert(plant->getPhase() == PiranhaPhase::Hidden);
+    assert(player.isAlive());
+    assert(player.isOnGround());
+    assert(player.getY() == kStandY);
+
+    bool fullyExposed = false;
+    for (int index = 0; index < 400 && !fullyExposed; ++index) {
+        step(world, collisionSystem, 1);
+        assert(plant->getY() + plant->getHeight() == kGroundTopY);
+        fullyExposed = plant->getHeight() >= PiranhaPlant::kPlantHeight;
+    }
+
+    assert(fullyExposed);
+    assert(plant->getPhase() == PiranhaPhase::Exposed);
+    assert(plant->isAlive());
+    assert(!player.isAlive());
+    assert(world.getScore() == 0);
+
+    bool hiddenAgain = false;
+    for (int index = 0; index < 400 && !hiddenAgain; ++index) {
+        step(world, collisionSystem, 1);
+        hiddenAgain = plant->getPhase() == PiranhaPhase::Hidden;
+    }
+
+    assert(hiddenAgain);
+    assert(plant->getHeight() == 0);
+}
 
 struct PatrolStats {
     int turns;
@@ -324,6 +443,37 @@ PatrolStats measurePatrol(World& world, CollisionSystem& collisionSystem,
     }
 
     return stats;
+}
+
+void testRedKoopaTurnsAtEdgeGreenDoesNot() {
+    World redWorld;
+    CollisionSystem redCollisions;
+    addGround(redWorld, 2, 4);
+    addGround(redWorld, 6, 10);
+    redWorld.addActor(std::make_unique<Koopa>(
+        256.0, kGroundTopY - Koopa::kWalkHeight, KoopaColor::Red));
+
+    const PatrolStats stats =
+        measurePatrol(redWorld, redCollisions, 500, 192.0, 352.0);
+    assert(stats.turns >= 2);
+
+    World greenWorld;
+    CollisionSystem greenCollisions;
+    addGround(greenWorld, 2, 4);
+    addGround(greenWorld, 6, 10);
+    auto greenOwner = std::make_unique<Koopa>(
+        256.0, kGroundTopY - Koopa::kWalkHeight, KoopaColor::Green);
+    const Koopa* green = greenOwner.get();
+    greenWorld.addActor(std::move(greenOwner));
+
+    bool leftPlatform = false;
+    for (int index = 0; index < 500 && !leftPlatform; ++index) {
+        step(greenWorld, greenCollisions, 1);
+        leftPlatform = !green->isOnGround();
+    }
+
+    assert(leftPlatform);
+    assert(green->getX() < 192.0);
 }
 
 void testEnemyTurnsAtEdge() {
@@ -365,6 +515,10 @@ int main() {
     testEnemyTurnsAtWall();
     testEnemyTurnsAtEdge();
     testEnemyWallAndEdgeSameFrame();
+    testKoopaStompBecomesShell();
+    testKoopaShellSlidesAndKillsEnemy();
+    testRedKoopaTurnsAtEdgeGreenDoesNot();
+    testPiranhaCycleNotStompable();
 
     std::cout << "Axis collision resolve passed\n";
     return 0;

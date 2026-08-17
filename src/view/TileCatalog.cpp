@@ -1,7 +1,7 @@
 #include "view/TileCatalog.h"
 
 namespace {
-constexpr std::array<TileDefinition, 7> kTileDefinitions{{
+constexpr std::array<TileDefinition, 10> kTileDefinitions{{
     {kEmptyTileId, kEmptyTileId, kManualTileMask,
      nullptr, "EMPTY", false},
     {kStandardBrickTileId, kStandardBrickTileId, kManualTileMask,
@@ -16,11 +16,17 @@ constexpr std::array<TileDefinition, 7> kTileDefinitions{{
      "coin.1", "COIN", true},
     // Ô đánh dấu chỗ spawn Goomba: World đọc tile này để tạo actor.
     {kGoombaTileId, kGoombaTileId, kManualTileMask,
-     "goomba.walk.1", "GOOMBA", true}
+     "goomba.walk.1", "GOOMBA", true},
+    {kKoopaGreenTileId, kKoopaGreenTileId, kManualTileMask,
+     "koopa.green.walk.1", "KOOPA", true},
+    {kKoopaRedTileId, kKoopaRedTileId, kManualTileMask,
+     "koopa.red.walk.1", "KOOPA RED", true},
+    {kPiranhaTileId, kPiranhaTileId, kManualTileMask,
+     "piranha.plant.1", "PIRANHA", true}
 }};
 }
 
-const std::array<TileDefinition, 7>& tileDefinitions() {
+const std::array<TileDefinition, 10>& tileDefinitions() {
     return kTileDefinitions;
 }
 
