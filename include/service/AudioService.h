@@ -1,5 +1,7 @@
 #pragma once
 
+#include <SDL2/SDL_mixer.h>
+
 #include <map>
 #include <string>
 
@@ -7,6 +9,8 @@
 class AudioService {
 public:
     virtual ~AudioService() = default;
+
+    virtual bool load(const std::string& track, const std::string& path) = 0;
 
     // Phát hoặc tiếp tục một track.
     virtual void play(const std::string& track) = 0;
@@ -24,11 +28,19 @@ Lớp chưa phát âm thanh thật; nó là implementation tối thiểu để G
  */
 class SoundManager : public AudioService {
 public:
+    ~SoundManager() override;
+
+    bool load(const std::string& track, const std::string& path) override;
     void play(const std::string& track) override;
     void pause(const std::string& track) override;
     void setVolume(int volume) override;
 
 private:
-    int volume = 100;
-    std::map<std::string, std::string> tracks;
+    bool openAudio();
+
+    int volume{100};
+    bool audioOpened{false};
+    bool ownsAudioSubsystem{false};
+    std::map<std::string, Mix_Chunk*> sounds;
+    std::map<std::string, int> channels;
 };

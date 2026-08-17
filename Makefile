@@ -6,10 +6,12 @@ CXX = $(MSYS2_PREFIX)/bin/g++
 
 PKG_CONFIG = $(MSYS2_PREFIX)/bin/pkg-config
 SDL_IMAGE_LIBS = $(filter-out -mwindows -lSDL2main,$(shell $(PKG_CONFIG) --static --libs SDL2_image))
+SDL_MIXER_LIBS = $(filter-out -mwindows -lSDL2main,$(shell $(PKG_CONFIG) --static --libs SDL2_mixer))
 
 CXXFLAGS = -Wall -Wextra -std=c++17 -Iinclude -I$(MSYS2_PREFIX)/include -DSDL_MAIN_HANDLED
 LDFLAGS = -static
 LDLIBS = $(SDL_IMAGE_LIBS)
+APP_LDLIBS = $(LDLIBS) $(SDL_MIXER_LIBS)
 
 APP = MarioEvolution.exe
 SRC = $(wildcard src/*.cpp src/*/*.cpp)
@@ -47,7 +49,7 @@ all: create
 
 create: $(APP)
 $(APP): $(OBJ)
-	$(CXX) $(OBJ) $(LDFLAGS) $(LDLIBS) -o $(APP)
+	$(CXX) $(OBJ) $(LDFLAGS) $(APP_LDLIBS) -o $(APP)
 
 $(OBJDIR)/%.o: src/%.cpp
 	mkdir -p "$(@D)"
