@@ -36,13 +36,16 @@ private:
 
     static constexpr int WINDOW_WIDTH = 800;
     static constexpr int WINDOW_HEIGHT = 600;
+    static constexpr double CAMERA_ZOOM = 1.25;
 
     World world;
     std::unique_ptr<AudioService> audioService;
     std::unique_ptr<MapEditorService> mapEditor;
     InputHandler inputHandler;
     CollisionSystem collisionSystem;
-    Camera camera{WINDOW_WIDTH};
+    Camera camera{
+        static_cast<int>(WINDOW_WIDTH / CAMERA_ZOOM),
+        static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM)};
     WorldRenderer worldRenderer;
     ActorRenderer actorRenderer;
     HudRenderer hudRenderer;

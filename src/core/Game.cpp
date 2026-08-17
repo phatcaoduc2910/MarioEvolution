@@ -7,7 +7,7 @@
 #include <algorithm>
 
 namespace {
-constexpr const char* kLevelPath = "assets/maps/level_horizontal.map";
+constexpr const char* kLevelPath = "assets/maps/level_depth.map";
 constexpr int kMapWidth = 25;
 constexpr int kMapHeight = 19;
 constexpr int kTileSize = 32;
@@ -250,17 +250,27 @@ void Game::gameLoop() {
 
             const LevelData& level = mapEditor->getLevel();
             const int worldWidth = level.getWidth() * level.getTileSize();
-            camera.follow(world.getPlayer(), worldWidth);
+            const int worldHeight = level.getHeight() * level.getTileSize();
+            camera.follow(world.getPlayer(), worldWidth, worldHeight);
             const int offsetX = camera.getOffsetX();
+            const int offsetY = camera.getOffsetY();
 
+            SDL_RenderSetScale(
+                renderer,
+                static_cast<float>(CAMERA_ZOOM),
+                static_cast<float>(CAMERA_ZOOM));
             worldRenderer.renderBackground(
-                renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT);
+                renderer,
+                *textureManager,
+                static_cast<int>(WINDOW_WIDTH / CAMERA_ZOOM),
+                static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM));
             worldRenderer.render(
-                renderer, *textureManager, world, offsetX, 0);
+                renderer, *textureManager, world, offsetX, offsetY);
             actorRenderer.renderEnemies(
-                renderer, *textureManager, world, offsetX, 0);
+                renderer, *textureManager, world, offsetX, offsetY);
             actorRenderer.renderPlayer(
-                renderer, *textureManager, world.getPlayer(), offsetX, 0);
+                renderer, *textureManager, world.getPlayer(), offsetX, offsetY);
+            SDL_RenderSetScale(renderer, 1.0F, 1.0F);
             hudRenderer.render(
                 renderer, world.getScore(), world.getPlayer().getState());
             break;
@@ -290,18 +300,28 @@ void Game::gameLoop() {
         break;
         case LevelComplete:
         case GameOver:
+            SDL_RenderSetScale(
+                renderer,
+                static_cast<float>(CAMERA_ZOOM),
+                static_cast<float>(CAMERA_ZOOM));
             worldRenderer.renderBackground(
-                renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT);
+                renderer,
+                *textureManager,
+                static_cast<int>(WINDOW_WIDTH / CAMERA_ZOOM),
+                static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM));
             worldRenderer.render(
-                renderer, *textureManager, world, camera.getOffsetX(), 0);
+                renderer, *textureManager, world,
+                camera.getOffsetX(), camera.getOffsetY());
             actorRenderer.renderEnemies(
-                renderer, *textureManager, world, camera.getOffsetX(), 0);
+                renderer, *textureManager, world,
+                camera.getOffsetX(), camera.getOffsetY());
             actorRenderer.renderPlayer(
                 renderer,
                 *textureManager,
                 world.getPlayer(),
                 camera.getOffsetX(),
-                0);
+                camera.getOffsetY());
+            SDL_RenderSetScale(renderer, 1.0F, 1.0F);
             terminalScreen.render(renderer, currentGameState, world.getScore());
             break;
         case Exit:
