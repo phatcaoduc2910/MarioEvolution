@@ -42,8 +42,17 @@ CAMERA_TEST_SRC = tests/camera_test.cpp \
 	src/view/Camera.cpp \
 	src/model/GameObject.cpp
 
+PLAYER_MOVEMENT_TEST_APP = $(OBJDIR)/tests/PlayerMovementTest.exe
+PLAYER_MOVEMENT_TEST_SRC = tests/player_movement_test.cpp \
+	src/model/Player.cpp \
+	src/model/Actor.cpp \
+	src/model/GameObject.cpp \
+	src/model/Item.cpp \
+	src/model/Flag.cpp \
+	src/model/StaticObject.cpp
+
 .PHONY: all create run map-editor run-map-editor \
-	test test-level-codec test-camera \
+	test test-level-codec test-camera test-player-movement \
 	test-tile-catalog test-map-editor clean
 
 all: create
@@ -67,7 +76,8 @@ run-map-editor: create
 	@echo "Starting the game; press 0 while playing to open the editor."
 	PATH="$(MSYS2_PREFIX)/bin:$$PATH" ./$(APP)
 
-test: test-level-codec test-tile-catalog test-map-editor test-camera
+test: test-level-codec test-tile-catalog test-map-editor test-camera \
+	test-player-movement
 
 test-level-codec: $(LEVEL_CODEC_TEST_APP)
 	./$(LEVEL_CODEC_TEST_APP)
@@ -96,6 +106,14 @@ test-camera: $(CAMERA_TEST_APP)
 $(CAMERA_TEST_APP): $(CAMERA_TEST_SRC)
 	mkdir -p "$(@D)"
 	$(CXX) $(CXXFLAGS) $(CAMERA_TEST_SRC) $(LDFLAGS) -o $@
+
+test-player-movement: $(PLAYER_MOVEMENT_TEST_APP)
+	./$(PLAYER_MOVEMENT_TEST_APP)
+
+$(PLAYER_MOVEMENT_TEST_APP): $(PLAYER_MOVEMENT_TEST_SRC)
+	mkdir -p "$(@D)"
+	$(CXX) $(CXXFLAGS) $(PLAYER_MOVEMENT_TEST_SRC) \
+		$(LDFLAGS) $(LDLIBS) -o $@
 
 clean:
 	@echo "Đang dọn dep..."

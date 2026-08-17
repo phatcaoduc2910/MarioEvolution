@@ -4,8 +4,12 @@
 
 #include <algorithm>
 
-Camera::Camera(int viewportWidth, int viewportHeight)
-    : viewportWidth(viewportWidth), viewportHeight(viewportHeight), x(0), y(0) {}
+Camera::Camera(int viewportWidth, int viewportHeight, int edgePadding)
+    : viewportWidth(viewportWidth),
+      viewportHeight(viewportHeight),
+      edgePadding(std::max(0, edgePadding)),
+      x(0),
+      y(0) {}
 
 void Camera::follow(const GameObject& target, int worldWidth, int worldHeight) {
     const int targetCenterX =
@@ -14,10 +18,14 @@ void Camera::follow(const GameObject& target, int worldWidth, int worldHeight) {
         static_cast<int>(target.getY() + target.getHeight() / 2.0);
     const int desiredX = targetCenterX - viewportWidth / 2;
     const int desiredY = targetCenterY - viewportHeight / 2;
-    const int maxX = std::max(0, worldWidth - viewportWidth);
-    const int maxY = std::max(0, worldHeight - viewportHeight);
-    x = std::clamp(desiredX, 0, maxX);
-    y = std::clamp(desiredY, 0, maxY);
+    const int scrollableX = std::max(0, worldWidth - viewportWidth);
+    const int scrollableY = std::max(0, worldHeight - viewportHeight);
+    const int minX = std::min(edgePadding, scrollableX / 2);
+    const int minY = std::min(edgePadding, scrollableY);
+    const int maxX = std::max(minX, scrollableX - edgePadding);
+    const int maxY = scrollableY;
+    x = std::clamp(desiredX, minX, maxX);
+    y = std::clamp(desiredY, minY, maxY);
 }
 
 void Camera::reset() {
