@@ -9,20 +9,10 @@
 #include "model/StaticObject.h"
 #include "model/World.h"
 
-#include <algorithm>
 #include <memory>
 #include <utility>
 
 namespace {
-bool hitsFromBelow(const Actor& actor, const GameObject& object) {
-    const Rectangle actorBounds = actor.getBounds();
-    const Rectangle objectBounds = object.getBounds();
-    const double actorCenterY = actorBounds.y + actorBounds.height / 2.0;
-    const double objectCenterY = objectBounds.y + objectBounds.height / 2.0;
-
-    return actor.getVelocityY() < 0.0 && actorCenterY > objectCenterY;
-}
-
 bool isStomp(const Player& player, const Enemy& enemy) {
     if (player.getVelocityY() <= 0.0) {
         return false;
@@ -52,38 +42,129 @@ bool CollisionSystem::check(
            a.y + a.height > b.y;
 }
 
-void CollisionSystem::resolve(World& world) {
+void CollisionSystem::update(World& world, double dtSeconds) {
+    Player& player = world.getPlayer();
+    if (player.isAlive()) {
+        stepActor(player, world, dtSeconds);
+    }
+
+    for (const auto& actor : world.getActors()) {
+        if (actor->isAlive()) {
+            stepActor(*actor, world, dtSeconds);
+        }
+    }
+
+    resolveInteractions(world);
+}
+
+// Bước cố định 11 ms cho tốc độ rơi tối đa ra 7.92 px, nhỏ hơn ô 32 px nên
+// không cần quét đường đi: actor không thể nhảy qua block giữa hai frame.
+void CollisionSystem::stepActor(
+    Actor& actor,
+    World& world,
+    double dtSeconds
+) const {
+    actor.moveX(dtSeconds);
+    const bool blockedByWall = resolveX(actor, world);
+
+    actor.moveY(dtSeconds);
+    resolveY(actor, world);
+
+    // A5: Enemy chỉ lật hướng khi trục X thật sự bị chặn, không đoán theo độ lún.
+    if (blockedByWall) {
+        if (auto* enemy = dynamic_cast<Enemy*>(&actor)) {
+            enemy->reverseDirection();
+        }
+    }
+}
+
+bool CollisionSystem::resolveX(Actor& actor, const World& world) const {
+    // Hướng đi đọc một lần: cú tách đầu tiên xoá velocityX của các cú sau.
+    const double movingX = actor.getVelocityX();
+    if (movingX == 0.0) {
+        return false;
+    }
+
+    bool blocked = false;
+    for (const auto& object : world.getObjects()) {
+        if (!object->isSolid() || !check(actor, *object)) {
+            continue;
+        }
+
+        const Rectangle actorBounds = actor.getBounds();
+        const Rectangle objectBounds = object->getBounds();
+
+        actor.placeBesideWall(
+            (movingX > 0.0)
+                ? objectBounds.x - actorBounds.width
+                : objectBounds.x + objectBounds.width);
+        blocked = true;
+    }
+
+    return blocked;
+}
+
+void CollisionSystem::resolveY(Actor& actor, World& world) const {
+    const double movingY = actor.getVelocityY();
+    if (movingY == 0.0) {
+        return;
+    }
+
+    for (const auto& object : world.getObjects()) {
+        if (!object->isSolid() || !check(actor, *object)) {
+            continue;
+        }
+
+        const Rectangle actorBounds = actor.getBounds();
+        const Rectangle objectBounds = object->getBounds();
+
+        if (movingY > 0.0) {
+            actor.placeOnGround(objectBounds.y - actorBounds.height);
+            continue;
+        }
+
+        actor.placeUnderCeiling(objectBounds.y + objectBounds.height);
+
+        // A2: Đập gạch chính là cú chạm trần, không phải phép so tâm hai hộp.
+        if (auto* player = dynamic_cast<Player*>(&actor)) {
+            hitBrickFromBelow(*player, *object, world);
+        }
+    }
+}
+
+void CollisionSystem::hitBrickFromBelow(
+    Player& player,
+    StaticObject& object,
+    World& world
+) const {
+    auto* brick = dynamic_cast<Brick*>(&object);
+    if (brick == nullptr) {
+        return;
+    }
+
+    if (auto* specialBrick = dynamic_cast<SpecialBrick*>(brick)) {
+        std::unique_ptr<Item> item = specialBrick->releaseItem();
+        if (item != nullptr) {
+            world.addItem(std::move(item));
+        }
+        return;
+    }
+
+    brick->hitBy(player);
+}
+
+void CollisionSystem::resolveInteractions(World& world) const {
     Player& player = world.getPlayer();
 
-    // A2/A6: Xử lý Flag trước để không xem Flag như brick hoặc vật cản rắn.
+    // A2/A6: Flag là vùng kích hoạt nên chỉ xét ở đây, không nằm trong resolve trục.
     for (const auto& object : world.getObjects()) {
-        if (auto* flag = dynamic_cast<Flag*>(object.get())) {
-            if (!flag->isCaptured() && check(player, *flag)) {
-                player.captureFlag(*flag);
-                // A6: Phát tín hiệu hoàn thành level sau khi Player chiếm cờ.
-                world.markLevelComplete();
-            }
+        auto* flag = dynamic_cast<Flag*>(object.get());
+        if (flag == nullptr || flag->isCaptured() || !check(player, *flag)) {
             continue;
         }
 
-        if (!object->isSolid() || !check(player, *object)) {
-            continue;
-        }
-
-        // A2: Chỉ Brick mới phản ứng khi bị đập từ phía dưới.
-        if (auto* brick = dynamic_cast<Brick*>(object.get());
-            brick != nullptr && hitsFromBelow(player, *brick)) {
-            if (auto* specialBrick = dynamic_cast<SpecialBrick*>(brick)) {
-                std::unique_ptr<Item> item = specialBrick->releaseItem();
-                if (item != nullptr) {
-                    world.addItem(std::move(item));
-                }
-            } else {
-                brick->hitBy(player);
-            }
-        }
-
-        object->onCollision(player);
+        player.captureFlag(*flag);
+        world.markLevelComplete();
     }
 
     // A3: Trạng thái collected ngăn áp dụng hiệu ứng và cộng điểm nhiều lần.
@@ -112,35 +193,6 @@ void CollisionSystem::resolve(World& world) {
             world.addScore(100);
         } else {
             enemy->damagePlayer(player);
-        }
-    }
-
-    // A5: Enemy đổi hướng sau khi resolver tách Enemy khỏi tường.
-    for (const auto& actor : world.getActors()) {
-        if (!actor->isAlive()) {
-            continue;
-        }
-
-        for (const auto& object : world.getObjects()) {
-            if (object->isSolid() && check(*actor, *object)) {
-                const Rectangle actorBounds = actor->getBounds();
-                const Rectangle objectBounds = object->getBounds();
-                const double overlapX = std::min(
-                    actorBounds.x + actorBounds.width - objectBounds.x,
-                    objectBounds.x + objectBounds.width - actorBounds.x);
-                const double overlapY = std::min(
-                    actorBounds.y + actorBounds.height - objectBounds.y,
-                    objectBounds.y + objectBounds.height - actorBounds.y);
-                const bool horizontalHit = overlapX < overlapY;
-
-                object->onCollision(*actor);
-
-                if (horizontalHit) {
-                    if (auto* enemy = dynamic_cast<Enemy*>(actor.get())) {
-                        enemy->reverseDirection();
-                    }
-                }
-            }
         }
     }
 }

@@ -229,7 +229,7 @@ void Game::gameLoop() {
                 if (inputHandler.isPressed(Key::Right)) ++horizontalInput;
                 world.getPlayer().setMoveDirection(horizontalInput);
                 world.update(kFixedStepSeconds);
-                collisionSystem.resolve(world);
+                collisionSystem.update(world, kFixedStepSeconds);
                 if (world.isLevelComplete()) {
                     currentGameState = LevelComplete;
                     audioService->play("win");

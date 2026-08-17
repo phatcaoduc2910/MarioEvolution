@@ -145,8 +145,8 @@ void Player::update(double dtSeconds) {
         }
     }
 
+    // Chỉ dựng ý định di chuyển; CollisionSystem mới dời vị trí theo từng trục.
     applyGravity(dtSeconds);
-    move(dtSeconds);
 }
 
 void Player::startInvincibility() {

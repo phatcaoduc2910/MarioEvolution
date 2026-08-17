@@ -9,7 +9,7 @@ public:
     Enemy(double x, double y, int width, int height);
     ~Enemy() override = default;
 
-    virtual void patrol(double dtSeconds);
+    virtual void patrol();
     virtual void die();
     virtual void damagePlayer(Player& player);
     void reverseDirection();
@@ -25,7 +25,7 @@ class Goomba : public Enemy {
 public:
     Goomba(double x, double y);
 
-    void patrol(double dtSeconds) override;
+    void patrol() override;
     void die() override;
 };
 
@@ -34,8 +34,8 @@ public:
     Koopa(double x, double y);
 
     void hideInShell();
-    void kick(double dtSeconds);
-    void patrol(double dtSeconds) override;
+    void kick();
+    void patrol() override;
 
 private:
     bool shellMode;
