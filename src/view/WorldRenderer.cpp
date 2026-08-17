@@ -5,9 +5,6 @@
 #include "model/Item.h"
 #include "model/World.h"
 #include "view/TileCatalog.h"
-#include "view/UiRenderer.h"
-
-#include <string>
 
 namespace {
     constexpr const char* OPENED_BRICK_TEXTURE_ID = "gold";
@@ -15,9 +12,6 @@ namespace {
     constexpr const char* SKY_TEXTURE_ID = "sky";
     constexpr const char* MUSHROOM_TEXTURE_ID = "ui.hud.life";
     constexpr const char* BACKGROUND_LAYER_IDS[]{"background.1", "background.2"};
-
-    constexpr SDL_Color kHudTextColor{255, 255, 255, 255};
-    constexpr int kHudMargin = 12;
 
     SDL_Rect destination(const GameObject& object) {
         return {
@@ -160,20 +154,4 @@ void WorldRenderer::render(SDL_Renderer* renderer, const TextureManager& texture
     }
 
     SDL_SetRenderDrawColor(renderer, oldRed, oldGreen, oldBlue, oldAlpha);
-}
-
-void WorldRenderer::renderHud(SDL_Renderer* renderer, const World& world) {
-    if (renderer == nullptr) {
-        return;
-    }
-
-    UiRenderer::drawText(
-        renderer, "SCORE", kHudMargin, kHudMargin, 2, kHudTextColor);
-    UiRenderer::drawText(
-        renderer,
-        std::to_string(world.getScore()),
-        kHudMargin,
-        kHudMargin + 14,
-        2,
-        kHudTextColor);
 }

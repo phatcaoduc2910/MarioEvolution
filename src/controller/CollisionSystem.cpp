@@ -9,6 +9,7 @@
 #include "model/StaticObject.h"
 #include "model/World.h"
 
+#include <algorithm>
 #include <memory>
 #include <utility>
 
@@ -59,7 +60,8 @@ void CollisionSystem::resolve(World& world) {
         if (auto* flag = dynamic_cast<Flag*>(object.get())) {
             if (!flag->isCaptured() && check(player, *flag)) {
                 player.captureFlag(*flag);
-                // A6: Gọi World::markLevelComplete() tại đây sau khi B bổ sung contract.
+                // A6: Phát tín hiệu hoàn thành level sau khi Player chiếm cờ.
+                world.markLevelComplete();
             }
             continue;
         }
@@ -113,7 +115,7 @@ void CollisionSystem::resolve(World& world) {
         }
     }
 
-    // A5: Giữ resolve Actor-vật cản cho tới khi B bổ sung Enemy::reverseDirection().
+    // A5: Enemy đổi hướng sau khi resolver tách Enemy khỏi tường.
     for (const auto& actor : world.getActors()) {
         if (!actor->isAlive()) {
             continue;
@@ -121,7 +123,23 @@ void CollisionSystem::resolve(World& world) {
 
         for (const auto& object : world.getObjects()) {
             if (object->isSolid() && check(*actor, *object)) {
+                const Rectangle actorBounds = actor->getBounds();
+                const Rectangle objectBounds = object->getBounds();
+                const double overlapX = std::min(
+                    actorBounds.x + actorBounds.width - objectBounds.x,
+                    objectBounds.x + objectBounds.width - actorBounds.x);
+                const double overlapY = std::min(
+                    actorBounds.y + actorBounds.height - objectBounds.y,
+                    objectBounds.y + objectBounds.height - actorBounds.y);
+                const bool horizontalHit = overlapX < overlapY;
+
                 object->onCollision(*actor);
+
+                if (horizontalHit) {
+                    if (auto* enemy = dynamic_cast<Enemy*>(actor.get())) {
+                        enemy->reverseDirection();
+                    }
+                }
             }
         }
     }

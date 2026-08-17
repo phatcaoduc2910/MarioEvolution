@@ -14,7 +14,6 @@ public:
                           int viewWidth, int viewHeight);
     void render(SDL_Renderer* renderer, const TextureManager& textures,
                 const World& world);
-    void renderHud(SDL_Renderer* renderer, const World& world);
 
 private:
     AssetRenderer assetRenderer;
