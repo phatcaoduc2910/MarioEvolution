@@ -11,12 +11,22 @@ public:
     static constexpr int kSmallHeight = 32;
     static constexpr int kBigHeight = 54;
 
+    static constexpr int kColliderWidth = 20;
+    static constexpr int kColliderInsetX = (kBodyWidth - kColliderWidth) / 2;
+    static constexpr int kColliderInsetTop = 4;
+
+    static constexpr int kFeetInsetX = 2;
+    static constexpr int kFeetHeight = 3;
+
     Player(double x, double y);
 
     PowerUpType getPowerUp() const;
     PlayerState getState() const;
     bool isAlive() const override;
     bool isInvincible() const;
+
+    Rectangle getBounds() const override;
+    Rectangle getFeetBounds() const;
 
     void jump();
     void bounceAfterStomp();

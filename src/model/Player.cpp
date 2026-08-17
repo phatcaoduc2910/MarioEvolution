@@ -48,6 +48,26 @@ bool Player::isInvincible() const {
     return invincibilityRemainingSeconds > 0.0;
 }
 
+Rectangle Player::getBounds() const {
+    return {
+        x + kColliderInsetX,
+        y + kColliderInsetTop,
+        kColliderWidth,
+        height - kColliderInsetTop
+    };
+}
+
+Rectangle Player::getFeetBounds() const {
+    const Rectangle body = getBounds();
+
+    return {
+        body.x + kFeetInsetX,
+        body.y + body.height - kFeetHeight,
+        body.width - 2 * kFeetInsetX,
+        kFeetHeight
+    };
+}
+
 void Player::jump() {
     // A1: Trạng thái chạm đất, không phải vận tốc dọc, quyết định quyền nhảy.
     if (!isAlive() || !isOnGround()) {

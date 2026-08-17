@@ -1,6 +1,7 @@
 #include "controller/CollisionSystem.h"
 #include "model/Brick.h"
 #include "model/Enemy.h"
+#include "model/LevelData.h"
 #include "model/Player.h"
 #include "model/World.h"
 
@@ -21,10 +22,35 @@ constexpr int kPlayerHeight = Player::kSmallHeight;
 constexpr double kGroundTopY = 576.0;
 constexpr double kStandY = kGroundTopY - kPlayerHeight;
 
-void addGround(World& world, int firstColumn, int lastColumn) {
+void addPlatform(
+    World& world,
+    int firstColumn,
+    int lastColumn,
+    double topY
+) {
     for (int column = firstColumn; column <= lastColumn; ++column) {
         world.addObject(std::make_unique<StandardBrick>(
-            static_cast<double>(column * kTileSize), kGroundTopY));
+            static_cast<double>(column * kTileSize), topY));
+    }
+}
+
+void addGround(World& world, int firstColumn, int lastColumn) {
+    addPlatform(world, firstColumn, lastColumn, kGroundTopY);
+}
+
+bool intersects(const Rectangle& a, const Rectangle& b) {
+    return a.x < b.x + b.width &&
+           a.x + a.width > b.x &&
+           a.y < b.y + b.height &&
+           a.y + a.height > b.y;
+}
+
+// Bất biến mạnh nhất sau mỗi frame: hộp vật lý không được nằm trong khối rắn.
+void assertPlayerClearOfSolids(const World& world, const Player& player) {
+    for (const auto& object : world.getObjects()) {
+        if (object->isSolid()) {
+            assert(!intersects(player.getBounds(), object->getBounds()));
+        }
     }
 }
 
@@ -118,8 +144,9 @@ void testHeadIntoBrick() {
         world.update(kStepSeconds);
         collisionSystem.update(world, kStepSeconds);
 
-        assert(player.getY() >= 480.0);
-        if (!bonked && player.getY() == 480.0) {
+        // Đỉnh collider chạm đáy gạch, không phải đỉnh ô sprite.
+        assert(player.getBounds().y >= 480.0);
+        if (!bonked && player.getBounds().y == 480.0) {
             bonked = true;
             bonkVelocityY = player.getVelocityY();
             bonkOnGround = player.isOnGround();
@@ -164,22 +191,30 @@ void testWalkIntoWalls() {
 
     landOnGround(world, collisionSystem);
 
+    // E: chặn theo cạnh collider; sprite được phép phủ lên viền trang trí.
+    constexpr double kRightWallLeft = 192.0;
+    constexpr double kLeftWallRight = 64.0;
+
     Player& player = world.getPlayer();
     for (int index = 0; index < 100; ++index) {
         stepHolding(world, collisionSystem, 1, 1);
-        assert(player.getX() + kPlayerWidth <= 192.0);
+        const Rectangle body = player.getBounds();
+        assert(body.x + body.width <= kRightWallLeft);
         assert(player.getY() == kStandY);
         assert(player.isOnGround());
     }
-    assert(player.getX() == 160.0);
+    assert(player.getBounds().x + player.getBounds().width == kRightWallLeft);
+    assert(player.getX() ==
+           kRightWallLeft - Player::kColliderInsetX - Player::kColliderWidth);
 
     for (int index = 0; index < 100; ++index) {
         stepHolding(world, collisionSystem, 1, -1);
-        assert(player.getX() >= 64.0);
+        assert(player.getBounds().x >= kLeftWallRight);
         assert(player.getY() == kStandY);
         assert(player.isOnGround());
     }
-    assert(player.getX() == 64.0);
+    assert(player.getBounds().x == kLeftWallRight);
+    assert(player.getX() == kLeftWallRight - Player::kColliderInsetX);
 }
 
 void testJumpBesideCorner() {
@@ -195,7 +230,9 @@ void testJumpBesideCorner() {
     stepHolding(world, collisionSystem, 40, 1);
 
     Player& player = world.getPlayer();
-    assert(player.getX() == 160.0);
+    const double restingX =
+        192.0 - Player::kColliderInsetX - Player::kColliderWidth;
+    assert(player.getX() == restingX);
 
     player.jump();
     double apexTopY = player.getY();
@@ -204,7 +241,7 @@ void testJumpBesideCorner() {
         world.update(kStepSeconds);
         collisionSystem.update(world, kStepSeconds);
 
-        assert(player.getX() == 160.0);
+        assert(player.getX() == restingX);
         if (player.getVelocityY() < 0.0) {
             assert(!player.isOnGround());
         }
@@ -215,7 +252,7 @@ void testJumpBesideCorner() {
     assert(apexTopY < kStandY - 90.0);
     assert(player.getY() == kStandY);
     assert(player.isOnGround());
-    assert(player.getX() == 160.0);
+    assert(player.getX() == restingX);
 }
 
 void testFallBesideBlock() {
@@ -247,6 +284,39 @@ void addLowCeiling(World& world, int firstColumn, int lastColumn) {
     }
 }
 
+void testPlayerSpawnMarker() {
+    LevelData level(10, 8, kTileSize);
+    for (int column = 0; column < 10; ++column) {
+        level.setTile(column, 7, kStandardBrickTileId);
+    }
+    level.setTile(6, 6, kPlayerSpawnTileId);
+
+    World world;
+    CollisionSystem collisionSystem;
+    world.loadLevel(level);
+
+    Player& player = world.getPlayer();
+    assert(player.getX() == 6.0 * kTileSize);
+    assert(player.getY() + player.getHeight() == 7.0 * kTileSize);
+    assert(player.getState() == PlayerState::Small);
+
+    step(world, collisionSystem, 20);
+    assert(player.isOnGround());
+    assert(player.getY() + player.getHeight() == 7.0 * kTileSize);
+    assert(!world.isGameOver());
+
+    World withoutMarker;
+    LevelData plain(10, 8, kTileSize);
+    for (int column = 0; column < 10; ++column) {
+        plain.setTile(column, 7, kStandardBrickTileId);
+    }
+    const double defaultX = withoutMarker.getPlayer().getX();
+    const double defaultY = withoutMarker.getPlayer().getY();
+    withoutMarker.loadLevel(plain);
+    assert(withoutMarker.getPlayer().getX() == defaultX);
+    assert(withoutMarker.getPlayer().getY() == defaultY);
+}
+
 void testPlayerHitboxTracksState() {
     World world;
     CollisionSystem collisionSystem;
@@ -257,6 +327,18 @@ void testPlayerHitboxTracksState() {
     landOnGround(world, collisionSystem);
     assert(player.getWidth() == Player::kBodyWidth);
     assert(player.getHeight() == Player::kSmallHeight);
+
+    // Hộp vật lý hẹp hơn ô sprite nhưng chung đáy.
+    const Rectangle smallBody = player.getBounds();
+    assert(smallBody.width == Player::kColliderWidth);
+    assert(smallBody.width < player.getWidth());
+    assert(smallBody.x == player.getX() + Player::kColliderInsetX);
+    assert(smallBody.y + smallBody.height ==
+           player.getY() + player.getHeight());
+
+    const Rectangle feet = player.getFeetBounds();
+    assert(feet.y + feet.height == smallBody.y + smallBody.height);
+    assert(feet.width < smallBody.width);
 
     stepHolding(world, collisionSystem, 60, 1);
     assert(player.getX() > 160.0);
@@ -271,20 +353,202 @@ void testPlayerHitboxTracksState() {
     Player& big = bigWorld.getPlayer();
     landOnGround(bigWorld, bigCollisions);
     const double feetY = big.getY() + big.getHeight();
+    assert(big.getBounds().y + big.getBounds().height == feetY);
 
     big.grow();
     assert(big.getState() == PlayerState::Big);
     assert(big.getHeight() == Player::kBigHeight);
     assert(big.getY() + big.getHeight() == feetY);
 
+    // I: đáy collider đứng yên khi đổi state, chỉ đỉnh cao thêm.
+    const Rectangle bigBody = big.getBounds();
+    assert(bigBody.y + bigBody.height == feetY);
+    assert(bigBody.width == smallBody.width);
+    assert(bigBody.height > smallBody.height);
+
     stepHolding(bigWorld, bigCollisions, 60, 1);
-    assert(big.getX() + Player::kBodyWidth <= 160.0);
+    assert(big.getBounds().x + big.getBounds().width <= 160.0);
     assert(big.getY() + big.getHeight() == feetY);
 
     big.takeDamage();
     assert(big.getState() == PlayerState::Small);
     assert(big.getHeight() == Player::kSmallHeight);
     assert(big.getY() + big.getHeight() == feetY);
+    assert(big.getBounds().height == smallBody.height);
+    assert(big.getBounds().y + big.getBounds().height == feetY);
+
+    // FIRE dùng chung collider với BIG.
+    World fireWorld;
+    CollisionSystem fireCollisions;
+    addGround(fireWorld, 0, 10);
+
+    Player& fire = fireWorld.getPlayer();
+    landOnGround(fireWorld, fireCollisions);
+    const double fireFeetY = fire.getY() + fire.getHeight();
+
+    fire.upgradeToFire();
+    assert(fire.getState() == PlayerState::Fire);
+    assert(fire.getHeight() == Player::kBigHeight);
+    assert(fire.getBounds().height == bigBody.height);
+    assert(fire.getBounds().width == bigBody.width);
+    assert(fire.getBounds().y + fire.getBounds().height == fireFeetY);
+}
+
+// B/C: đứng được chừng nào chân còn chồng nền, không đòi tâm nằm trên block.
+void testStandsOnPlatformEdgeThenFalls() {
+    World world;
+    CollisionSystem collisionSystem;
+    addGround(world, 0, 4);
+    landOnGround(world, collisionSystem);
+
+    constexpr double kPlatformRightX = 5.0 * kTileSize;
+
+    Player& player = world.getPlayer();
+    bool overhungPastCentre = false;
+    bool fell = false;
+
+    for (int index = 0; index < 200 && !fell; ++index) {
+        stepHolding(world, collisionSystem, 1, 1);
+        assertPlayerClearOfSolids(world, player);
+
+        const Rectangle body = player.getBounds();
+        if (player.isOnGround()) {
+            assert(body.x < kPlatformRightX);
+            assert(player.getY() == kStandY);
+            overhungPastCentre = overhungPastCentre ||
+                                 body.x + body.width / 2.0 > kPlatformRightX;
+        } else {
+            assert(body.x >= kPlatformRightX);
+            fell = true;
+        }
+    }
+
+    assert(fell);
+    assert(overhungPastCentre);
+}
+
+// D: vừa đi ngang vừa rơi xuống mép nền thấp hơn.
+void testFallsOntoPlatformCornerWhileMoving() {
+    World world;
+    CollisionSystem collisionSystem;
+    addPlatform(world, 0, 3, 550.0);
+    addPlatform(world, 5, 14, kGroundTopY);
+
+    Player& player = world.getPlayer();
+    step(world, collisionSystem, 10);
+    assert(player.isOnGround());
+    assert(player.getY() == 550.0 - kPlayerHeight);
+
+    double previousX = player.getX();
+    double previousY = player.getY();
+    bool leftLedge = false;
+
+    for (int index = 0; index < 60; ++index) {
+        stepHolding(world, collisionSystem, 1, 1);
+        assertPlayerClearOfSolids(world, player);
+
+        const double deltaX = player.getX() - previousX;
+        assert(deltaX >= 0.0);
+        assert(deltaX <= 3.0);  // không teleport ngang khi chạm góc
+
+        if (player.getVelocityY() > 0.0) {
+            assert(player.getY() >= previousY);  // không bị đẩy ngược lên
+        }
+
+        leftLedge = leftLedge || !player.isOnGround();
+        previousX = player.getX();
+        previousY = player.getY();
+    }
+
+    assert(leftLedge);
+    assert(player.isOnGround());   // không lơ lửng
+    assert(player.getY() == kStandY);
+    assert(player.getX() > 128.0);  // không kẹt lại ở mép trên
+}
+
+// G: nhảy sát góc gạch - chỉ đội khi collider thật sự chui vào, và không bị
+// hất ngang.
+void testJumpAtBrickCorner() {
+    World clearWorld;
+    CollisionSystem clearCollisions;
+    addGround(clearWorld, 0, 8);
+    auto missOwner = std::make_unique<CoinBrick>(128.0, 448.0, 1);
+    const CoinBrick* missedBrick = missOwner.get();
+    clearWorld.addObject(std::move(missOwner));
+
+    landOnGround(clearWorld, clearCollisions);
+    Player& missPlayer = clearWorld.getPlayer();
+    const double missStartX = missPlayer.getX();
+    assert(missPlayer.getBounds().x + missPlayer.getBounds().width <= 128.0);
+
+    missPlayer.jump();
+    for (int index = 0; index < 120; ++index) {
+        step(clearWorld, clearCollisions, 1);
+        assertPlayerClearOfSolids(clearWorld, missPlayer);
+        assert(missPlayer.getX() == missStartX);
+    }
+
+    assert(!missedBrick->isOpened());
+    assert(clearWorld.getItems().empty());
+
+    World grazeWorld;
+    CollisionSystem grazeCollisions;
+    addGround(grazeWorld, 0, 8);
+    auto grazeOwner = std::make_unique<CoinBrick>(120.0, 448.0, 1);
+    const CoinBrick* grazedBrick = grazeOwner.get();
+    grazeWorld.addObject(std::move(grazeOwner));
+
+    landOnGround(grazeWorld, grazeCollisions);
+    Player& grazePlayer = grazeWorld.getPlayer();
+    const double grazeStartX = grazePlayer.getX();
+    assert(grazePlayer.getBounds().x + grazePlayer.getBounds().width > 120.0);
+
+    grazePlayer.jump();
+    for (int index = 0; index < 120; ++index) {
+        step(grazeWorld, grazeCollisions, 1);
+        assertPlayerClearOfSolids(grazeWorld, grazePlayer);
+        assert(grazePlayer.getX() == grazeStartX);
+    }
+
+    assert(grazedBrick->isOpened());
+    assert(grazeWorld.getItems().size() == 1);
+}
+
+// H: đổi Idle/Run/Jump/Fall không được đổi hình dạng va chạm.
+void testColliderIgnoresAnimationPhase() {
+    World world;
+    CollisionSystem collisionSystem;
+    addGround(world, 0, 12);
+    landOnGround(world, collisionSystem);
+
+    Player& player = world.getPlayer();
+    const Rectangle idle = player.getBounds();
+
+    stepHolding(world, collisionSystem, 20, 1);
+    const Rectangle running = player.getBounds();
+    assert(player.getVelocityX() > 0.0);
+
+    player.jump();
+    step(world, collisionSystem, 5);
+    const Rectangle rising = player.getBounds();
+    assert(player.getVelocityY() < 0.0);
+
+    bool falling = false;
+    for (int index = 0; index < 200 && !falling; ++index) {
+        step(world, collisionSystem, 1);
+        falling = player.getVelocityY() > 0.0 && !player.isOnGround();
+    }
+    assert(falling);
+    const Rectangle dropping = player.getBounds();
+
+    for (const Rectangle& shape : {running, rising, dropping}) {
+        assert(shape.width == idle.width);
+        assert(shape.height == idle.height);
+    }
+
+    // Và luôn dính đáy hộp logic ở mọi pha.
+    assert(dropping.y + dropping.height ==
+           player.getY() + player.getHeight());
 }
 
 void testStompSurvivesAxisResolve() {
@@ -558,7 +822,12 @@ int main() {
     testWalkIntoWalls();
     testJumpBesideCorner();
     testFallBesideBlock();
+    testPlayerSpawnMarker();
     testPlayerHitboxTracksState();
+    testStandsOnPlatformEdgeThenFalls();
+    testFallsOntoPlatformCornerWhileMoving();
+    testJumpAtBrickCorner();
+    testColliderIgnoresAnimationPhase();
     testStompSurvivesAxisResolve();
     testEnemyTurnsAtWall();
     testEnemyTurnsAtEdge();

@@ -62,18 +62,18 @@ void Actor::moveY(double dtSeconds) {
     onGround = false;
 }
 
-void Actor::placeBesideWall(double newX) {
-    x = newX;
+void Actor::placeBesideWall(double colliderX) {
+    x += colliderX - getBounds().x;
     velocityX = 0.0;
 }
 
-void Actor::placeOnGround(double newY) {
-    y = newY;
+void Actor::placeOnGround(double colliderY) {
+    y += colliderY - getBounds().y;
     velocityY = 0.0;
     onGround = true;
 }
 
-void Actor::placeUnderCeiling(double newY) {
-    y = newY;
+void Actor::placeUnderCeiling(double colliderY) {
+    y += colliderY - getBounds().y;
     velocityY = 0.0;
 }

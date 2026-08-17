@@ -20,8 +20,12 @@ constexpr int kPalettePadding = 12;
 constexpr int kPaletteTop = 104;
 constexpr int kPaletteColumns = 2;
 constexpr int kPaletteCellWidth = 92;
-constexpr int kPaletteCellHeight = 88;
-constexpr int kPalettePreviewSize = 48;
+constexpr int kPaletteCellHeight = 60;
+constexpr int kPalettePreviewSize = 32;
+constexpr int kPaletteLabelOffsetY = 38;
+constexpr int kPaletteFooterGap = 10;
+constexpr int kPaletteHintGap = 46;
+constexpr int kPaletteHintLineHeight = 16;
 constexpr int kTabTop = 48;
 constexpr int kTabWidth = 84;
 constexpr int kTabHeight = 26;
@@ -876,7 +880,7 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
         if (boxTextureId == kDefaultPaletteBoxId) {
             const SDL_Rect preview{
                 card.x + (card.w - kPalettePreviewSize) / 2,
-                card.y + 5,
+                card.y + 4,
                 kPalettePreviewSize,
                 kPalettePreviewSize
             };
@@ -886,7 +890,7 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
             renderer,
             definition->label,
             card.x + 7,
-            card.y + 61,
+            card.y + kPaletteLabelOffsetY,
             1,
             kTextColor);
 
@@ -899,33 +903,32 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
         ++index;
     }
 
+    const int paletteRows =
+        (static_cast<int>(index) + kPaletteColumns - 1) / kPaletteColumns;
+    const int footerY =
+        kPaletteTop + paletteRows * kPaletteCellHeight + kPaletteFooterGap;
+
     const TileDefinition* selected = findTileDefinition(selectedTile);
     UiRenderer::drawText(
-        renderer, "SELECTED", panelX + kPalettePadding, 382, 1,
+        renderer, "SELECTED", panelX + kPalettePadding, footerY, 1,
         kMutedTextColor);
     UiRenderer::drawText(
         renderer,
         selected != nullptr ? selected->label : "UNKNOWN",
         panelX + kPalettePadding,
-        400,
+        footerY + 18,
         2,
         kSelectedColor);
 
-    UiRenderer::drawText(
-        renderer, "ZERO CLOSE", panelX + kPalettePadding, 468, 1,
-        kMutedTextColor);
-    UiRenderer::drawText(
-        renderer, "CTRL S SAVE", panelX + kPalettePadding, 486, 1,
-        kMutedTextColor);
-    UiRenderer::drawText(
-        renderer, "E PICK", panelX + kPalettePadding, 504, 1,
-        kMutedTextColor);
-    UiRenderer::drawText(
-        renderer, "R RESET", panelX + kPalettePadding, 522, 1,
-        kMutedTextColor);
-    UiRenderer::drawText(
-        renderer, "TAB MAPS", panelX + kPalettePadding, 540, 1,
-        kMutedTextColor);
+    const char* hints[] = {
+        "ZERO CLOSE", "CTRL S SAVE", "E PICK", "R RESET", "TAB MAPS"};
+    int hintY = footerY + kPaletteHintGap;
+    for (const char* hint : hints) {
+        UiRenderer::drawText(
+            renderer, hint, panelX + kPalettePadding, hintY, 1,
+            kMutedTextColor);
+        hintY += kPaletteHintLineHeight;
+    }
 }
 
 void MapEditorService::renderMapPalette(SDL_Renderer* renderer) {

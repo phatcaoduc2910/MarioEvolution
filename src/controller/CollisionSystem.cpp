@@ -146,6 +146,8 @@ void CollisionSystem::resolveY(Actor& actor, World& world) const {
         return;
     }
 
+    bool bumped = false;
+
     for (const auto& object : world.getObjects()) {
         if (!object->isSolid() || !check(actor, *object)) {
             continue;
@@ -162,8 +164,10 @@ void CollisionSystem::resolveY(Actor& actor, World& world) const {
         actor.placeUnderCeiling(objectBounds.y + objectBounds.height);
 
         // A2: Đập gạch chính là cú chạm trần, không phải phép so tâm hai hộp.
-        if (auto* player = dynamic_cast<Player*>(&actor)) {
+        auto* player = dynamic_cast<Player*>(&actor);
+        if (player != nullptr && !bumped) {
             hitBrickFromBelow(*player, *object, world);
+            bumped = true;
         }
     }
 }

@@ -57,6 +57,7 @@ void World::loadLevel(const LevelData& level) {
     levelComplete = false;
     killPlaneY = static_cast<double>(level.getHeight() * level.getTileSize()) + 96.0;
 
+    bool spawnPlaced = false;
     for (int row = 0; row < level.getHeight(); ++row) {
         for (int column = 0; column < level.getWidth(); ++column) {
             const TileId tileId = level.getTile(column, row);
@@ -100,6 +101,13 @@ void World::loadLevel(const LevelData& level) {
                 case kPiranhaTileId:
                     addActor(std::make_unique<PiranhaPlant>(
                         x, y + kObjectTileSize));
+                    break;
+                case kPlayerSpawnTileId:
+                    if (!spawnPlaced) {
+                        player = Player(
+                            x, y + kObjectTileSize - Player::kSmallHeight);
+                        spawnPlaced = true;
+                    }
                     break;
                 case kFlagTileId: {
                     const double poleX =

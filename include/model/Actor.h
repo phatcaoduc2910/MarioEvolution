@@ -19,10 +19,9 @@ public:
     void moveX(double dtSeconds);
     void moveY(double dtSeconds);
 
-    // CollisionSystem tính chỗ tách rồi giao lại; Actor tự áp state của mình.
-    void placeBesideWall(double newX);
-    void placeOnGround(double newY);
-    void placeUnderCeiling(double newY);
+    void placeBesideWall(double colliderX);
+    void placeOnGround(double colliderY);
+    void placeUnderCeiling(double colliderY);
 
 protected:
     double velocityX;

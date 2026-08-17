@@ -10,6 +10,23 @@ constexpr int kPlayerRenderScale = 1;
 constexpr int kEnemyRenderScale = 1;
 constexpr const char* kGoombaDeathTextureId = "goomba.death";
 
+// Soi hộp va chạm
+constexpr bool kDebugCollision = false;
+
+void drawDebugBox(SDL_Renderer* renderer, const Rectangle& box,
+                  int offsetX, int offsetY,
+                  Uint8 red, Uint8 green, Uint8 blue) {
+    const SDL_Rect outline{
+        static_cast<int>(box.x) + offsetX,
+        static_cast<int>(box.y) + offsetY,
+        box.width,
+        box.height
+    };
+
+    SDL_SetRenderDrawColor(renderer, red, green, blue, SDL_ALPHA_OPAQUE);
+    SDL_RenderDrawRect(renderer, &outline);
+}
+
 // Sprite cao hơn hitbox nên neo đáy để chân nhân vật không bị nhảy.
 bool anchoredDestination(SDL_Texture* texture, const GameObject& object,
                          int scale, int offsetX, int offsetY,
@@ -133,6 +150,30 @@ void ActorRenderer::renderPlayer(SDL_Renderer* renderer,
             : SDL_FLIP_NONE;
 
     assetRenderer.render(renderer, texture, nullptr, &destination, flip);
+
+    if constexpr (kDebugCollision) {
+        Uint8 oldRed;
+        Uint8 oldGreen;
+        Uint8 oldBlue;
+        Uint8 oldAlpha;
+        SDL_GetRenderDrawColor(
+            renderer, &oldRed, &oldGreen, &oldBlue, &oldAlpha);
+
+        const Rectangle renderBox{
+            static_cast<double>(destination.x - offsetX),
+            static_cast<double>(destination.y - offsetY),
+            destination.w,
+            destination.h
+        };
+        drawDebugBox(renderer, renderBox, offsetX, offsetY, 80, 80, 255);
+        drawDebugBox(
+            renderer, player.getBounds(), offsetX, offsetY, 0, 255, 0);
+        drawDebugBox(
+            renderer, player.getFeetBounds(), offsetX, offsetY, 255, 0, 0);
+
+        SDL_SetRenderDrawColor(
+            renderer, oldRed, oldGreen, oldBlue, oldAlpha);
+    }
 }
 
 void ActorRenderer::renderEnemies(SDL_Renderer* renderer,

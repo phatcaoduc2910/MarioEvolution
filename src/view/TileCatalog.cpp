@@ -1,7 +1,7 @@
 #include "view/TileCatalog.h"
 
 namespace {
-constexpr std::array<TileDefinition, 10> kTileDefinitions{{
+constexpr std::array<TileDefinition, 12> kTileDefinitions{{
     {kEmptyTileId, kEmptyTileId, kManualTileMask,
      nullptr, "EMPTY", false},
     {kStandardBrickTileId, kStandardBrickTileId, kManualTileMask,
@@ -22,11 +22,15 @@ constexpr std::array<TileDefinition, 10> kTileDefinitions{{
     {kKoopaRedTileId, kKoopaRedTileId, kManualTileMask,
      "koopa.red.walk.1", "KOOPA RED", true},
     {kPiranhaTileId, kPiranhaTileId, kManualTileMask,
-     "piranha.plant.1", "PIRANHA", true}
+     "piranha.plant.1", "PIRANHA", true},
+    {kFlagTileId, kFlagTileId, kManualTileMask,
+     "flag.1", "FLAG", true},
+    {kPlayerSpawnTileId, kPlayerSpawnTileId, kManualTileMask,
+     "mario.small.walk.1", "SPAWN", true}
 }};
 }
 
-const std::array<TileDefinition, 10>& tileDefinitions() {
+const std::array<TileDefinition, 12>& tileDefinitions() {
     return kTileDefinitions;
 }
 

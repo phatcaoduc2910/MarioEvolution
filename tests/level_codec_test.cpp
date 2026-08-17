@@ -24,7 +24,7 @@ int main() {
     assert(copy.getTileSize() == source.getTileSize());
     assert(copy.getTiles() == source.getTiles());
 
-    std::array<int, 11> tileCounts{};
+    std::array<int, 12> tileCounts{};
     for (const TileId tileId : copy.getTiles()) {
         assert(tileId < tileCounts.size());
         ++tileCounts[tileId];
@@ -63,7 +63,7 @@ int main() {
         output.close();
         assert(output);
     };
-    writeFixture(actorSymbolPath, "g!\nkr\np.\n");
+    writeFixture(actorSymbolPath, "g!\nkr\npP\n");
     writeFixture(unknownSymbolPath, "...\n.Z.\n");
     writeFixture(inconsistentWidthPath, "...\n..\n");
 
@@ -73,7 +73,9 @@ int main() {
     assert(actorSymbols.getTile(0, 1) == kKoopaGreenTileId);
     assert(actorSymbols.getTile(1, 1) == kKoopaRedTileId);
     assert(actorSymbols.getTile(0, 2) == kPiranhaTileId);
-    assert(actorSymbols.getTile(1, 2) == kEmptyTileId);
+    assert(actorSymbols.getTile(1, 2) == kPlayerSpawnTileId);
+    assert(actorSymbols.getSpawnColumn() == 1);
+    assert(actorSymbols.getSpawnRow() == 2);
     LevelCodec::save(actorSymbols, actorCopyPath);
     assert(LevelCodec::load(actorCopyPath, kTileSize).getTiles() ==
            actorSymbols.getTiles());

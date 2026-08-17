@@ -15,6 +15,7 @@ inline constexpr TileId kFlagTileId = 7;
 inline constexpr TileId kKoopaGreenTileId = 8;
 inline constexpr TileId kKoopaRedTileId = 9;
 inline constexpr TileId kPiranhaTileId = 10;
+inline constexpr TileId kPlayerSpawnTileId = 11;
 
 struct Rectangle {
     double x;
