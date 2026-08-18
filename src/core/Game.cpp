@@ -207,7 +207,11 @@ void Game::gameLoop() {
     const Uint32 elapsed = now - lastFrameTicks;
     const int deltaMs = static_cast<int>(std::min<Uint32>(elapsed, 100));
     lastFrameTicks = now;
-    accumulatorMs += deltaMs;
+    if (currentGameState == Playing) {
+        accumulatorMs += deltaMs;
+    } else {
+        accumulatorMs = 0;
+    }
 
 
     SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);

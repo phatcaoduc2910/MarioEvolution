@@ -6,9 +6,14 @@
 #include <string_view>
 
 namespace {
-constexpr SDL_Color kPanelColor{18, 27, 45, 205};
+constexpr SDL_Color kPanelColor{18, 27, 45, 225};
+constexpr SDL_Color kBorderColor{255, 214, 66, 255};
 constexpr SDL_Color kScoreColor{255, 255, 255, 255};
 constexpr SDL_Color kStateColor{255, 214, 66, 255};
+constexpr int kPanelX = 12;
+constexpr int kPanelY = 12;
+constexpr int kPanelWidth = 250;
+constexpr int kPanelHeight = 80;
 
 std::string_view stateName(PlayerState state) {
     switch (state) {
@@ -32,19 +37,26 @@ void HudRenderer::render(SDL_Renderer* renderer, int score,
         return;
     }
 
-    UiRenderer::fillRect(renderer, {12, 12, 230, 72}, kPanelColor);
+    UiRenderer::fillRect(
+        renderer,
+        {kPanelX, kPanelY, kPanelWidth, kPanelHeight},
+        kBorderColor);
+    UiRenderer::fillRect(
+        renderer,
+        {kPanelX + 3, kPanelY + 3, kPanelWidth - 6, kPanelHeight - 6},
+        kPanelColor);
     UiRenderer::drawText(
         renderer,
         "SCORE: " + std::to_string(score),
         24,
         24,
-        2,
+        3,
         kScoreColor);
     UiRenderer::drawText(
         renderer,
         "STATE: " + std::string(stateName(state)),
         24,
-        54,
+        62,
         2,
         kStateColor);
 }
