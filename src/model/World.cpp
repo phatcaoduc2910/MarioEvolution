@@ -24,6 +24,8 @@ World::World()
       remainingCoins(0),
       lives(kStartingLives),
       timeRemainingSeconds(kLevelDurationSeconds),
+      safePlayerX(player.getX()),
+      safePlayerY(player.getY()),
       gameOver(false),
       levelComplete(false),
       killPlaneY(700.0) {}
@@ -132,6 +134,8 @@ void World::loadLevel(const LevelData& level) {
             }
         }
     }
+    safePlayerX = player.getX();
+    safePlayerY = player.getY();
 }
 
 void World::addActor(std::unique_ptr<Actor> actor) {
@@ -172,7 +176,6 @@ int World::getLives() const {
     return lives;
 }
 
-
 bool World::isGameOver() const {
     return gameOver;
 }
@@ -188,12 +191,15 @@ void World::markLevelComplete() {
     }
 }
 
-void World::markGameOver() {
+void World::loseLife(double reviveX, double reviveY) {
     if (gameOver || levelComplete) {
         return;
     }
-    gameOver = true;
     lives = std::max(0, lives - 1);
+    gameOver = lives == 0;
+    if (!gameOver) {
+        player.reviveAt(reviveX, reviveY);
+    }
 }
 
 void World::update() {
@@ -205,8 +211,18 @@ void World::update(double dtSeconds) {
         timeRemainingSeconds = std::max(
             0.0, timeRemainingSeconds - dtSeconds);
         if (timeRemainingSeconds <= 0.0) {
-            markGameOver();
+            loseLife(player.getX(), player.getY());
+            if (!gameOver) {
+                timeRemainingSeconds = kLevelDurationSeconds;
+            }
+            return;
         }
+    }
+
+    if (player.isAlive() && player.isOnGround() &&
+        player.getY() <= killPlaneY) {
+        safePlayerX = player.getX();
+        safePlayerY = player.getY();
     }
 
     player.update(dtSeconds);
@@ -217,16 +233,19 @@ void World::update(double dtSeconds) {
         }
     }
 
+    for (auto& object : objects) {
+        object->update(dtSeconds);
+    }
+
     for (auto& item : items) {
         item->update(dtSeconds);
     }
 
-    if (!player.isAlive() || player.getState() == PlayerState::Dead) {
-        markGameOver();
-    }
-
     if (player.getY() > killPlaneY) {
-        markGameOver();
+        loseLife(safePlayerX, safePlayerY);
+    } else if (!player.isAlive() ||
+               player.getState() == PlayerState::Dead) {
+        loseLife(player.getX(), player.getY());
     }
 
     actors.erase(

@@ -30,11 +30,10 @@ void TerminalScreen::render(SDL_Renderer* renderer, GameState state,
         renderer, {0, 0, screenWidth, screenHeight}, kOverlayColor);
 
     const bool won = state == LevelComplete;
-    const bool canRetry = !won && lives > 0;
     const int centerY = screenHeight / 2;
     UiRenderer::drawCenteredText(
         renderer,
-        won ? "LEVEL COMPLETE" : canRetry ? "LIFE LOST" : "GAME OVER",
+        won ? "LEVEL COMPLETE" : "GAME OVER",
         screenWidth,
         centerY - 110,
         5,
@@ -55,8 +54,7 @@ void TerminalScreen::render(SDL_Renderer* renderer, GameState state,
         kTextColor);
     UiRenderer::drawCenteredText(
         renderer,
-        won ? "ENTER: PLAY AGAIN"
-            : canRetry ? "ENTER: RETRY" : "ENTER: NEW GAME",
+        won ? "ENTER: PLAY AGAIN" : "ENTER: NEW GAME",
         screenWidth,
         centerY + 65,
         2,

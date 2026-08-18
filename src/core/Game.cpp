@@ -262,13 +262,6 @@ void Game::startLevel() {
     audioService->play("theme", true);
 }
 
-void Game::retryLevel() {
-    world.loadLevel(mapEditor->getLevel());
-    camera.reset();
-    currentGameState = Playing;
-    audioService->play("theme", true);
-}
-
 // Xử lý vòng lặp game
 void Game::gameLoop() {
     SDL_Event event;
@@ -371,12 +364,7 @@ void Game::gameLoop() {
                 case GameOver:{
                     if (inputHandler.isPressed(Key::Enter)) {
                         inputHandler.release(Key::Enter);
-                        if (currentGameState == GameOver &&
-                            world.getLives() > 0) {
-                            retryLevel();
-                        } else {
-                            startLevel();
-                        }
+                        startLevel();
                     } else if (inputHandler.isPressed(Key::Esc)) {
                         inputHandler.release(Key::Esc);
                         currentGameState = StartMenu;

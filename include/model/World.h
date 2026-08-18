@@ -39,7 +39,7 @@ public:
     void update(double dtSeconds);
 
 private:
-    void markGameOver();
+    void loseLife(double reviveX, double reviveY);
 
     Player player;
     std::vector<std::unique_ptr<Actor>> actors;
@@ -49,6 +49,8 @@ private:
     int remainingCoins;
     int lives;
     double timeRemainingSeconds;
+    double safePlayerX;
+    double safePlayerY;
     bool gameOver;
     bool levelComplete;
     double killPlaneY;

@@ -14,8 +14,10 @@ public:
     ~Brick() override = default;
 
     virtual void hitBy(Player& player);     // Xử lý khi Player đập gạch
+    void update(double dtSeconds) override;
     bool canBeBroken() const;
     bool isOpened() const;
+    int getRenderOffsetY() const;
 
 protected:
     bool isActive() const;
@@ -29,9 +31,13 @@ private:
     };
 
     void markBroken();
+    void startBump();
 
     bool breakable;
     State state;
+    double bumpElapsedSeconds;
+    int renderOffsetY;
+    bool bumping;
 };
 
 // Brick thường

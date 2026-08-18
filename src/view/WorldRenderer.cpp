@@ -147,7 +147,8 @@ void WorldRenderer::render(SDL_Renderer* renderer,
             textureId = definition->textureId;
         }
 
-        const SDL_Rect dst = destination(*brick, offsetX, offsetY);
+        SDL_Rect dst = destination(*brick, offsetX, offsetY);
+        dst.y += brick->getRenderOffsetY();
         assetRenderer.render(
             renderer, textures.getTexture(textureId), nullptr, &dst);
     }

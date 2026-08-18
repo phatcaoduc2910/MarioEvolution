@@ -182,6 +182,8 @@ void CollisionSystem::hitBrickFromBelow(
         return;
     }
 
+    brick->hitBy(player);
+
     if (auto* specialBrick = dynamic_cast<SpecialBrick*>(brick)) {
         std::unique_ptr<Item> item = specialBrick->releaseItem();
         if (item != nullptr) {
@@ -190,7 +192,6 @@ void CollisionSystem::hitBrickFromBelow(
         return;
     }
 
-    brick->hitBy(player);
 }
 
 void CollisionSystem::resolveInteractions(World& world) const {

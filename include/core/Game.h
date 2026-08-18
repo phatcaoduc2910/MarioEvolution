@@ -35,7 +35,6 @@ public:
 
 private:
     void startLevel();
-    void retryLevel();
     void activateStartMenuAction(StartMenuAction action);
     void discoverLevels();
     void selectLevel(int direction);

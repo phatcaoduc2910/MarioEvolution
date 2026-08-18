@@ -2,26 +2,57 @@
 #include "model/Item.h"
 #include "model/Player.h"
 #include <algorithm>
+#include <cmath>
+
+namespace {
+constexpr double kBumpDurationSeconds = 0.16;
+constexpr double kBumpPeakSeconds = kBumpDurationSeconds / 2.0;
+constexpr double kBumpHeightPixels = 8.0;
+}
 
 // Tạo brick kích thước 32 x 32 với trạng thái breakable
 Brick::Brick(double x, double y, bool breakable)
     : StaticObject(x, y, 32, 32),
       breakable(breakable),
-      state(State::Active) {}
+      state(State::Active),
+      bumpElapsedSeconds(0.0),
+      renderOffsetY(0),
+      bumping(false) {}
 
 /*
     Xử lý khi Player đập Brick từ bên dưới
     Brick thường chỉ bị phá khi Player không trong trạng thái Small hoặc Dead
 */ 
 void Brick::hitBy(Player& player){
-    if (!isActive()) {
+    if (!isActive() || !player.isAlive()) {
         return; // Nếu đã mở hoặc phá rồi thì không xử lý lại nữa
     }
 
+    startBump();
+
     // TH gạch thường: Phá được khi player không Small hoặc Dead (Big hoặc Fire)
-    if (breakable && player.isAlive() &&
-        player.getState() != PlayerState::Small) {
+    if (breakable && player.getState() != PlayerState::Small) {
         markBroken();
+    }
+}
+
+void Brick::update(double dtSeconds) {
+    if (!bumping || dtSeconds <= 0.0) {
+        return;
+    }
+
+    bumpElapsedSeconds = std::min(
+        kBumpDurationSeconds, bumpElapsedSeconds + dtSeconds);
+    const double height = bumpElapsedSeconds <= kBumpPeakSeconds
+                              ? bumpElapsedSeconds / kBumpPeakSeconds
+                              : (kBumpDurationSeconds - bumpElapsedSeconds) /
+                                    kBumpPeakSeconds;
+    renderOffsetY = -static_cast<int>(
+        std::lround(kBumpHeightPixels * std::max(0.0, height)));
+
+    if (bumpElapsedSeconds >= kBumpDurationSeconds) {
+        bumping = false;
+        renderOffsetY = 0;
     }
 }
 
@@ -35,6 +66,10 @@ bool Brick::isOpened() const{
     return state != State::Active;
 }
 
+int Brick::getRenderOffsetY() const {
+    return renderOffsetY;
+}
+
 bool Brick::isActive() const {
     return state == State::Active;
 }
@@ -46,6 +81,13 @@ void Brick::markUsed() {
 void Brick::markBroken() {
     state = State::Broken;
     solid = false;
+}
+
+void Brick::startBump() {
+    if (!bumping) {
+        bumping = true;
+        bumpElapsedSeconds = 0.0;
+    }
 }
 
 // Khởi tạo một Brick có thể phá

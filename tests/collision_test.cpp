@@ -138,11 +138,14 @@ void testHeadIntoBrick() {
     assert(player.getVelocityY() < 0.0);
 
     bool bonked = false;
+    bool standardBumped = false;
     double bonkVelocityY = -1.0;
     bool bonkOnGround = true;
     for (int index = 0; index < 20; ++index) {
         world.update(kStepSeconds);
         collisionSystem.update(world, kStepSeconds);
+        standardBumped = standardBumped ||
+                         standardBrick->getRenderOffsetY() < 0;
 
         // Đỉnh collider chạm đáy gạch, không phải đỉnh ô sprite.
         assert(player.getBounds().y >= 480.0);
@@ -154,10 +157,14 @@ void testHeadIntoBrick() {
     }
 
     assert(bonked);
+    assert(standardBumped);
     assert(bonkVelocityY == 0.0);
     assert(!bonkOnGround);
 
     assert(!standardBrick->isOpened());
+    assert(standardBrick->getY() == 448.0);
+    world.update(0.2);
+    assert(standardBrick->getRenderOffsetY() == 0);
 
     World itemWorld;
     CollisionSystem itemCollisions;
@@ -171,9 +178,16 @@ void testHeadIntoBrick() {
     assert(itemWorld.getItems().empty());
 
     itemWorld.getPlayer().jump();
-    step(itemWorld, itemCollisions, 40);
+    bool coinBrickBumped = false;
+    for (int index = 0; index < 40; ++index) {
+        step(itemWorld, itemCollisions, 1);
+        coinBrickBumped = coinBrickBumped ||
+                          coinBrick->getRenderOffsetY() < 0;
+    }
     assert(itemWorld.getItems().size() == 1);
     assert(coinBrick->isOpened());
+    assert(coinBrickBumped);
+    assert(coinBrick->getY() == 448.0);
 
     assert(itemWorld.getPlayer().isOnGround());
     itemWorld.getPlayer().jump();
@@ -317,10 +331,11 @@ void testPlayerSpawnMarker() {
     assert(withoutMarker.getPlayer().getY() == defaultY);
 }
 
-void testLevelProgressAndRetryState() {
-    LevelData level(6, 6, kTileSize);
+void testLifeLossPreservesLevelState() {
+    LevelData level(6, 20, kTileSize);
     level.setTile(1, 1, kCoinTileId);
     level.setTile(2, 1, kCoinBrickTileId);
+    level.setTile(4, 1, kGoombaTileId);
 
     World world;
     world.loadLevel(level);
@@ -332,20 +347,35 @@ void testLevelProgressAndRetryState() {
     assert(world.getScore() == 200);
     assert(world.getRemainingCoins() == 1);
 
+    const Actor* enemy = world.getActors().front().get();
+    const double enemyX = enemy->getX();
+    const double playerX = world.getPlayer().getX();
+    const double playerY = world.getPlayer().getY();
     world.getPlayer().takeDamage();
     world.update(0.0);
-    assert(world.isGameOver());
+    assert(!world.isGameOver());
     assert(world.getLives() == 2);
+    assert(world.getPlayer().isAlive());
+    assert(world.getPlayer().getX() == playerX);
+    assert(world.getPlayer().getY() == playerY);
+    assert(world.getScore() == 200);
+    assert(world.getRemainingCoins() == 1);
+    assert(world.getTimeRemaining() == 600);
+    assert(world.getActors().size() == 1);
+    assert(world.getActors().front().get() == enemy);
+    assert(enemy->getX() == enemyX);
+
     world.update(0.0);
     assert(world.getLives() == 2);
 
-    world.loadLevel(level);
-    assert(!world.isGameOver());
-    assert(world.getPlayer().isAlive());
-    assert(world.getScore() == 200);
-    assert(world.getLives() == 2);
-    assert(world.getRemainingCoins() == 2);
-    assert(world.getTimeRemaining() == 600);
+    World fallWorld;
+    const double safeX = fallWorld.getPlayer().getX();
+    const double safeY = fallWorld.getPlayer().getY();
+    fallWorld.getPlayer().reviveAt(400.0, 1000.0);
+    fallWorld.update(0.0);
+    assert(fallWorld.getLives() == 2);
+    assert(fallWorld.getPlayer().getX() == safeX);
+    assert(fallWorld.getPlayer().getY() == safeY);
 }
 
 void testCoinScoreAndTimeBonusApplyOnce() {
@@ -369,11 +399,25 @@ void testCoinScoreAndTimeBonusApplyOnce() {
 
     World expiredWorld;
     expiredWorld.update(600.0);
-    assert(expiredWorld.getTimeRemaining() == 0);
-    assert(expiredWorld.isGameOver());
+    assert(expiredWorld.getTimeRemaining() == 600);
+    assert(!expiredWorld.isGameOver());
+    assert(expiredWorld.getPlayer().isAlive());
     assert(expiredWorld.getLives() == 2);
     expiredWorld.update(1.0);
     assert(expiredWorld.getLives() == 2);
+    assert(expiredWorld.getTimeRemaining() == 599);
+
+    World livesWorld;
+    for (int expectedLives = 2; expectedLives >= 0; --expectedLives) {
+        livesWorld.getPlayer().takeDamage();
+        livesWorld.update(0.0);
+        assert(livesWorld.getLives() == expectedLives);
+        assert(livesWorld.isGameOver() == (expectedLives == 0));
+        if (expectedLives > 0) {
+            assert(livesWorld.getPlayer().isAlive());
+            livesWorld.update(2.0);
+        }
+    }
 }
 
 void testPlayerHitboxTracksState() {
@@ -767,8 +811,10 @@ void testPiranhaCycleNotStompable() {
     assert(fullyExposed);
     assert(plant->getPhase() == PiranhaPhase::Exposed);
     assert(plant->isAlive());
-    assert(!player.isAlive());
+    assert(player.isAlive());
+    assert(world.getLives() == 2);
     assert(world.getScore() == 0);
+    player.reviveAt(300.0, kStandY);
 
     bool hiddenAgain = false;
     for (int index = 0; index < 400 && !hiddenAgain; ++index) {
@@ -882,7 +928,7 @@ int main() {
     testJumpBesideCorner();
     testFallBesideBlock();
     testPlayerSpawnMarker();
-    testLevelProgressAndRetryState();
+    testLifeLossPreservesLevelState();
     testCoinScoreAndTimeBonusApplyOnce();
     testPlayerHitboxTracksState();
     testStandsOnPlatformEdgeThenFalls();

@@ -138,6 +138,18 @@ void Player::takeDamage() {
     }
 }
 
+void Player::reviveAt(double reviveX, double reviveY) {
+    x = reviveX;
+    y = reviveY;
+    state = PlayerState::Small;
+    height = kSmallHeight;
+    moveDirection = 0;
+    velocityX = 0.0;
+    velocityY = 0.0;
+    onGround = false;
+    startInvincibility();
+}
+
 void Player::captureFlag(Flag& flag) {
     if (!isAlive()) {
         return;

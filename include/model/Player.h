@@ -35,6 +35,7 @@ public:
     void grow();
     void upgradeToFire();
     void takeDamage();
+    void reviveAt(double reviveX, double reviveY);
     void captureFlag(Flag& flag);
     void shootFireball();
 

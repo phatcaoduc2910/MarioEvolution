@@ -8,6 +8,7 @@
 namespace {
 constexpr int kPlayerRenderScale = 1;
 constexpr int kEnemyRenderScale = 1;
+constexpr Uint32 kDamageBlinkIntervalMs = 100;
 constexpr const char* kGoombaDeathTextureId = "goomba.death";
 
 // Soi hộp va chạm
@@ -126,6 +127,10 @@ void ActorRenderer::renderPlayer(SDL_Renderer* renderer,
                                  int offsetY) {
     if (renderer == nullptr || !player.isAlive() ||
         player.getState() == PlayerState::Dead) {
+        return;
+    }
+    if (player.isInvincible() &&
+        (SDL_GetTicks() / kDamageBlinkIntervalMs) % 2 == 0) {
         return;
     }
 
