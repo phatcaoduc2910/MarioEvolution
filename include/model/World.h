@@ -37,6 +37,7 @@ public:
 
     void update();
     void update(double dtSeconds);
+    void update(double dtSeconds, double respawnX);
 
 private:
     void loseLife(double reviveX, double reviveY);

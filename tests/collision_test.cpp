@@ -349,14 +349,14 @@ void testLifeLossPreservesLevelState() {
 
     const Actor* enemy = world.getActors().front().get();
     const double enemyX = enemy->getX();
-    const double playerX = world.getPlayer().getX();
     const double playerY = world.getPlayer().getY();
+    constexpr double cameraLeftX = 256.0;
     world.getPlayer().takeDamage();
-    world.update(0.0);
+    world.update(0.0, cameraLeftX);
     assert(!world.isGameOver());
     assert(world.getLives() == 2);
     assert(world.getPlayer().isAlive());
-    assert(world.getPlayer().getX() == playerX);
+    assert(world.getPlayer().getX() == cameraLeftX);
     assert(world.getPlayer().getY() == playerY);
     assert(world.getScore() == 200);
     assert(world.getRemainingCoins() == 1);
@@ -369,12 +369,11 @@ void testLifeLossPreservesLevelState() {
     assert(world.getLives() == 2);
 
     World fallWorld;
-    const double safeX = fallWorld.getPlayer().getX();
     const double safeY = fallWorld.getPlayer().getY();
     fallWorld.getPlayer().reviveAt(400.0, 1000.0);
-    fallWorld.update(0.0);
+    fallWorld.update(0.0, cameraLeftX);
     assert(fallWorld.getLives() == 2);
-    assert(fallWorld.getPlayer().getX() == safeX);
+    assert(fallWorld.getPlayer().getX() == cameraLeftX);
     assert(fallWorld.getPlayer().getY() == safeY);
 }
 

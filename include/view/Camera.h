@@ -8,6 +8,7 @@ public:
 
     void follow(const GameObject& target, int worldWidth, int worldHeight);
     void reset();
+    void resetTo(int leftEdgeX);
 
     int getX() const;
     int getY() const;
@@ -18,6 +19,7 @@ private:
     int viewportWidth;
     int viewportHeight;
     int edgePadding;
+    int minimumX;
     int x;
     int y;
 };

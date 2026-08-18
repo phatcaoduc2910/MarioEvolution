@@ -415,8 +415,14 @@ void Game::gameLoop() {
                 if (inputHandler.isPressed(Key::Left)) --horizontalInput;
                 if (inputHandler.isPressed(Key::Right)) ++horizontalInput;
                 world.getPlayer().setMoveDirection(horizontalInput);
-                world.update(kFixedStepSeconds);
+                const int livesBeforeStep = world.getLives();
+                world.update(kFixedStepSeconds, camera.getX());
                 collisionSystem.update(world, kFixedStepSeconds);
+                if (!world.isGameOver() &&
+                    world.getLives() < livesBeforeStep) {
+                    camera.resetTo(
+                        static_cast<int>(world.getPlayer().getX()));
+                }
                 if (world.isLevelComplete()) {
                     currentGameState = LevelComplete;
                     audioService->pause("theme");

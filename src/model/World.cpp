@@ -207,22 +207,31 @@ void World::update() {
 }
 
 void World::update(double dtSeconds) {
+    const double respawnX =
+        player.isAlive() && player.isOnGround() &&
+                player.getY() <= killPlaneY
+            ? player.getX()
+            : safePlayerX;
+    update(dtSeconds, respawnX);
+}
+
+void World::update(double dtSeconds, double respawnX) {
+    safePlayerX = std::max(0.0, respawnX);
+    if (player.isAlive() && player.isOnGround() &&
+        player.getY() <= killPlaneY) {
+        safePlayerY = player.getY();
+    }
+
     if (!gameOver && !levelComplete && dtSeconds > 0.0) {
         timeRemainingSeconds = std::max(
             0.0, timeRemainingSeconds - dtSeconds);
         if (timeRemainingSeconds <= 0.0) {
-            loseLife(player.getX(), player.getY());
+            loseLife(safePlayerX, safePlayerY);
             if (!gameOver) {
                 timeRemainingSeconds = kLevelDurationSeconds;
             }
             return;
         }
-    }
-
-    if (player.isAlive() && player.isOnGround() &&
-        player.getY() <= killPlaneY) {
-        safePlayerX = player.getX();
-        safePlayerY = player.getY();
     }
 
     player.update(dtSeconds);
@@ -245,7 +254,7 @@ void World::update(double dtSeconds) {
         loseLife(safePlayerX, safePlayerY);
     } else if (!player.isAlive() ||
                player.getState() == PlayerState::Dead) {
-        loseLife(player.getX(), player.getY());
+        loseLife(safePlayerX, safePlayerY);
     }
 
     actors.erase(
