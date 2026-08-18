@@ -7,7 +7,7 @@
 #include <algorithm>
 
 namespace {
-constexpr const char* kLevelPath = "assets/maps/level1.map";
+constexpr const char* kLevelPath = "assets/maps/level_depth.map";
 constexpr int kMapWidth = 25;
 constexpr int kMapHeight = 19;
 constexpr int kTileSize = 32;
@@ -103,10 +103,10 @@ void Game::edit() {
     currentGameState = Editing;
     audioService->pause("theme");
 }
-
 void Game::startLevel() {
     world = World();
     world.loadLevel(mapEditor->getLevel());
+    camera.reset();
     currentGameState = Playing;
 }
 
@@ -118,10 +118,11 @@ void Game::gameLoop() {
     while (currentGameState != Exit) {
         while (SDL_PollEvent(&event)) {
 
+        Key key = inputHandler.mapKey(event.key.keysym.sym);
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
-                inputHandler.press(inputHandler.mapKey(event.key.keysym.sym));
+                inputHandler.press(key); 
             } else if (event.type == SDL_KEYUP) {
-                inputHandler.release(inputHandler.mapKey(event.key.keysym.sym));
+                inputHandler.release(key);
             }
 
             if(event.type == SDL_QUIT) {
@@ -228,7 +229,7 @@ void Game::gameLoop() {
                 if (inputHandler.isPressed(Key::Right)) ++horizontalInput;
                 world.getPlayer().setMoveDirection(horizontalInput);
                 world.update(kFixedStepSeconds);
-                collisionSystem.resolve(world);
+                collisionSystem.update(world, kFixedStepSeconds);
                 if (world.isLevelComplete()) {
                     currentGameState = LevelComplete;
                     audioService->play("win");
@@ -244,32 +245,51 @@ void Game::gameLoop() {
                 accumulatorMs -= kFixedStepMs;
             }
             worldRenderer.update(deltaMs);
-            playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
-            playerRenderer.updateEnemies(deltaMs);
+            actorRenderer.updatePlayer(world.getPlayer(), deltaMs);
+            actorRenderer.updateEnemies(deltaMs);
 
+            const LevelData& level = mapEditor->getLevel();
+            const int worldWidth = level.getWidth() * level.getTileSize();
+            const int worldHeight = level.getHeight() * level.getTileSize();
+            camera.follow(world.getPlayer(), worldWidth, worldHeight);
+            const int offsetX = camera.getOffsetX();
+            const int offsetY = camera.getOffsetY();
+
+            SDL_RenderSetScale(
+                renderer,
+                static_cast<float>(CAMERA_ZOOM),
+                static_cast<float>(CAMERA_ZOOM));
             worldRenderer.renderBackground(
-                renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT);
-            worldRenderer.render(renderer, *textureManager, world);
-            playerRenderer.renderEnemies(renderer, *textureManager, world);
-            playerRenderer.renderPlayer(renderer, *textureManager, world.getPlayer());
-            worldRenderer.renderHud(renderer, world);
+                renderer,
+                *textureManager,
+                static_cast<int>(WINDOW_WIDTH / CAMERA_ZOOM),
+                static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM));
+            worldRenderer.render(
+                renderer, *textureManager, world, offsetX, offsetY);
+            actorRenderer.renderEnemies(
+                renderer, *textureManager, world, offsetX, offsetY);
+            actorRenderer.renderPlayer(
+                renderer, *textureManager, world.getPlayer(), offsetX, offsetY);
+            SDL_RenderSetScale(renderer, 1.0F, 1.0F);
+            hudRenderer.render(
+                renderer, world.getScore(), world.getPlayer().getState());
             break;
         }
         case Editing:{
             mapEditor->update();
             mapEditor->render(renderer, *textureManager);
 
-            playerRenderer.updatePlayer(world.getPlayer(), deltaMs);
-            playerRenderer.updateEnemies(deltaMs);
+            actorRenderer.updatePlayer(world.getPlayer(), deltaMs);
+            actorRenderer.updateEnemies(deltaMs);
             const SDL_Rect viewport = mapEditor->getMapViewport();
             SDL_RenderSetClipRect(renderer, &viewport);
-            playerRenderer.renderEnemies(
+            actorRenderer.renderEnemies(
                 renderer,
                 *textureManager,
                 world,
                 -mapEditor->getCameraX(),
                 -mapEditor->getCameraY());
-            playerRenderer.renderPlayer(
+            actorRenderer.renderPlayer(
                 renderer,
                 *textureManager,
                 world.getPlayer(),
@@ -280,12 +300,28 @@ void Game::gameLoop() {
         break;
         case LevelComplete:
         case GameOver:
+            SDL_RenderSetScale(
+                renderer,
+                static_cast<float>(CAMERA_ZOOM),
+                static_cast<float>(CAMERA_ZOOM));
             worldRenderer.renderBackground(
-                renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT);
-            worldRenderer.render(renderer, *textureManager, world);
-            playerRenderer.renderEnemies(renderer, *textureManager, world);
-            playerRenderer.renderPlayer(
-                renderer, *textureManager, world.getPlayer());
+                renderer,
+                *textureManager,
+                static_cast<int>(WINDOW_WIDTH / CAMERA_ZOOM),
+                static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM));
+            worldRenderer.render(
+                renderer, *textureManager, world,
+                camera.getOffsetX(), camera.getOffsetY());
+            actorRenderer.renderEnemies(
+                renderer, *textureManager, world,
+                camera.getOffsetX(), camera.getOffsetY());
+            actorRenderer.renderPlayer(
+                renderer,
+                *textureManager,
+                world.getPlayer(),
+                camera.getOffsetX(),
+                camera.getOffsetY());
+            SDL_RenderSetScale(renderer, 1.0F, 1.0F);
             terminalScreen.render(renderer, currentGameState, world.getScore());
             break;
         case Exit:

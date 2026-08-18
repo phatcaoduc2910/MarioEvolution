@@ -15,7 +15,7 @@ constexpr double kIntegratedFixedStepSeconds = 0.011;
 }
 
 World::World()
-    : player(100.0, 502.0),
+    : player(100.0, 550.0 - Player::kSmallHeight),
       score(0),
       gameOver(false),
       levelComplete(false),
@@ -57,6 +57,7 @@ void World::loadLevel(const LevelData& level) {
     levelComplete = false;
     killPlaneY = static_cast<double>(level.getHeight() * level.getTileSize()) + 96.0;
 
+    bool spawnPlaced = false;
     for (int row = 0; row < level.getHeight(); ++row) {
         for (int column = 0; column < level.getWidth(); ++column) {
             const TileId tileId = level.getTile(column, row);
@@ -85,11 +86,35 @@ void World::loadLevel(const LevelData& level) {
                 case kGoombaTileId:
                     addActor(std::make_unique<Goomba>(x, y));
                     break;
-                case kFlagTileId:
-                    // Marker '!' nằm ở cell ngay trên ground. Flag cao 160 px
-                    // nên y - 128 kéo đáy cờ trùng mặt ground ở y + 32.
-                    addObject(std::make_unique<Flag>(x, y - 128.0));
+                case kKoopaGreenTileId:
+                    addActor(std::make_unique<Koopa>(
+                        x,
+                        y + kObjectTileSize - Koopa::kWalkHeight,
+                        KoopaColor::Green));
                     break;
+                case kKoopaRedTileId:
+                    addActor(std::make_unique<Koopa>(
+                        x,
+                        y + kObjectTileSize - Koopa::kWalkHeight,
+                        KoopaColor::Red));
+                    break;
+                case kPiranhaTileId:
+                    addActor(std::make_unique<PiranhaPlant>(
+                        x, y + kObjectTileSize));
+                    break;
+                case kPlayerSpawnTileId:
+                    if (!spawnPlaced) {
+                        player = Player(
+                            x, y + kObjectTileSize - Player::kSmallHeight);
+                        spawnPlaced = true;
+                    }
+                    break;
+                case kFlagTileId: {
+                    const double poleX =
+                        x + (kObjectTileSize - Flag::kPoleWidth) / 2.0;
+                    addObject(std::make_unique<Flag>(poleX, y - 128.0));
+                    break;
+                }
                 default:
                     throw std::invalid_argument("World received an unknown tile id");
             }

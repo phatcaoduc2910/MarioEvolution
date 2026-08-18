@@ -18,6 +18,10 @@ TileId decodeTile(char symbol) {
         case 'F': return kFlowerBrickTileId;
         case 'o': return kCoinTileId;
         case 'g': return kGoombaTileId;
+        case 'k': return kKoopaGreenTileId;
+        case 'r': return kKoopaRedTileId;
+        case 'p': return kPiranhaTileId;
+        case 'P': return kPlayerSpawnTileId;
         case '!': return kFlagTileId;
         default:
             throw std::runtime_error(
@@ -35,6 +39,10 @@ char encodeTile(TileId tileId) {
         case kFlowerBrickTileId: return 'F';
         case kCoinTileId: return 'o';
         case kGoombaTileId: return 'g';
+        case kKoopaGreenTileId: return 'k';
+        case kKoopaRedTileId: return 'r';
+        case kPiranhaTileId: return 'p';
+        case kPlayerSpawnTileId: return 'P';
         case kFlagTileId: return '!';
         default:
             throw std::runtime_error(
@@ -79,17 +87,25 @@ LevelData LevelCodec::load(const std::string& path, int tileSize) {
         tileSize
     );
 
+    bool spawnRecorded = false;
     for (std::size_t row = 0; row < rows.size(); ++row) {
         if (rows[row].size() != width) {
             throw std::runtime_error("Level rows have different widths: " + path);
         }
 
         for (std::size_t column = 0; column < width; ++column) {
+            const TileId tileId = decodeTile(rows[row][column]);
             level.setTile(
                 static_cast<int>(column),
                 static_cast<int>(row),
-                decodeTile(rows[row][column])
+                tileId
             );
+
+            if (tileId == kPlayerSpawnTileId && !spawnRecorded) {
+                level.setPlayerSpawn(
+                    static_cast<int>(column), static_cast<int>(row));
+                spawnRecorded = true;
+            }
         }
     }
 

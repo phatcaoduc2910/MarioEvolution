@@ -20,8 +20,12 @@ constexpr int kPalettePadding = 12;
 constexpr int kPaletteTop = 104;
 constexpr int kPaletteColumns = 2;
 constexpr int kPaletteCellWidth = 92;
-constexpr int kPaletteCellHeight = 88;
-constexpr int kPalettePreviewSize = 48;
+constexpr int kPaletteCellHeight = 60;
+constexpr int kPalettePreviewSize = 32;
+constexpr int kPaletteLabelOffsetY = 38;
+constexpr int kPaletteFooterGap = 10;
+constexpr int kPaletteHintGap = 46;
+constexpr int kPaletteHintLineHeight = 16;
 constexpr int kTabTop = 48;
 constexpr int kTabWidth = 84;
 constexpr int kTabHeight = 26;
@@ -43,6 +47,16 @@ constexpr SDL_Color kSelectedColor{255, 181, 46, 255};
 
 void setDrawColor(SDL_Renderer* renderer, SDL_Color color) {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+}
+
+constexpr const char* kDefaultPaletteBoxId = "ui.end_box.default";
+
+const char* paletteBoxTextureId(TileId tileId) {
+    switch (tileId) {
+        case kMushroomBrickTileId: return "ui.end_box.mushroom";
+        case kFlowerBrickTileId: return "ui.end_box.flower";
+        default: return kDefaultPaletteBoxId;
+    }
 }
 
 const TileDefinition* paletteDefinition(std::size_t index) {
@@ -252,7 +266,7 @@ bool MapEditorService::handleEvent(const SDL_Event& event) {
                 (event.key.keysym.mod & KMOD_CTRL) != 0 &&
                 (event.key.keysym.mod & KMOD_SHIFT) != 0)) {
         beginSaveAs();
-    } else if (key >= SDLK_1 && key <= SDLK_5) {
+    } else if (key >= SDLK_1 && key <= SDLK_6) {
         selectBrush(static_cast<int>(key - SDLK_0));
     } else if (key == SDLK_e) {
         pickTile();
@@ -546,11 +560,46 @@ void MapEditorService::resizeLevel(int newWidth, int newHeight) {
         return;
     }
 
+    const int oldWidth = level.getWidth();
+    const int oldHeight = level.getHeight();
+    const std::vector<TileId> oldTiles = level.getTiles();
+
     level.resize(newWidth, newHeight);
+    rebuildBorderedLevel(oldTiles, oldWidth, oldHeight);
+
     dirty = true;
     pendingDiscardTarget.clear();
     updateCamera();
     statusMessage = "MAP RESIZED";
+}
+
+void MapEditorService::rebuildBorderedLevel(const std::vector<TileId>& oldTiles,
+                                            int oldWidth, int oldHeight) {
+    const int newWidth = level.getWidth();
+    const int newHeight = level.getHeight();
+    const int rowShift = newHeight - oldHeight;
+
+    for (int row = 0; row < newHeight; ++row) {
+        for (int column = 0; column < newWidth; ++column) {
+            const bool onNewBorder = row == 0 || row == newHeight - 1 ||
+                                     column == 0 || column == newWidth - 1;
+            if (onNewBorder) {
+                level.setTile(column, row, kStandardBrickTileId);
+                continue;
+            }
+
+            const int oldRow = row - rowShift;
+            const bool insideOldMap = oldRow > 0 && oldRow < oldHeight - 1 &&
+                                      column > 0 && column < oldWidth - 1;
+            level.setTile(
+                column,
+                row,
+                insideOldMap
+                    ? oldTiles[static_cast<std::size_t>(oldRow) * oldWidth +
+                               static_cast<std::size_t>(column)]
+                    : kEmptyTileId);
+        }
+    }
 }
 
 void MapEditorService::refreshSavedMaps() {
@@ -820,20 +869,28 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
             kPaletteCellWidth - 8,
             kPaletteCellHeight - 8
         };
-        UiRenderer::fillRect(renderer, card, kCardColor);
+        const char* boxTextureId = paletteBoxTextureId(definition->tileId);
+        SDL_Texture* box = textures.getTexture(boxTextureId);
+        if (box != nullptr) {
+            SDL_RenderCopy(renderer, box, nullptr, &card);
+        } else {
+            UiRenderer::fillRect(renderer, card, kCardColor);
+        }
 
-        const SDL_Rect preview{
-            card.x + (card.w - kPalettePreviewSize) / 2,
-            card.y + 5,
-            kPalettePreviewSize,
-            kPalettePreviewSize
-        };
-        renderTile(renderer, textures, definition->tileId, preview);
+        if (boxTextureId == kDefaultPaletteBoxId) {
+            const SDL_Rect preview{
+                card.x + (card.w - kPalettePreviewSize) / 2,
+                card.y + 4,
+                kPalettePreviewSize,
+                kPalettePreviewSize
+            };
+            renderTile(renderer, textures, definition->tileId, preview);
+        }
         UiRenderer::drawText(
             renderer,
             definition->label,
             card.x + 7,
-            card.y + 61,
+            card.y + kPaletteLabelOffsetY,
             1,
             kTextColor);
 
@@ -846,33 +903,32 @@ void MapEditorService::renderPalette(SDL_Renderer* renderer,
         ++index;
     }
 
+    const int paletteRows =
+        (static_cast<int>(index) + kPaletteColumns - 1) / kPaletteColumns;
+    const int footerY =
+        kPaletteTop + paletteRows * kPaletteCellHeight + kPaletteFooterGap;
+
     const TileDefinition* selected = findTileDefinition(selectedTile);
     UiRenderer::drawText(
-        renderer, "SELECTED", panelX + kPalettePadding, 382, 1,
+        renderer, "SELECTED", panelX + kPalettePadding, footerY, 1,
         kMutedTextColor);
     UiRenderer::drawText(
         renderer,
         selected != nullptr ? selected->label : "UNKNOWN",
         panelX + kPalettePadding,
-        400,
+        footerY + 18,
         2,
         kSelectedColor);
 
-    UiRenderer::drawText(
-        renderer, "ZERO CLOSE", panelX + kPalettePadding, 468, 1,
-        kMutedTextColor);
-    UiRenderer::drawText(
-        renderer, "CTRL S SAVE", panelX + kPalettePadding, 486, 1,
-        kMutedTextColor);
-    UiRenderer::drawText(
-        renderer, "E PICK", panelX + kPalettePadding, 504, 1,
-        kMutedTextColor);
-    UiRenderer::drawText(
-        renderer, "R RESET", panelX + kPalettePadding, 522, 1,
-        kMutedTextColor);
-    UiRenderer::drawText(
-        renderer, "TAB MAPS", panelX + kPalettePadding, 540, 1,
-        kMutedTextColor);
+    const char* hints[] = {
+        "ZERO CLOSE", "CTRL S SAVE", "E PICK", "R RESET", "TAB MAPS"};
+    int hintY = footerY + kPaletteHintGap;
+    for (const char* hint : hints) {
+        UiRenderer::drawText(
+            renderer, hint, panelX + kPalettePadding, hintY, 1,
+            kMutedTextColor);
+        hintY += kPaletteHintLineHeight;
+    }
 }
 
 void MapEditorService::renderMapPalette(SDL_Renderer* renderer) {

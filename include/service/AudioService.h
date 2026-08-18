@@ -10,6 +10,7 @@ class AudioService {
 public:
     virtual ~AudioService() = default;
 
+    // Nạp một sound vào bộ nhớ và ánh xạ bằng track key.
     virtual bool load(const std::string& track, const std::string& path) = 0;
 
     // Phát hoặc tiếp tục một track.

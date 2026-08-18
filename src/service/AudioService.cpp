@@ -1,7 +1,6 @@
 #include "service/AudioService.h"
 
 #include <SDL2/SDL.h>
-
 #include <algorithm>
 
 SoundManager::~SoundManager() {
@@ -18,6 +17,7 @@ SoundManager::~SoundManager() {
     }
 }
 
+/** Mở audio device khi sound đầu tiên được nạp. */
 bool SoundManager::openAudio() {
     if (audioOpened) {
         return true;
@@ -44,6 +44,7 @@ bool SoundManager::openAudio() {
     return true;
 }
 
+/** Nạp sound một lần; lỗi audio chỉ được log và không dừng gameplay. */
 bool SoundManager::load(const std::string& track, const std::string& path) {
     if (track.empty() || path.empty() || !openAudio()) {
         return false;
@@ -64,7 +65,7 @@ bool SoundManager::load(const std::string& track, const std::string& path) {
     return true;
 }
 
-// Đánh dấu một track đang phát nếu tên track không rỗng.
+// Phát sound đã preload trên channel trống đầu tiên.
 void SoundManager::play(const std::string& track) {
     const auto found = sounds.find(track);
     if (found == sounds.end()) {
@@ -79,7 +80,7 @@ void SoundManager::play(const std::string& track) {
     }
 }
 
-// Chuyển track đã biết sang trạng thái tạm dừng.
+// Tạm dừng channel gần nhất đã phát bằng track key.
 void SoundManager::pause(const std::string& track) {
     const auto found = channels.find(track);
     if (found != channels.end() && Mix_Playing(found->second) != 0) {

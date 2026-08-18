@@ -127,6 +127,17 @@ bool TextureManager::itemTextureLoad() {
     return success;
 }
 
+bool TextureManager::flagTextureLoad() {
+    const std::string flagPath = "assets/flag/";
+    bool success = true;
+    success &= preload("flag.1", flagPath + "frame0.png");
+    success &= preload("flag.2", flagPath + "frame1.png");
+    success &= preload("flag.3", flagPath + "frame2.png");
+    success &= preload("flag.4", flagPath + "frame3.png");
+    success &= preload("flag.5", flagPath + "frame4.png");
+    return success;
+}
+
 bool TextureManager::tileTextureLoad() {
     const std::string tilePath = "assets/tiles/";
     bool success = true;
@@ -244,6 +255,7 @@ bool TextureManager::gameTextureLoad() {
     success &= effectTextureLoad();
     success &= enemyTextureLoad();
     success &= itemTextureLoad();
+    success &= flagTextureLoad();
     success &= tileTextureLoad();
     success &= uiTextureLoad();
     return success;
@@ -252,4 +264,3 @@ bool TextureManager::gameTextureLoad() {
 TextureManager::~TextureManager() {
     clean();
 }
-

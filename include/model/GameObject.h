@@ -7,7 +7,7 @@ public:
     GameObject(double x, double y, int width, int height);
     virtual ~GameObject() = default;
 
-    Rectangle getBounds() const;
+    virtual Rectangle getBounds() const;
     double getX() const;
     double getY() const;
     int getWidth() const;

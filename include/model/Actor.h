@@ -13,9 +13,15 @@ public:
     double getVelocityX() const;
     double getVelocityY() const;
 
-    virtual void move(double dtSeconds);
     virtual void applyGravity(double dtSeconds);
-    virtual void resolveCollision(GameObject& object);
+
+    // Đi từng trục một để CollisionSystem resolve xong trục này mới sang trục kia.
+    void moveX(double dtSeconds);
+    void moveY(double dtSeconds);
+
+    void placeBesideWall(double colliderX);
+    void placeOnGround(double colliderY);
+    void placeUnderCeiling(double colliderY);
 
 protected:
     double velocityX;

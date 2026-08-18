@@ -5,13 +5,6 @@
 namespace {
 constexpr double kGravityPixelsPerSecondSquared = 1620.0;
 constexpr double kMaxFallSpeedPixelsPerSecond = 720.0;
-
-bool intersects(const Rectangle& a, const Rectangle& b) {
-    return a.x < b.x + b.width &&
-           a.x + a.width > b.x &&
-           a.y < b.y + b.height &&
-           a.y + a.height > b.y;
-}
 }
 
 Actor::Actor(double x, double y, int width, int height)
@@ -47,9 +40,14 @@ double Actor::getVelocityY() const {
     return velocityY;
 }
 
-void Actor::move(double dtSeconds) {
+void Actor::applyGravity(double dtSeconds) {
+    velocityY = std::min(
+        velocityY + kGravityPixelsPerSecondSquared * dtSeconds,
+        kMaxFallSpeedPixelsPerSecond);
+}
+
+void Actor::moveX(double dtSeconds) {
     x += velocityX * dtSeconds;
-    y += velocityY * dtSeconds;
 
     if (velocityX < 0.0) {
         direction = Direction::Left;
@@ -58,46 +56,24 @@ void Actor::move(double dtSeconds) {
     }
 }
 
-void Actor::applyGravity(double dtSeconds) {
+void Actor::moveY(double dtSeconds) {
+    // Rời chỗ theo trục dọc là mất tiếp đất; chỉ resolve trục Y đặt lại onGround.
+    y += velocityY * dtSeconds;
     onGround = false;
-    velocityY = std::min(
-        velocityY + kGravityPixelsPerSecondSquared * dtSeconds,
-        kMaxFallSpeedPixelsPerSecond);
 }
 
-void Actor::resolveCollision(GameObject& object) {
-    const Rectangle self = getBounds();
-    const Rectangle other = object.getBounds();
+void Actor::placeBesideWall(double colliderX) {
+    x += colliderX - getBounds().x;
+    velocityX = 0.0;
+}
 
-    if (!intersects(self, other)) {
-        return;
-    }
+void Actor::placeOnGround(double colliderY) {
+    y += colliderY - getBounds().y;
+    velocityY = 0.0;
+    onGround = true;
+}
 
-    const double selfCenterX = self.x + self.width / 2.0;
-    const double selfCenterY = self.y + self.height / 2.0;
-    const double otherCenterX = other.x + other.width / 2.0;
-    const double otherCenterY = other.y + other.height / 2.0;
-
-    const double overlapLeft = self.x + self.width - other.x;
-    const double overlapRight = other.x + other.width - self.x;
-    const double overlapTop = self.y + self.height - other.y;
-    const double overlapBottom = other.y + other.height - self.y;
-
-    const double overlapX = std::min(overlapLeft, overlapRight);
-    const double overlapY = std::min(overlapTop, overlapBottom);
-
-    // Tách theo trục lún ít hơn để actor không bị đẩy chéo qua vật cản.
-    if (overlapX < overlapY) {
-        x += (selfCenterX < otherCenterX) ? -overlapX : overlapX;
-        velocityX = 0.0;
-    } else {
-        if (selfCenterY < otherCenterY) {
-            y -= overlapY;
-            onGround = true;
-        } else {
-            y += overlapY;
-        }
-
-        velocityY = 0.0;
-    }
+void Actor::placeUnderCeiling(double colliderY) {
+    y += colliderY - getBounds().y;
+    velocityY = 0.0;
 }

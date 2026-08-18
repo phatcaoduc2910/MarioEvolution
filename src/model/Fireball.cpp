@@ -17,7 +17,9 @@ Fireball::Fireball(double x, double y, Direction dir)
 void Fireball::update(double dtSeconds) {
     if (!alive) { return; }
     applyGravity(dtSeconds);
-    move(dtSeconds);
+    // TODO: Fireball chưa nằm trong World nên tự đi, chưa qua CollisionSystem - model/World.
+    moveX(dtSeconds);
+    moveY(dtSeconds);
 }
 
 void Fireball::destroy() {

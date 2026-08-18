@@ -16,6 +16,7 @@ public:
     bool effectTextureLoad();
     bool enemyTextureLoad();
     bool itemTextureLoad();
+    bool flagTextureLoad();
     bool tileTextureLoad();
     bool uiTextureLoad();
     bool gameTextureLoad();

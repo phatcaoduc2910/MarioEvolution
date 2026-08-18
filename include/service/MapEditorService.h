@@ -49,6 +49,8 @@ private:
     void generateLevel();
     void createNewLevel();
     void resizeLevel(int newWidth, int newHeight);
+    void rebuildBorderedLevel(const std::vector<TileId>& oldTiles,
+                              int oldWidth, int oldHeight);
     void refreshSavedMaps();
     void openSavedMap(std::size_t index);
     void beginSaveAs();

@@ -3,18 +3,22 @@
 #include "model/Item.h"
 
 #include <SDL2/SDL.h>
+#include <algorithm>
 
 namespace {
 constexpr double kJumpVelocityPixelsPerSecond = -600.0;
 constexpr double kStompBounceVelocityPixelsPerSecond = -360.0;
 constexpr double kMoveSpeedPixelsPerSecond = 240.0;
+constexpr double kAccelerationPixelsPerSecondSquared = 1200.0;
+constexpr double kDecelerationPixelsPerSecondSquared = 800.0;
 constexpr double kInvincibilityDurationSeconds = 1.5;
 constexpr double kTimerEpsilonSeconds = 1e-9;
 }
 
 Player::Player(double x, double y)
-    : Actor(x, y, 32, 48),
+    : Actor(x, y, kBodyWidth, kSmallHeight),
       state(PlayerState::Small),
+      moveDirection(0),
       invincibilityRemainingSeconds(0.0) {
     SDL_Log("Player created at x=%.2f, y=%.2f", x, y);
 }
@@ -44,6 +48,26 @@ bool Player::isInvincible() const {
     return invincibilityRemainingSeconds > 0.0;
 }
 
+Rectangle Player::getBounds() const {
+    return {
+        x + kColliderInsetX,
+        y + kColliderInsetTop,
+        kColliderWidth,
+        height - kColliderInsetTop
+    };
+}
+
+Rectangle Player::getFeetBounds() const {
+    const Rectangle body = getBounds();
+
+    return {
+        body.x + kFeetInsetX,
+        body.y + body.height - kFeetHeight,
+        body.width - 2 * kFeetInsetX,
+        kFeetHeight
+    };
+}
+
 void Player::jump() {
     // A1: Trạng thái chạm đất, không phải vận tốc dọc, quyết định quyền nhảy.
     if (!isAlive() || !isOnGround()) {
@@ -66,17 +90,12 @@ void Player::bounceAfterStomp() {
 
 void Player::setMoveDirection(int direction) {
     if (!isAlive()) {
+        moveDirection = 0;
         velocityX = 0.0;
         return;
     }
 
-    if (direction < 0) {
-        velocityX = -kMoveSpeedPixelsPerSecond;
-    } else if (direction > 0) {
-        velocityX = kMoveSpeedPixelsPerSecond;
-    } else {
-        velocityX = 0.0;
-    }
+    moveDirection = std::clamp(direction, -1, 1);
 }
 void Player::collect(Item& item) {
     if (!isAlive()) { return; }
@@ -87,12 +106,14 @@ void Player::collect(Item& item) {
 void Player::grow() {
     if (state == PlayerState::Small) {
         state = PlayerState::Big;
+        resizeForState();
     }
 }
 
 void Player::upgradeToFire() {
     if (isAlive()) {
         state = PlayerState::Fire;
+        resizeForState();
     }
 }
 
@@ -106,10 +127,12 @@ void Player::takeDamage() {
         startInvincibility();
     } else if (state == PlayerState::Big) {
         state = PlayerState::Small;
+        resizeForState();
         startInvincibility();
     } else {
         state = PlayerState::Dead;
         invincibilityRemainingSeconds = 0.0;
+        moveDirection = 0;
         velocityX = 0.0;
         velocityY = 0.0;
     }
@@ -122,6 +145,7 @@ void Player::captureFlag(Flag& flag) {
 
     velocityX = 0.0;
     velocityY = 0.0;
+    moveDirection = 0;
     x = flag.getX();
 
     flag.onCapture(*this);
@@ -145,12 +169,38 @@ void Player::update(double dtSeconds) {
         }
     }
 
+    // moveDirection chỉ là ý định; ở đây đổi thành vận tốc, còn dời vị trí
+    // theo từng trục là việc của CollisionSystem qua moveX/moveY.
+    const double targetVelocityX =
+        moveDirection * kMoveSpeedPixelsPerSecond;
+    const double changeRate = moveDirection == 0
+                                  ? kDecelerationPixelsPerSecondSquared
+                                  : kAccelerationPixelsPerSecondSquared;
+    const double maxChange = changeRate * dtSeconds;
+    velocityX += std::clamp(
+        targetVelocityX - velocityX, -maxChange, maxChange);
+
     applyGravity(dtSeconds);
-    move(dtSeconds);
 }
 
 void Player::startInvincibility() {
     invincibilityRemainingSeconds = kInvincibilityDurationSeconds;
+}
+
+void Player::resizeForState() {
+    if (state == PlayerState::Dead) {
+        return;
+    }
+
+    const int targetHeight = (state == PlayerState::Small)
+                                 ? kSmallHeight
+                                 : kBigHeight;
+    if (targetHeight == height) {
+        return;
+    }
+
+    y += height - targetHeight;
+    height = targetHeight;
 }
 
 void Player::render() {}
