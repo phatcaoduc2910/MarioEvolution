@@ -66,13 +66,26 @@ bool SoundManager::load(const std::string& track, const std::string& path) {
 }
 
 // Phát sound đã preload trên channel trống đầu tiên.
-void SoundManager::play(const std::string& track) {
+void SoundManager::play(const std::string& track, bool loop) {
     const auto found = sounds.find(track);
-    if (found == sounds.end()) {
+    const bool musicTrack = track == "theme";
+    if (found == sounds.end() ||
+        (musicTrack && musicMuted) || (!musicTrack && sfxMuted)) {
         return;
     }
 
-    const int channel = Mix_PlayChannel(-1, found->second, 0);
+    const auto activeChannel = channels.find(track);
+    if (activeChannel != channels.end()) {
+        if (Mix_Paused(activeChannel->second) != 0) {
+            Mix_Resume(activeChannel->second);
+            return;
+        }
+        if (loop && Mix_Playing(activeChannel->second) != 0) {
+            return;
+        }
+    }
+
+    const int channel = Mix_PlayChannel(-1, found->second, loop ? -1 : 0);
     if (channel < 0) {
         SDL_Log("Sound playback failed (%s): %s", track.c_str(), Mix_GetError());
     } else {
@@ -96,4 +109,32 @@ void SoundManager::setVolume(int volume) {
         (void)track;
         Mix_VolumeChunk(sound, mixerVolume);
     }
+}
+
+void SoundManager::setMusicMuted(bool muted) {
+    musicMuted = muted;
+    if (musicMuted) {
+        pause("theme");
+    }
+}
+
+void SoundManager::setSfxMuted(bool muted) {
+    sfxMuted = muted;
+    if (!sfxMuted) {
+        return;
+    }
+
+    for (const auto& [track, channel] : channels) {
+        if (track != "theme") {
+            Mix_HaltChannel(channel);
+        }
+    }
+}
+
+bool SoundManager::isMusicMuted() const {
+    return musicMuted;
+}
+
+bool SoundManager::isSfxMuted() const {
+    return sfxMuted;
 }

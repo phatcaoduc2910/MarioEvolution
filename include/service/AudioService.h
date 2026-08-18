@@ -14,13 +14,17 @@ public:
     virtual bool load(const std::string& track, const std::string& path) = 0;
 
     // Phát hoặc tiếp tục một track.
-    virtual void play(const std::string& track) = 0;
+    virtual void play(const std::string& track, bool loop = false) = 0;
 
     // Tạm dừng một track.
     virtual void pause(const std::string& track) = 0;
 
     // Đặt âm lượng tổng.
     virtual void setVolume(int volume) = 0;
+    virtual void setMusicMuted(bool muted) = 0;
+    virtual void setSfxMuted(bool muted) = 0;
+    virtual bool isMusicMuted() const = 0;
+    virtual bool isSfxMuted() const = 0;
 };
 
 /**
@@ -32,9 +36,13 @@ public:
     ~SoundManager() override;
 
     bool load(const std::string& track, const std::string& path) override;
-    void play(const std::string& track) override;
+    void play(const std::string& track, bool loop) override;
     void pause(const std::string& track) override;
     void setVolume(int volume) override;
+    void setMusicMuted(bool muted) override;
+    void setSfxMuted(bool muted) override;
+    bool isMusicMuted() const override;
+    bool isSfxMuted() const override;
 
 private:
     bool openAudio();
@@ -42,6 +50,8 @@ private:
     int volume{100};
     bool audioOpened{false};
     bool ownsAudioSubsystem{false};
+    bool musicMuted{false};
+    bool sfxMuted{false};
     std::map<std::string, Mix_Chunk*> sounds;
     std::map<std::string, int> channels;
 };

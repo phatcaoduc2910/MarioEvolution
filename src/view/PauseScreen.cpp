@@ -33,10 +33,10 @@ void PauseScreen::render(SDL_Renderer* renderer) const {
     // Vẽ chữ "PAUSED" và "PRESS P OR ENTER TO CONTINUE"
     const int centerY = screenHeight / 2;
     UiRenderer::drawCenteredText(
-        renderer, "PAUSED", screenWidth, centerY - 70, 5, kTitleColor
+        renderer, "PAUSED", screenWidth, centerY - 175, 5, kTitleColor
     );
     UiRenderer::drawCenteredText(
-        renderer, "PRESS P TO CONTINUE", screenWidth, centerY + 25, 2,
+        renderer, "PRESS ESC TO CONTINUE", screenWidth, centerY + 150, 2,
         kTextColor
     );
 }

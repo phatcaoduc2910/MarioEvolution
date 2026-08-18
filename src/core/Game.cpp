@@ -1,16 +1,95 @@
 #include "core/Game.h"
 
 #include "service/MapEditorService.h"
+#include "view/UiRenderer.h"
 
 
 #include <SDL2/SDL_image.h>
 #include <algorithm>
+#include <string_view>
 
 namespace {
 constexpr const char* kLevelPath = "assets/maps/level_depth.map";
 constexpr int kMapWidth = 25;
 constexpr int kMapHeight = 19;
 constexpr int kTileSize = 32;
+constexpr int kPauseButtonWidth = 280;
+constexpr int kPauseButtonHeight = 48;
+constexpr int kPauseButtonGap = 14;
+constexpr SDL_Color kAudioOnColor{42, 132, 92, 235};
+constexpr SDL_Color kAudioOffColor{166, 65, 65, 235};
+constexpr SDL_Color kMenuButtonColor{69, 88, 120, 245};
+constexpr SDL_Color kAudioTextColor{255, 255, 255, 255};
+
+struct PauseMenuLayout {
+    SDL_Rect music;
+    SDL_Rect sfx;
+    SDL_Rect mainMenu;
+};
+
+bool pauseMenuLayout(SDL_Renderer* renderer, PauseMenuLayout& layout) {
+    int screenWidth = 0;
+    int screenHeight = 0;
+    if (renderer == nullptr ||
+        SDL_GetRendererOutputSize(renderer, &screenWidth, &screenHeight) != 0 ||
+        screenWidth <= 0 || screenHeight <= 0) {
+        return false;
+    }
+
+    layout.music = {
+        (screenWidth - kPauseButtonWidth) / 2,
+        screenHeight / 2 - 85,
+        kPauseButtonWidth,
+        kPauseButtonHeight};
+    layout.sfx = {
+        layout.music.x,
+        layout.music.y + kPauseButtonHeight + kPauseButtonGap,
+        kPauseButtonWidth,
+        kPauseButtonHeight};
+    layout.mainMenu = {
+        layout.music.x,
+        layout.sfx.y + kPauseButtonHeight + kPauseButtonGap,
+        kPauseButtonWidth,
+        kPauseButtonHeight};
+    return true;
+}
+
+void drawPauseButtonLabel(SDL_Renderer* renderer, const SDL_Rect& button,
+                          std::string_view label) {
+    constexpr int kTextScale = 2;
+    constexpr int kGlyphAdvance = 6;
+    constexpr int kGlyphHeight = 7;
+    const int textWidth =
+        static_cast<int>(label.size()) * kGlyphAdvance * kTextScale;
+    UiRenderer::drawText(
+        renderer, label,
+        button.x + (button.w - textWidth) / 2,
+        button.y + (button.h - kGlyphHeight * kTextScale) / 2,
+        kTextScale, kAudioTextColor);
+}
+
+void renderPauseMenuControls(SDL_Renderer* renderer,
+                             const AudioService& audio) {
+    PauseMenuLayout layout;
+    if (!pauseMenuLayout(renderer, layout)) {
+        return;
+    }
+
+    UiRenderer::fillRect(
+        renderer, layout.music,
+        audio.isMusicMuted() ? kAudioOffColor : kAudioOnColor);
+    UiRenderer::fillRect(
+        renderer, layout.sfx,
+        audio.isSfxMuted() ? kAudioOffColor : kAudioOnColor);
+    UiRenderer::fillRect(renderer, layout.mainMenu, kMenuButtonColor);
+    drawPauseButtonLabel(
+        renderer, layout.music,
+        audio.isMusicMuted() ? "MUSIC: OFF" : "MUSIC: ON");
+    drawPauseButtonLabel(
+        renderer, layout.sfx,
+        audio.isSfxMuted() ? "SFX: OFF" : "SFX: ON");
+    drawPauseButtonLabel(renderer, layout.mainMenu, "MAIN MENU");
+}
 }
 
 Game::Game()
@@ -72,6 +151,7 @@ bool Game::start() {
     audioService->load("jump", "assets/audio/sfx/jump.wav");
     audioService->load("win", "assets/audio/sfx/goal.wav");
     audioService->load("gameover", "assets/audio/sfx/gameover.wav");
+    audioService->load("theme", "assets/audio/music/theme.mp3");
 
     mapEditor = std::make_unique<MapEditorService>(
         kMapWidth,
@@ -96,7 +176,7 @@ void Game::pause() {
 
 void Game::resume() {
     currentGameState = Playing;
-    audioService->play("theme");
+    audioService->play("theme", true);
 }
 
 void Game::edit() {
@@ -108,6 +188,7 @@ void Game::startLevel() {
     world.loadLevel(mapEditor->getLevel());
     camera.reset();
     currentGameState = Playing;
+    audioService->play("theme", true);
 }
 
 // Xử lý vòng lặp game
@@ -118,9 +199,30 @@ void Game::gameLoop() {
     while (currentGameState != Exit) {
         while (SDL_PollEvent(&event)) {
 
+            if (currentGameState == Paused &&
+                event.type == SDL_MOUSEBUTTONDOWN &&
+                event.button.button == SDL_BUTTON_LEFT) {
+                PauseMenuLayout layout;
+                const SDL_Point click{event.button.x, event.button.y};
+                const bool hasLayout = pauseMenuLayout(renderer, layout);
+                if (hasLayout && SDL_PointInRect(&click, &layout.music)) {
+                    const bool muted = !audioService->isMusicMuted();
+                    audioService->setMusicMuted(muted);
+                    continue;
+                }
+                if (hasLayout && SDL_PointInRect(&click, &layout.sfx)) {
+                    audioService->setSfxMuted(!audioService->isSfxMuted());
+                    continue;
+                }
+                if (hasLayout && SDL_PointInRect(&click, &layout.mainMenu)) {
+                    currentGameState = StartMenu;
+                    continue;
+                }
+            }
+
         Key key = inputHandler.mapKey(event.key.keysym.sym);
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
-                inputHandler.press(key); 
+                inputHandler.press(key);
             } else if (event.type == SDL_KEYUP) {
                 inputHandler.release(key);
             }
@@ -225,6 +327,7 @@ void Game::gameLoop() {
 
         case Paused:
             pauseScreen.render(renderer);
+            renderPauseMenuControls(renderer, *audioService);
             break;
         case Playing:{
             while (accumulatorMs >= kFixedStepMs) {
@@ -236,9 +339,11 @@ void Game::gameLoop() {
                 collisionSystem.update(world, kFixedStepSeconds);
                 if (world.isLevelComplete()) {
                     currentGameState = LevelComplete;
+                    audioService->pause("theme");
                     audioService->play("win");
                 } else if (world.isGameOver()) {
                     currentGameState = GameOver;
+                    audioService->pause("theme");
                     audioService->play("gameover");
                 }
 
