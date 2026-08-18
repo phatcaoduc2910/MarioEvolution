@@ -66,7 +66,9 @@ int main() {
             6, 6, kTileSize, kWindowWidth, kWindowHeight,
             seedPath.string());
 
-        editor.handleEvent(keyDown(SDLK_0));
+        editor.open();
+        assert(editor.isEnabled());
+        assert(editor.getMapPath() == seedPath.string());
 
         editor.handleEvent(click(700, 55));
         editor.handleEvent(click(650, 181));

@@ -213,10 +213,11 @@ void CollisionSystem::resolveInteractions(World& world) const {
             continue;
         }
 
-        if (const auto* coin = dynamic_cast<const Coin*>(item.get())) {
-            world.addScore(coin->getValue());
-        }
         player.collect(*item);
+        if (const auto* coin = dynamic_cast<const Coin*>(item.get());
+            coin != nullptr && item->isCollected()) {
+            world.collectCoin(coin->getValue());
+        }
     }
 
     // A4: Va chạm Enemy là xử lý gameplay, không phải resolve vật cản rắn.

@@ -6,5 +6,6 @@
 
 class TerminalScreen {
 public:
-    void render(SDL_Renderer* renderer, GameState state, int score) const;
+    void render(SDL_Renderer* renderer, GameState state, int score,
+                int lives) const;
 };

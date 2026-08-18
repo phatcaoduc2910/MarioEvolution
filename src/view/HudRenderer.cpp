@@ -3,36 +3,22 @@
 #include "view/UiRenderer.h"
 
 #include <string>
-#include <string_view>
 
 namespace {
 constexpr SDL_Color kPanelColor{18, 27, 45, 225};
 constexpr SDL_Color kBorderColor{255, 214, 66, 255};
 constexpr SDL_Color kScoreColor{255, 255, 255, 255};
-constexpr SDL_Color kStateColor{255, 214, 66, 255};
+constexpr SDL_Color kStatusColor{255, 214, 66, 255};
 constexpr int kPanelX = 12;
 constexpr int kPanelY = 12;
 constexpr int kPanelWidth = 250;
-constexpr int kPanelHeight = 80;
-
-std::string_view stateName(PlayerState state) {
-    switch (state) {
-        case PlayerState::Big:
-            return "BIG";
-        case PlayerState::Fire:
-            return "FIRE";
-        case PlayerState::Dead:
-            return "DEAD";
-        case PlayerState::Small:
-        default:
-            return "SMALL";
-    }
-}
+constexpr int kPanelHeight = 138;
 }
 
-/** Hiển thị score và trạng thái Player cố định theo màn hình. */
+/** Hiển thị tiến độ màn chơi cố định theo màn hình. */
 void HudRenderer::render(SDL_Renderer* renderer, int score,
-                         PlayerState state) const {
+                         int remainingCoins, int timeRemaining,
+                         int lives) const {
     if (renderer == nullptr) {
         return;
     }
@@ -54,9 +40,15 @@ void HudRenderer::render(SDL_Renderer* renderer, int score,
         kScoreColor);
     UiRenderer::drawText(
         renderer,
-        "STATE: " + std::string(stateName(state)),
+        "COINS: " + std::to_string(remainingCoins),
         24,
-        62,
+        60,
         2,
-        kStateColor);
+        kStatusColor);
+    UiRenderer::drawText(
+        renderer, "TIME: " + std::to_string(timeRemaining),
+        24, 86, 2, kStatusColor);
+    UiRenderer::drawText(
+        renderer, "LIVES: " + std::to_string(lives),
+        24, 112, 2, kStatusColor);
 }

@@ -19,11 +19,13 @@ public:
 
     bool isEnabled() const;
     bool isDirty() const;
+    void open();
     bool handleEvent(const SDL_Event& event);
     void update();
     void render(SDL_Renderer* renderer, const TextureManager& textures);
 
     const LevelData& getLevel() const;
+    const std::string& getMapPath() const;
     int getCameraX() const;
     int getCameraY() const;
     SDL_Rect getMapViewport() const;

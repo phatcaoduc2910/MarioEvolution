@@ -7,16 +7,23 @@
 #include "model/LevelData.h"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 #include <utility>
 
 namespace {
 constexpr double kIntegratedFixedStepSeconds = 0.011;
+constexpr double kLevelDurationSeconds = 600.0;
+constexpr int kStartingLives = 3;
+constexpr int kTimeBonusPerSecond = 10;
 }
 
 World::World()
     : player(100.0, 550.0 - Player::kSmallHeight),
       score(0),
+      remainingCoins(0),
+      lives(kStartingLives),
+      timeRemainingSeconds(kLevelDurationSeconds),
       gameOver(false),
       levelComplete(false),
       killPlaneY(700.0) {}
@@ -52,7 +59,9 @@ void World::loadLevel(const LevelData& level) {
     actors.clear();
     objects.clear();
     items.clear();
-    score = 0;
+    player = Player(100.0, 550.0 - Player::kSmallHeight);
+    remainingCoins = 0;
+    timeRemainingSeconds = kLevelDurationSeconds;
     gameOver = false;
     levelComplete = false;
     killPlaneY = static_cast<double>(level.getHeight() * level.getTileSize()) + 96.0;
@@ -73,6 +82,7 @@ void World::loadLevel(const LevelData& level) {
                     break;
                 case kCoinBrickTileId:
                     addObject(std::make_unique<CoinBrick>(x, y, 1));
+                    ++remainingCoins;
                     break;
                 case kMushroomBrickTileId:
                     addObject(std::make_unique<MushroomBrick>(x, y));
@@ -81,7 +91,9 @@ void World::loadLevel(const LevelData& level) {
                     addObject(std::make_unique<FlowerBrick>(x, y));
                     break;
                 case kCoinTileId:
-                    addItem(std::make_unique<Coin>(x + 8.0, y + 8.0, 1));
+                    addItem(std::make_unique<Coin>(
+                        x + 8.0, y + 8.0, Coin::kScoreValue));
+                    ++remainingCoins;
                     break;
                 case kGoombaTileId:
                     addActor(std::make_unique<Goomba>(x, y));
@@ -138,9 +150,26 @@ void World::addScore(int points) {
     score += points;
 }
 
+void World::collectCoin(int points) {
+    addScore(points);
+    remainingCoins = std::max(0, remainingCoins - 1);
+}
+
 
 int World::getScore() const {
     return score;
+}
+
+int World::getRemainingCoins() const {
+    return remainingCoins;
+}
+
+int World::getTimeRemaining() const {
+    return static_cast<int>(std::ceil(std::max(0.0, timeRemainingSeconds)));
+}
+
+int World::getLives() const {
+    return lives;
 }
 
 
@@ -153,9 +182,18 @@ bool World::isLevelComplete() const {
 }
 
 void World::markLevelComplete() {
-    if (!gameOver) {
+    if (!gameOver && !levelComplete) {
+        score += getTimeRemaining() * kTimeBonusPerSecond;
         levelComplete = true;
     }
+}
+
+void World::markGameOver() {
+    if (gameOver || levelComplete) {
+        return;
+    }
+    gameOver = true;
+    lives = std::max(0, lives - 1);
 }
 
 void World::update() {
@@ -163,6 +201,14 @@ void World::update() {
 }
 
 void World::update(double dtSeconds) {
+    if (!gameOver && !levelComplete && dtSeconds > 0.0) {
+        timeRemainingSeconds = std::max(
+            0.0, timeRemainingSeconds - dtSeconds);
+        if (timeRemainingSeconds <= 0.0) {
+            markGameOver();
+        }
+    }
+
     player.update(dtSeconds);
 
     for (auto& actor : actors) {
@@ -176,11 +222,11 @@ void World::update(double dtSeconds) {
     }
 
     if (!player.isAlive() || player.getState() == PlayerState::Dead) {
-        gameOver = true;
+        markGameOver();
     }
 
     if (player.getY() > killPlaneY) {
-        gameOver = true;
+        markGameOver();
     }
 
     actors.erase(

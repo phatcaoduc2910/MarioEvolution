@@ -317,6 +317,65 @@ void testPlayerSpawnMarker() {
     assert(withoutMarker.getPlayer().getY() == defaultY);
 }
 
+void testLevelProgressAndRetryState() {
+    LevelData level(6, 6, kTileSize);
+    level.setTile(1, 1, kCoinTileId);
+    level.setTile(2, 1, kCoinBrickTileId);
+
+    World world;
+    world.loadLevel(level);
+    assert(world.getRemainingCoins() == 2);
+    assert(world.getTimeRemaining() == 600);
+    assert(world.getLives() == 3);
+
+    world.collectCoin(Coin::kScoreValue);
+    assert(world.getScore() == 200);
+    assert(world.getRemainingCoins() == 1);
+
+    world.getPlayer().takeDamage();
+    world.update(0.0);
+    assert(world.isGameOver());
+    assert(world.getLives() == 2);
+    world.update(0.0);
+    assert(world.getLives() == 2);
+
+    world.loadLevel(level);
+    assert(!world.isGameOver());
+    assert(world.getPlayer().isAlive());
+    assert(world.getScore() == 200);
+    assert(world.getLives() == 2);
+    assert(world.getRemainingCoins() == 2);
+    assert(world.getTimeRemaining() == 600);
+}
+
+void testCoinScoreAndTimeBonusApplyOnce() {
+    World coinWorld;
+    CollisionSystem collisionSystem;
+    coinWorld.addItem(std::make_unique<Coin>(
+        108.0, 524.0, Coin::kScoreValue));
+
+    collisionSystem.update(coinWorld, 0.0);
+    assert(coinWorld.getScore() == 200);
+    collisionSystem.update(coinWorld, 0.0);
+    assert(coinWorld.getScore() == 200);
+
+    World timedWorld;
+    timedWorld.update(10.0);
+    assert(timedWorld.getTimeRemaining() == 590);
+    timedWorld.markLevelComplete();
+    assert(timedWorld.getScore() == 5900);
+    timedWorld.markLevelComplete();
+    assert(timedWorld.getScore() == 5900);
+
+    World expiredWorld;
+    expiredWorld.update(600.0);
+    assert(expiredWorld.getTimeRemaining() == 0);
+    assert(expiredWorld.isGameOver());
+    assert(expiredWorld.getLives() == 2);
+    expiredWorld.update(1.0);
+    assert(expiredWorld.getLives() == 2);
+}
+
 void testPlayerHitboxTracksState() {
     World world;
     CollisionSystem collisionSystem;
@@ -823,6 +882,8 @@ int main() {
     testJumpBesideCorner();
     testFallBesideBlock();
     testPlayerSpawnMarker();
+    testLevelProgressAndRetryState();
+    testCoinScoreAndTimeBonusApplyOnce();
     testPlayerHitboxTracksState();
     testStandsOnPlatformEdgeThenFalls();
     testFallsOntoPlatformCornerWhileMoving();

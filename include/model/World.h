@@ -25,8 +25,12 @@ public:
     void addObject(std::unique_ptr<StaticObject> object);
     void addItem(std::unique_ptr<Item> item);
     void addScore(int points);
+    void collectCoin(int points);
 
     int getScore() const;
+    int getRemainingCoins() const;
+    int getTimeRemaining() const;
+    int getLives() const;
     bool isGameOver() const;
     bool isLevelComplete() const;
     void markLevelComplete();
@@ -35,11 +39,16 @@ public:
     void update(double dtSeconds);
 
 private:
+    void markGameOver();
+
     Player player;
     std::vector<std::unique_ptr<Actor>> actors;
     std::vector<std::unique_ptr<StaticObject>> objects;
     std::vector<std::unique_ptr<Item>> items;
     int score;
+    int remainingCoins;
+    int lives;
+    double timeRemainingSeconds;
     bool gameOver;
     bool levelComplete;
     double killPlaneY;

@@ -12,6 +12,10 @@ public:
 
     void renderBackground(SDL_Renderer* renderer, const TextureManager& textures,
                           int viewWidth, int viewHeight);
+    void renderScrollingBackground(SDL_Renderer* renderer,
+                                   const TextureManager& textures,
+                                   int viewWidth, int viewHeight,
+                                   int offsetX);
     void render(SDL_Renderer* renderer, const TextureManager& textures,
                 const World& world, int offsetX = 0, int offsetY = 0);
 

@@ -6,6 +6,8 @@
 #include "model/World.h"
 #include "view/TileCatalog.h"
 
+#include <algorithm>
+
 namespace {
     constexpr const char* OPENED_BRICK_TEXTURE_ID = "gold";
     constexpr const char* FIRE_FLOWER_TEXTURE_ID = "flower";
@@ -73,6 +75,31 @@ void WorldRenderer::renderBackground(SDL_Renderer* renderer,
 
     const SDL_Rect destination{0, 0, viewWidth, viewHeight};
     assetRenderer.render(renderer, background, &source, &destination);
+}
+
+void WorldRenderer::renderScrollingBackground(
+        SDL_Renderer* renderer, const TextureManager& textures,
+        int viewWidth, int viewHeight, int offsetX) {
+    if (renderer == nullptr || viewWidth <= 0 || viewHeight <= 0) return;
+
+    SDL_Texture* background = textures.getTexture(BACKGROUND_TEXTURE_ID);
+    int textureWidth = 0;
+    int textureHeight = 0;
+    if (background == nullptr ||
+        SDL_QueryTexture(background, nullptr, nullptr,
+                         &textureWidth, &textureHeight) < 0 ||
+        textureWidth <= 0 || textureHeight <= 0) {
+        return;
+    }
+
+    const int scaledWidth = std::max(
+        viewWidth, textureWidth * viewHeight / textureHeight);
+    const int wrappedOffset = ((offsetX % scaledWidth) + scaledWidth) % scaledWidth;
+    const SDL_Rect first{-wrappedOffset, 0, scaledWidth, viewHeight};
+    const SDL_Rect second{scaledWidth - wrappedOffset, 0,
+                          scaledWidth, viewHeight};
+    assetRenderer.render(renderer, background, nullptr, &first);
+    assetRenderer.render(renderer, background, nullptr, &second);
 }
 
 void WorldRenderer::render(SDL_Renderer* renderer,

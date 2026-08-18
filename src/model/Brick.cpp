@@ -69,7 +69,8 @@ std::unique_ptr<Item> CoinBrick::releaseItem(){
         return nullptr;
     }
 
-    auto coin = std::make_unique<Coin>(x + (width - 16) / 2.0, y - 16, 1);
+    auto coin = std::make_unique<Coin>(
+        x + (width - 16) / 2.0, y - 16, Coin::kScoreValue);
     --coinAmount;
     if(coinAmount == 0){
         markUsed();

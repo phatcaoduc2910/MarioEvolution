@@ -24,6 +24,8 @@ private:
 // Lớp Coin
 class Coin : public Item{
 public:
+    static constexpr int kScoreValue = 200;
+
     // Tạo đồng xu
     Coin(double x, double y, int value);
 

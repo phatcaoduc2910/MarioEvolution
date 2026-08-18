@@ -11,7 +11,6 @@ public:
     void press(Key key);
     void release(Key key);
     Key mapKey(SDL_Keycode keycode) const;
-    Option getMenuOption(Option &option) const;
 
 private:
     std::set<Key> pressedKeys;

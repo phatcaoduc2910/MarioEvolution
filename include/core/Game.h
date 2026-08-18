@@ -17,6 +17,8 @@
 #include "view/TextureManager.h"
 
 #include <memory>
+#include <string>
+#include <vector>
 
 class MapEditorService;
 
@@ -33,6 +35,13 @@ public:
 
 private:
     void startLevel();
+    void retryLevel();
+    void activateStartMenuAction(StartMenuAction action);
+    void discoverLevels();
+    void selectLevel(int direction);
+    void loadSelectedLevel();
+    void syncSelectedLevel(const std::string& mapPath);
+    std::string selectedLevelName() const;
 
     static constexpr int WINDOW_WIDTH = 800;
     static constexpr int WINDOW_HEIGHT = 600;
@@ -55,6 +64,9 @@ private:
     SDL_Window* window{nullptr};
     SDL_Renderer* renderer{nullptr};
     Uint32 lastFrameTicks{0};
+    double menuBackgroundOffset{0.0};
+    std::vector<std::string> levelPaths;
+    std::size_t selectedLevelIndex{0};
     GameState currentGameState{StartMenu};
     PauseScreen pauseScreen;
     StartScreen startScreen;

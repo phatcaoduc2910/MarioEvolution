@@ -6,10 +6,13 @@
 
 #include <SDL2/SDL_image.h>
 #include <algorithm>
+#include <filesystem>
+#include <string>
 #include <string_view>
 
 namespace {
 constexpr const char* kLevelPath = "assets/maps/level_depth.map";
+constexpr const char* kMapDirectory = "assets/maps";
 constexpr int kMapWidth = 25;
 constexpr int kMapHeight = 19;
 constexpr int kTileSize = 32;
@@ -20,6 +23,7 @@ constexpr SDL_Color kAudioOnColor{42, 132, 92, 235};
 constexpr SDL_Color kAudioOffColor{166, 65, 65, 235};
 constexpr SDL_Color kMenuButtonColor{69, 88, 120, 245};
 constexpr SDL_Color kAudioTextColor{255, 255, 255, 255};
+constexpr double kMenuBackgroundPixelsPerMs = 0.02;
 
 struct PauseMenuLayout {
     SDL_Rect music;
@@ -153,14 +157,12 @@ bool Game::start() {
     audioService->load("gameover", "assets/audio/sfx/gameover.wav");
     audioService->load("theme", "assets/audio/music/theme.mp3");
 
-    mapEditor = std::make_unique<MapEditorService>(
-        kMapWidth,
-        kMapHeight,
-        kTileSize,
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT,
-        kLevelPath);
-    world.loadLevel(mapEditor->getLevel());
+    discoverLevels();
+    if (levelPaths.empty()) {
+        SDL_Log("No playable maps found in %s.", kMapDirectory);
+        return false;
+    }
+    loadSelectedLevel();
 
     lastFrameTicks = SDL_GetTicks();
 
@@ -183,8 +185,84 @@ void Game::edit() {
     currentGameState = Editing;
     audioService->pause("theme");
 }
+
+void Game::discoverLevels() {
+    levelPaths.clear();
+    std::error_code error;
+    for (std::filesystem::directory_iterator it(kMapDirectory, error), end;
+         !error && it != end; it.increment(error)) {
+        if (it->is_regular_file(error) && it->path().extension() == ".map") {
+            levelPaths.push_back(it->path().generic_string());
+        }
+    }
+    std::sort(levelPaths.begin(), levelPaths.end());
+
+    const auto defaultLevel = std::find(
+        levelPaths.begin(), levelPaths.end(), std::string(kLevelPath));
+    selectedLevelIndex = defaultLevel == levelPaths.end()
+                             ? 0
+                             : static_cast<std::size_t>(
+                                   std::distance(levelPaths.begin(), defaultLevel));
+}
+
+void Game::loadSelectedLevel() {
+    if (levelPaths.empty()) return;
+    mapEditor = std::make_unique<MapEditorService>(
+        kMapWidth, kMapHeight, kTileSize, WINDOW_WIDTH, WINDOW_HEIGHT,
+        levelPaths[selectedLevelIndex]);
+    world = World();
+    world.loadLevel(mapEditor->getLevel());
+}
+
+void Game::selectLevel(int direction) {
+    if (levelPaths.empty() || direction == 0) return;
+    const auto count = static_cast<long long>(levelPaths.size());
+    const auto current = static_cast<long long>(selectedLevelIndex);
+    selectedLevelIndex = static_cast<std::size_t>(
+        (current + direction + count) % count);
+    loadSelectedLevel();
+}
+
+void Game::syncSelectedLevel(const std::string& mapPath) {
+    const auto target = std::filesystem::path(mapPath).lexically_normal();
+    discoverLevels();
+    const auto selected = std::find_if(
+        levelPaths.begin(), levelPaths.end(),
+        [&target](const std::string& path) {
+            return std::filesystem::path(path).lexically_normal() == target;
+        });
+    if (selected != levelPaths.end()) {
+        selectedLevelIndex = static_cast<std::size_t>(
+            std::distance(levelPaths.begin(), selected));
+    }
+}
+
+std::string Game::selectedLevelName() const {
+    if (levelPaths.empty()) return "NO MAP";
+    return std::filesystem::path(levelPaths[selectedLevelIndex]).stem().string();
+}
+
+void Game::activateStartMenuAction(StartMenuAction action) {
+    if (action == StartMenuAction::StartGame) {
+        startLevel();
+    } else if (action == StartMenuAction::MapEditor) {
+        mapEditor->open();
+        world.getPlayer().setMoveDirection(0);
+        edit();
+    } else if (action == StartMenuAction::ExitGame) {
+        currentGameState = Exit;
+    }
+}
+
 void Game::startLevel() {
     world = World();
+    world.loadLevel(mapEditor->getLevel());
+    camera.reset();
+    currentGameState = Playing;
+    audioService->play("theme", true);
+}
+
+void Game::retryLevel() {
     world.loadLevel(mapEditor->getLevel());
     camera.reset();
     currentGameState = Playing;
@@ -194,7 +272,6 @@ void Game::startLevel() {
 // Xử lý vòng lặp game
 void Game::gameLoop() {
     SDL_Event event;
-    Option menuOption{Option::StartGame};
 
     while (currentGameState != Exit) {
         while (SDL_PollEvent(&event)) {
@@ -220,10 +297,12 @@ void Game::gameLoop() {
                 }
             }
 
-        Key key = inputHandler.mapKey(event.key.keysym.sym);
+            Key key = Key::None;
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                key = inputHandler.mapKey(event.key.keysym.sym);
                 inputHandler.press(key);
             } else if (event.type == SDL_KEYUP) {
+                key = inputHandler.mapKey(event.key.keysym.sym);
                 inputHandler.release(key);
             }
 
@@ -232,12 +311,25 @@ void Game::gameLoop() {
             }
             switch (currentGameState) {
                 case StartMenu:{
-                    
-                    Option action = inputHandler.getMenuOption(menuOption);
-                    if (action == Option::StartGame) {
-                        startLevel();
-                    } else if (action == Option::ExitGame) {
-                        currentGameState = Exit;
+                    if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                        if (key == Key::Up) startScreen.moveSelection(-1);
+                        else if (key == Key::Down) startScreen.moveSelection(1);
+                        else if (key == Key::Left) selectLevel(-1);
+                        else if (key == Key::Right) selectLevel(1);
+                        else if (key == Key::Enter) {
+                            activateStartMenuAction(
+                                startScreen.getSelectedAction());
+                        }
+                    } else if (event.type == SDL_MOUSEBUTTONDOWN &&
+                               event.button.button == SDL_BUTTON_LEFT) {
+                        const int levelDirection = startScreen.levelDirectionAt(
+                            renderer, event.button.x, event.button.y);
+                        if (levelDirection != 0) {
+                            selectLevel(levelDirection);
+                        } else {
+                            activateStartMenuAction(startScreen.actionAt(
+                                renderer, event.button.x, event.button.y));
+                        }
                     }
                     break;
                 }
@@ -252,10 +344,6 @@ void Game::gameLoop() {
                         if (canJump) {
                             audioService->play("jump");
                         }
-                    } else if (inputHandler.isPressed(Key::Edit)) {
-                        inputHandler.release(Key::Edit);
-                        currentGameState = Editing;
-                        mapEditor->handleEvent(event);
                     }
                     break;
                 }
@@ -270,26 +358,25 @@ void Game::gameLoop() {
                     //Vào map editor
                     const bool wasEditorEnabled = mapEditor->isEnabled();
                     if (mapEditor->handleEvent(event)) {
-                        if (!wasEditorEnabled && mapEditor->isEnabled()) {
-                            world.getPlayer().setMoveDirection(0);
-                        } else if (wasEditorEnabled && !mapEditor->isEnabled()) {
+                        if (wasEditorEnabled && !mapEditor->isEnabled()) {
+                            syncSelectedLevel(mapEditor->getMapPath());
                             world.loadLevel(mapEditor->getLevel());
+                            currentGameState = StartMenu;
                         }
                         continue;
                     }
-
-                    if(inputHandler.isPressed(Key::Edit)) {
-                        inputHandler.release(Key::Edit);
-                        currentGameState = Playing;
-                    }
-
                     break;
                 }
                 case LevelComplete:
                 case GameOver:{
                     if (inputHandler.isPressed(Key::Enter)) {
                         inputHandler.release(Key::Enter);
-                        startLevel();
+                        if (currentGameState == GameOver &&
+                            world.getLives() > 0) {
+                            retryLevel();
+                        } else {
+                            startLevel();
+                        }
                     } else if (inputHandler.isPressed(Key::Esc)) {
                         inputHandler.release(Key::Esc);
                         currentGameState = StartMenu;
@@ -314,6 +401,9 @@ void Game::gameLoop() {
     } else {
         accumulatorMs = 0;
     }
+    if (currentGameState == StartMenu) {
+        menuBackgroundOffset += deltaMs * kMenuBackgroundPixelsPerMs;
+    }
 
 
     SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
@@ -321,8 +411,10 @@ void Game::gameLoop() {
 
     switch (currentGameState) {
         case StartMenu:
-            startScreen.setOption(menuOption);
-            startScreen.render(renderer);
+            worldRenderer.renderScrollingBackground(
+                renderer, *textureManager, WINDOW_WIDTH, WINDOW_HEIGHT,
+                static_cast<int>(menuBackgroundOffset));
+            startScreen.render(renderer, selectedLevelName());
             break;
 
         case Paused:
@@ -381,7 +473,8 @@ void Game::gameLoop() {
                 renderer, *textureManager, world.getPlayer(), offsetX, offsetY);
             SDL_RenderSetScale(renderer, 1.0F, 1.0F);
             hudRenderer.render(
-                renderer, world.getScore(), world.getPlayer().getState());
+                renderer, world.getScore(), world.getRemainingCoins(),
+                world.getTimeRemaining(), world.getLives());
             break;
         }
         case Editing:{
@@ -431,7 +524,8 @@ void Game::gameLoop() {
                 camera.getOffsetX(),
                 camera.getOffsetY());
             SDL_RenderSetScale(renderer, 1.0F, 1.0F);
-            terminalScreen.render(renderer, currentGameState, world.getScore());
+            terminalScreen.render(
+                renderer, currentGameState, world.getScore(), world.getLives());
             break;
         case Exit:
             break;

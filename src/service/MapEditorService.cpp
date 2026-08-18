@@ -173,27 +173,19 @@ bool MapEditorService::isDirty() const {
     return dirty;
 }
 
+void MapEditorService::open() {
+    editorEnabled = true;
+    strokeActive = false;
+    refreshSavedMaps();
+}
+
 bool MapEditorService::handleEvent(const SDL_Event& event) {
     if (!editorEnabled) {
-        if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
-            event.key.keysym.sym == SDLK_0) {
-            editorEnabled = true;
-            strokeActive = false;
-            refreshSavedMaps();
-            return true;
-        }
         return false;
     }
 
     if (namingMap) {
         return handleSaveAsEvent(event);
-    }
-
-    if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
-        event.key.keysym.sym == SDLK_0) {
-        editorEnabled = false;
-        strokeActive = false;
-        return true;
     }
 
     if (event.type == SDL_MOUSEMOTION) {
@@ -318,6 +310,10 @@ void MapEditorService::render(SDL_Renderer* renderer,
 
 const LevelData& MapEditorService::getLevel() const {
     return level;
+}
+
+const std::string& MapEditorService::getMapPath() const {
+    return mapPath;
 }
 
 
