@@ -62,14 +62,23 @@ void World::loadLevel(const LevelData& level) {
     actors.clear();
     objects.clear();
     items.clear();
+    // Spawn chỉ đọc từ marker 'P' của LevelData; map thiếu marker giữ chỗ
+    // đứng mặc định cũ.
     player = Player(100.0, 550.0 - Player::kSmallHeight);
+    int spawnColumn = 0;
+    int spawnRow = 0;
+    if (level.findPlayerSpawn(spawnColumn, spawnRow)) {
+        player = Player(
+            static_cast<double>(spawnColumn * kObjectTileSize),
+            static_cast<double>((spawnRow + 1) * kObjectTileSize) -
+                Player::kSmallHeight);
+    }
     remainingCoins = 0;
     timeRemainingSeconds = kLevelDurationSeconds;
     gameOver = false;
     levelComplete = false;
     killPlaneY = static_cast<double>(level.getHeight() * level.getTileSize()) + 96.0;
 
-    bool spawnPlaced = false;
     for (int row = 0; row < level.getHeight(); ++row) {
         for (int column = 0; column < level.getWidth(); ++column) {
             const TileId tileId = level.getTile(column, row);
@@ -118,11 +127,7 @@ void World::loadLevel(const LevelData& level) {
                         x, y + kObjectTileSize));
                     break;
                 case kPlayerSpawnTileId:
-                    if (!spawnPlaced) {
-                        player = Player(
-                            x, y + kObjectTileSize - Player::kSmallHeight);
-                        spawnPlaced = true;
-                    }
+                    // Marker spawn không sinh object; player đã đặt ở trên.
                     break;
                 case kFlagTileId: {
                     const double poleX =

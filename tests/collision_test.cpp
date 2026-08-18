@@ -320,6 +320,14 @@ void testPlayerSpawnMarker() {
     assert(player.getY() + player.getHeight() == 7.0 * kTileSize);
     assert(!world.isGameOver());
 
+    // Marker thứ hai dời spawn thay vì tạo thêm chỗ spawn.
+    level.setTile(2, 6, kPlayerSpawnTileId);
+    assert(level.getTile(6, 6) == kEmptyTileId);
+    world.loadLevel(level);
+    assert(world.getPlayer().getX() == 2.0 * kTileSize);
+    assert(world.getPlayer().getY() + world.getPlayer().getHeight() ==
+           7.0 * kTileSize);
+
     World withoutMarker;
     LevelData plain(10, 8, kTileSize);
     for (int column = 0; column < 10; ++column) {

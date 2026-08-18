@@ -12,15 +12,16 @@ public:
     int getHeight() const;
     int getTileSize() const;
 
-    int getSpawnColumn() const;
-    int getSpawnRow() const;
-    void setPlayerSpawn(int column, int row);
+    // Marker 'P' trong lưới tile là nguồn spawn duy nhất; trả về false khi
+    // map chưa có marker nào.
+    bool findPlayerSpawn(int& column, int& row) const;
 
     void resize(int newWidth, int newHeight);
 
     bool isInside(int column, int row) const;
 
     TileId getTile(int column, int row) const;
+    // Đặt marker 'P' sẽ xoá marker cũ để map không bao giờ có hai chỗ spawn.
     void setTile(int column, int row, TileId tileId);
 
     const std::vector<TileId>& getTiles() const;
@@ -31,7 +32,5 @@ private:
     int width;
     int height;
     int tileSize;
-    int spawnColumn;
-    int spawnRow;
     std::vector<TileId> tiles;
 };
