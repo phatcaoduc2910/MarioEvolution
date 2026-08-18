@@ -8,6 +8,7 @@
 #include <string>
 
 class Goomba;
+class Fireball;
 class Koopa;
 class PiranhaPlant;
 class Player;
@@ -47,6 +48,11 @@ private:
                       const Goomba& goomba,
                       int offsetX,
                       int offsetY);
+    void renderFireball(SDL_Renderer* renderer,
+                        const TextureManager& textures,
+                        const Fireball& fireball,
+                        int offsetX,
+                        int offsetY);
     void renderKoopa(SDL_Renderer* renderer,
                      const TextureManager& textures,
                      const Koopa& koopa,

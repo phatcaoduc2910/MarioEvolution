@@ -26,6 +26,7 @@ public:
     void addItem(std::unique_ptr<Item> item);
     void addScore(int points);
     void collectCoin(int points);
+    bool shootFireball();
 
     int getScore() const;
     int getRemainingCoins() const;

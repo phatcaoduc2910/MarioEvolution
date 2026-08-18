@@ -48,6 +48,7 @@ COLLISION_TEST_SRC = tests/collision_test.cpp \
 	src/model/Actor.cpp \
 	src/model/Brick.cpp \
 	src/model/Enemy.cpp \
+	src/model/Fireball.cpp \
 	src/model/Flag.cpp \
 	src/model/GameObject.cpp \
 	src/model/Item.cpp \
@@ -60,6 +61,7 @@ PLAYER_MOVEMENT_TEST_APP = $(OBJDIR)/tests/PlayerMovementTest.exe
 PLAYER_MOVEMENT_TEST_SRC = tests/player_movement_test.cpp \
 	src/model/Player.cpp \
 	src/model/Actor.cpp \
+	src/model/Fireball.cpp \
 	src/model/GameObject.cpp \
 	src/model/Item.cpp \
 	src/model/Flag.cpp \

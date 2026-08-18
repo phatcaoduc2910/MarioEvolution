@@ -1,5 +1,6 @@
 #include "view/ActorRenderer.h"
 #include "model/Enemy.h"
+#include "model/Fireball.h"
 #include "model/Player.h"
 #include "model/World.h"
 
@@ -191,7 +192,11 @@ void ActorRenderer::renderEnemies(SDL_Renderer* renderer,
     }
 
     for (const auto& actor : world.getActors()) {
-        if (const auto* goomba = dynamic_cast<const Goomba*>(actor.get())) {
+        if (const auto* fireball =
+                dynamic_cast<const Fireball*>(actor.get())) {
+            renderFireball(renderer, textures, *fireball, offsetX, offsetY);
+        } else if (const auto* goomba =
+                       dynamic_cast<const Goomba*>(actor.get())) {
             renderGoomba(renderer, textures, *goomba, offsetX, offsetY);
         } else if (const auto* koopa = dynamic_cast<const Koopa*>(actor.get())) {
             renderKoopa(renderer, textures, *koopa, offsetX, offsetY);
@@ -200,6 +205,25 @@ void ActorRenderer::renderEnemies(SDL_Renderer* renderer,
             renderPiranha(renderer, textures, *plant, offsetX, offsetY);
         }
     }
+}
+
+void ActorRenderer::renderFireball(SDL_Renderer* renderer,
+                                   const TextureManager& textures,
+                                   const Fireball& fireball,
+                                   int offsetX,
+                                   int offsetY) {
+    if (!fireball.isAlive()) {
+        return;
+    }
+
+    const SDL_Rect destination{
+        static_cast<int>(fireball.getX()) + offsetX,
+        static_cast<int>(fireball.getY()) + offsetY,
+        fireball.getWidth(),
+        fireball.getHeight()
+    };
+    assetRenderer.render(
+        renderer, textures.getTexture("flame"), nullptr, &destination);
 }
 
 void ActorRenderer::renderGoomba(SDL_Renderer* renderer,

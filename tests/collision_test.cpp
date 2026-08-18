@@ -1,6 +1,7 @@
 #include "controller/CollisionSystem.h"
 #include "model/Brick.h"
 #include "model/Enemy.h"
+#include "model/Fireball.h"
 #include "model/LevelData.h"
 #include "model/Player.h"
 #include "model/World.h"
@@ -375,6 +376,54 @@ void testLifeLossPreservesLevelState() {
     assert(fallWorld.getLives() == 2);
     assert(fallWorld.getPlayer().getX() == cameraLeftX);
     assert(fallWorld.getPlayer().getY() == safeY);
+}
+
+void testFireballRequiresFirePowerAndBouncesOnce() {
+    World world;
+    CollisionSystem collisionSystem;
+    addGround(world, 0, 30);
+
+    assert(!world.shootFireball());
+    world.getPlayer().upgradeToFire();
+    assert(world.shootFireball());
+    assert(world.getActors().size() == 1);
+
+    int upwardTransitions = 0;
+    double previousVelocityY = 0.0;
+    for (int index = 0;
+         index < 400 && !world.getActors().empty();
+         ++index) {
+        world.update(kStepSeconds);
+        collisionSystem.update(world, kStepSeconds);
+
+        if (!world.getActors().empty()) {
+            const auto* fireball =
+                dynamic_cast<const Fireball*>(world.getActors().front().get());
+            assert(fireball != nullptr);
+            if (previousVelocityY >= 0.0 && fireball->getVelocityY() < 0.0) {
+                ++upwardTransitions;
+            }
+            previousVelocityY = fireball->getVelocityY();
+        }
+    }
+
+    assert(upwardTransitions == 1);
+    assert(world.getActors().empty());
+}
+
+void testFireballDefeatsEnemy() {
+    World world;
+    CollisionSystem collisionSystem;
+    world.addActor(std::make_unique<Fireball>(
+        300.0, 544.0, Direction::Right));
+    world.addActor(std::make_unique<Goomba>(318.0, 544.0));
+
+    world.update(kStepSeconds);
+    collisionSystem.update(world, kStepSeconds);
+    assert(world.getScore() == 100);
+
+    world.update(0.0);
+    assert(world.getActors().empty());
 }
 
 void testCoinScoreAndTimeBonusApplyOnce() {
@@ -928,6 +977,8 @@ int main() {
     testFallBesideBlock();
     testPlayerSpawnMarker();
     testLifeLossPreservesLevelState();
+    testFireballRequiresFirePowerAndBouncesOnce();
+    testFireballDefeatsEnemy();
     testCoinScoreAndTimeBonusApplyOnce();
     testPlayerHitboxTracksState();
     testStandsOnPlatformEdgeThenFalls();

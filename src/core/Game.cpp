@@ -153,6 +153,7 @@ bool Game::start() {
     }
 
     audioService->load("jump", "assets/audio/sfx/jump.wav");
+    audioService->load("fireball", "assets/audio/sfx/fireball.wav");
     audioService->load("win", "assets/audio/sfx/goal.wav");
     audioService->load("gameover", "assets/audio/sfx/gameover.wav");
     audioService->load("theme", "assets/audio/music/theme.mp3");
@@ -330,6 +331,11 @@ void Game::gameLoop() {
                     if(inputHandler.isPressed(Key::Esc)) {
                         inputHandler.release(Key::Esc);
                         pause();
+                    } else if (event.type == SDL_KEYDOWN &&
+                               key == Key::Fire) {
+                        if (world.shootFireball()) {
+                            audioService->play("fireball");
+                        }
                     } else if (inputHandler.isPressed(Key::Jump)) {
                         Player& player = world.getPlayer();
                         const bool canJump = player.isAlive() && player.isOnGround();

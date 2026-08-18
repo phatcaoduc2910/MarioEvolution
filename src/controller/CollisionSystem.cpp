@@ -3,6 +3,7 @@
 #include "model/Actor.h"
 #include "model/Brick.h"
 #include "model/Enemy.h"
+#include "model/Fireball.h"
 #include "model/Flag.h"
 #include "model/GameObject.h"
 #include "model/Item.h"
@@ -72,8 +73,18 @@ void CollisionSystem::stepActor(
     actor.moveX(dtSeconds);
     const bool blockedByWall = resolveX(actor, world);
 
+    auto* fireball = dynamic_cast<Fireball*>(&actor);
+    if (fireball != nullptr && blockedByWall) {
+        fireball->destroy();
+        return;
+    }
+
     actor.moveY(dtSeconds);
     resolveY(actor, world);
+
+    if (fireball != nullptr) {
+        return;
+    }
 
     auto* enemy = dynamic_cast<Enemy*>(&actor);
     if (enemy == nullptr) {
@@ -158,6 +169,11 @@ void CollisionSystem::resolveY(Actor& actor, World& world) const {
 
         if (movingY > 0.0) {
             actor.placeOnGround(objectBounds.y - actorBounds.height);
+            auto* fireball = dynamic_cast<Fireball*>(&actor);
+            if (fireball != nullptr) {
+                fireball->bounce();
+                return;
+            }
             continue;
         }
 
@@ -238,7 +254,32 @@ void CollisionSystem::resolveInteractions(World& world) const {
         }
     }
 
+    resolveFireballHits(world);
     resolveEnemyHits(world);
+}
+
+void CollisionSystem::resolveFireballHits(World& world) const {
+    const auto& actors = world.getActors();
+
+    for (const auto& projectile : actors) {
+        auto* fireball = dynamic_cast<Fireball*>(projectile.get());
+        if (fireball == nullptr || !fireball->isAlive()) {
+            continue;
+        }
+
+        for (const auto& target : actors) {
+            auto* enemy = dynamic_cast<Enemy*>(target.get());
+            if (enemy == nullptr || !enemy->isAlive() ||
+                !check(*fireball, *enemy)) {
+                continue;
+            }
+
+            enemy->die();
+            fireball->destroy();
+            world.addScore(kEnemyDefeatScore);
+            break;
+        }
+    }
 }
 
 void CollisionSystem::resolveEnemyHits(World& world) const {

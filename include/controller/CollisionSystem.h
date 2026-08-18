@@ -23,5 +23,6 @@ private:
         StaticObject& object,
         World& world) const;
     void resolveInteractions(World& world) const;
+    void resolveFireballHits(World& world) const;
     void resolveEnemyHits(World& world) const;
 };

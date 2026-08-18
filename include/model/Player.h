@@ -2,7 +2,10 @@
 
 #include "Actor.h"
 
+#include <memory>
+
 class Flag;
+class Fireball;
 class Item;
 
 class Player : public Actor {
@@ -37,7 +40,7 @@ public:
     void takeDamage();
     void reviveAt(double reviveX, double reviveY);
     void captureFlag(Flag& flag);
-    void shootFireball();
+    std::unique_ptr<Fireball> shootFireball() const;
 
     void update(double dtSeconds) override;
     void render() override;

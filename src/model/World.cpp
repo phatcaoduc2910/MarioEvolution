@@ -3,6 +3,7 @@
 #include "model/Actor.h"
 #include "model/Brick.h"
 #include "model/Enemy.h"
+#include "model/Fireball.h"
 #include "model/Flag.h"
 #include "model/LevelData.h"
 
@@ -159,6 +160,16 @@ void World::collectCoin(int points) {
     remainingCoins = std::max(0, remainingCoins - 1);
 }
 
+bool World::shootFireball() {
+    std::unique_ptr<Fireball> fireball = player.shootFireball();
+    if (fireball == nullptr) {
+        return false;
+    }
+
+    addActor(std::move(fireball));
+    return true;
+}
+
 
 int World::getScore() const {
     return score;
@@ -239,6 +250,10 @@ void World::update(double dtSeconds, double respawnX) {
     for (auto& actor : actors) {
         if (actor->isAlive()) {
             actor->update(dtSeconds);
+            auto* fireball = dynamic_cast<Fireball*>(actor.get());
+            if (fireball != nullptr && fireball->getY() > killPlaneY) {
+                fireball->destroy();
+            }
         }
     }
 

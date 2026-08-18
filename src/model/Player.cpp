@@ -1,4 +1,5 @@
 #include "model/Player.h"
+#include "model/Fireball.h"
 #include "model/Flag.h"
 #include "model/Item.h"
 
@@ -163,8 +164,16 @@ void Player::captureFlag(Flag& flag) {
     flag.onCapture(*this);
 }
 
-void Player::shootFireball() {
-    // TODO: nối Fireball vào World rồi mới bật phím bắn.
+std::unique_ptr<Fireball> Player::shootFireball() const {
+    if (!isAlive() || state != PlayerState::Fire) {
+        return nullptr;
+    }
+
+    const double fireballX = direction == Direction::Left
+                                 ? x - Fireball::kSize
+                                 : x + width;
+    const double fireballY = y + (height - Fireball::kSize) / 2.0;
+    return std::make_unique<Fireball>(fireballX, fireballY, direction);
 }
 
 void Player::update(double dtSeconds) {
