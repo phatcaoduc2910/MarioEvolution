@@ -20,11 +20,7 @@ bool TextureManager::preload(const std::string& id, const std::string& filePath)
 
 bool TextureManager::backgroundTextureLoad() {
     const std::string backgroundPath = "assets/backgrounds/";
-    bool success = true;
-    success &= preload("background.1", backgroundPath + "level_1/part_1.png");
-    success &= preload("background.2", backgroundPath + "level_1/part_2.png");
-    success &= preload("sky", backgroundPath + "sky.png");
-    return success;
+    return preload("background.game", backgroundPath + "bg_game.png");
 }
 
 bool TextureManager::playerTextureLoad() {

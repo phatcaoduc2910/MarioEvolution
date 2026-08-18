@@ -9,9 +9,8 @@
 namespace {
     constexpr const char* OPENED_BRICK_TEXTURE_ID = "gold";
     constexpr const char* FIRE_FLOWER_TEXTURE_ID = "flower";
-    constexpr const char* SKY_TEXTURE_ID = "sky";
+    constexpr const char* BACKGROUND_TEXTURE_ID = "background.game";
     constexpr const char* MUSHROOM_TEXTURE_ID = "ui.hud.life";
-    constexpr const char* BACKGROUND_LAYER_IDS[]{"background.1", "background.2"};
 
     SDL_Rect destination(const GameObject& object, int offsetX, int offsetY) {
         return {
@@ -53,32 +52,27 @@ void WorldRenderer::renderBackground(SDL_Renderer* renderer,
         return;
     }
 
-    SDL_Texture* sky = textures.getTexture(SKY_TEXTURE_ID);
-    if (sky != nullptr) {
-        const SDL_Rect dst{0, 0, viewWidth, viewHeight};
-        assetRenderer.render(renderer, sky, nullptr, &dst);
+    SDL_Texture* background = textures.getTexture(BACKGROUND_TEXTURE_ID);
+    int textureWidth = 0;
+    int textureHeight = 0;
+    if (background == nullptr ||
+        SDL_QueryTexture(background, nullptr, nullptr,
+                         &textureWidth, &textureHeight) < 0 ||
+        textureWidth <= 0 || textureHeight <= 0) {
+        return;
     }
 
-    int layerX = 0;
-    for (const char* layerId : BACKGROUND_LAYER_IDS) {
-        SDL_Texture* layer = textures.getTexture(layerId);
-        if (layer == nullptr) {
-            continue;
-        }
-
-        int textureWidth = 0;
-        int textureHeight = 0;
-        if (SDL_QueryTexture(layer, nullptr, nullptr,
-                             &textureWidth, &textureHeight) < 0 ||
-            textureHeight <= 0) {
-            continue;
-        }
-
-        const SDL_Rect dst{
-            layerX, 0, textureWidth * viewHeight / textureHeight, viewHeight};
-        assetRenderer.render(renderer, layer, nullptr, &dst);
-        layerX += dst.w;
+    SDL_Rect source{0, 0, textureWidth, textureHeight};
+    if (textureWidth * viewHeight > textureHeight * viewWidth) {
+        source.w = textureHeight * viewWidth / viewHeight;
+        source.x = (textureWidth - source.w) / 2;
+    } else {
+        source.h = textureWidth * viewHeight / viewWidth;
+        source.y = (textureHeight - source.h) / 2;
     }
+
+    const SDL_Rect destination{0, 0, viewWidth, viewHeight};
+    assetRenderer.render(renderer, background, &source, &destination);
 }
 
 void WorldRenderer::render(SDL_Renderer* renderer,
