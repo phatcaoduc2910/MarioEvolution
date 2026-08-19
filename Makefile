@@ -156,7 +156,7 @@ test: test-level-codec test-tile-catalog test-map-editor test-camera \
 test-level-codec: $(LEVEL_CODEC_TEST_APP)
 	./$(LEVEL_CODEC_TEST_APP)
 
-$(LEVEL_CODEC_TEST_APP): $(LEVEL_CODEC_TEST_SRC) assets/maps/level1.map
+$(LEVEL_CODEC_TEST_APP): $(LEVEL_CODEC_TEST_SRC) assets/maps/normal_1.map
 	mkdir -p "$(@D)"
 	$(CXX) $(CXXFLAGS) $(LEVEL_CODEC_TEST_SRC) $(LDFLAGS) -o $@
 

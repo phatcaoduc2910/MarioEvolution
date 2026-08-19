@@ -12,7 +12,7 @@
 #include <string_view>
 
 namespace {
-constexpr const char* kLevelPath = "assets/maps/level_depth.map";
+constexpr const char* kLevelPath = "assets/maps/normal_1.map";
 constexpr const char* kMapDirectory = "assets/maps";
 constexpr int kMapWidth = 25;
 constexpr int kMapHeight = 19;

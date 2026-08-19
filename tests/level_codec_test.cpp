@@ -12,8 +12,8 @@
 
 int main() {
     constexpr int kTileSize = 32;
-    const std::string sourcePath = "assets/maps/level1.map";
-    const std::string copyPath = "builds/tests/level1.roundtrip.map";
+    const std::string sourcePath = "assets/maps/normal_1.map";
+    const std::string copyPath = "builds/tests/normal_1.roundtrip.map";
 
     const LevelData source = LevelCodec::load(sourcePath, kTileSize);
     LevelCodec::save(source, copyPath);
@@ -24,7 +24,7 @@ int main() {
     assert(copy.getTileSize() == source.getTileSize());
     assert(copy.getTiles() == source.getTiles());
 
-    std::array<int, 12> tileCounts{};
+    std::array<int, 14> tileCounts{};
     for (const TileId tileId : copy.getTiles()) {
         assert(tileId < tileCounts.size());
         ++tileCounts[tileId];
