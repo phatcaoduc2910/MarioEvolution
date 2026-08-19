@@ -25,19 +25,23 @@ bool overlaps(const Rectangle& a, const Rectangle& b) {
            a.y + a.height > b.y;
 }
 
-bool isStomp(const Player& player, const Enemy& enemy) {
-    if (player.getVelocityY() <= 0.0) {
+// A4: Stomp là đang rơi VÀ frame trước đáy player còn ở trên đỉnh enemy.
+// Quãng moveY đi trong frame này đúng bằng velocityY * dt (velocityY > 0 nghĩa
+// là resolveY chưa kẹp actor lại), nên trừ ra là có đáy của frame trước; không
+// cần lưu thêm previousBounds.
+bool isStomp(const Player& player, const Enemy& enemy, double dtSeconds) {
+    const double fallSpeed = player.getVelocityY();
+    if (fallSpeed <= 0.0) {
         return false;
     }
 
     const Rectangle playerBounds = player.getBounds();
     const Rectangle enemyBounds = enemy.getBounds();
-    const double playerBottom = playerBounds.y + playerBounds.height;
-    const double verticalPenetration = playerBottom - enemyBounds.y;
+    const double previousPlayerBottom =
+        playerBounds.y + playerBounds.height - fallSpeed * dtSeconds;
 
     return playerBounds.y < enemyBounds.y &&
-           verticalPenetration >= 0.0 &&
-           verticalPenetration <= 14.0;
+           previousPlayerBottom <= enemyBounds.y;
 }
 
 void emitAtBottomCenter(World& world, VisualEventType type,
@@ -80,7 +84,7 @@ void CollisionSystem::update(World& world, double dtSeconds) {
         }
     }
 
-    resolveInteractions(world);
+    resolveInteractions(world, dtSeconds);
 }
 
 // Bước cố định 11 ms cho tốc độ rơi tối đa ra 7.92 px, nhỏ hơn ô 32 px nên
@@ -237,11 +241,14 @@ void CollisionSystem::hitBrickFromBelow(
 
 }
 
-void CollisionSystem::resolveInteractions(World& world) const {
+void CollisionSystem::resolveInteractions(
+    World& world,
+    double dtSeconds
+) const {
     Player& player = world.getPlayer();
 
     if (player.isAlive()) {
-        resolvePlayerInteractions(world, player);
+        resolvePlayerInteractions(world, player, dtSeconds);
     }
 
     resolveFireballHits(world);
@@ -250,7 +257,8 @@ void CollisionSystem::resolveInteractions(World& world) const {
 
 void CollisionSystem::resolvePlayerInteractions(
     World& world,
-    Player& player
+    Player& player,
+    double dtSeconds
 ) const {
     // A2/A6: Flag là vùng kích hoạt nên chỉ xét ở đây, không nằm trong resolve trục.
     for (const auto& object : world.getObjects()) {
@@ -286,12 +294,23 @@ void CollisionSystem::resolvePlayerInteractions(
 
         auto* koopa = dynamic_cast<Koopa*>(enemy);
         const bool wasShellIdle = koopa != nullptr && koopa->isShell();
-        const bool stomped = isStomp(player, *enemy) && enemy->isStompable();
+        // Đọc đỉnh enemy trước khi onStomped đổi kích thước (Koopa thu vào
+        // mai tụt đỉnh xuống 16 px), để đặt lại player đúng mặt vừa dẫm trúng.
+        const double enemyTop = enemy->getBounds().y;
+        const bool stomped =
+            isStomp(player, *enemy, dtSeconds) && enemy->isStompable();
 
         if (stomped) {
             enemy->onStomped(player);
+            // Tách player khỏi vùng chồng ngay trong frame stomp: cú bật chỉ
+            // nhấc ~4 px mỗi frame, còn chồng thì frame sau bị đọc thành cú
+            // chạm ngang và trừ máu oan.
+            player.placeOnGround(enemyTop - player.getBounds().height);
             player.bounceAfterStomp();
-            world.addScore(kEnemyDefeatScore);
+            // Shell đứng yên không bị hạ gục nên không cộng điểm lặp lại.
+            if (!wasShellIdle) {
+                world.addScore(kEnemyDefeatScore);
+            }
         } else {
             enemy->onPlayerContact(player);
         }
@@ -299,7 +318,7 @@ void CollisionSystem::resolvePlayerInteractions(
         if (wasShellIdle && koopa->isSlidingShell()) {
             emitAtBottomCenter(world, VisualEventType::ShellKicked, *enemy,
                                enemy->getDirection());
-        } else if (stomped) {
+        } else if (stomped && !wasShellIdle) {
             emitAtBottomCenter(world, VisualEventType::EnemyStomped, *enemy,
                                enemy->getDirection());
         }

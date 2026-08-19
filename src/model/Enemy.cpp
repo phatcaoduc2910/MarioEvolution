@@ -203,18 +203,31 @@ void Koopa::patrol() {
     velocityX = (direction == Direction::Left) ? -speed : speed;
 }
 
+// Chạm ngang: Walking và ShellSliding đều trừ máu, Shell đứng yên thì bị đá đi.
 void Koopa::onPlayerContact(Player& player) {
-    if (state == EnemyState::Shell) {
-        kick(awayFromPlayer(player, *this));
+    if (state != EnemyState::Shell) {
+        // Enemy::onPlayerContact đã bỏ qua sẵn trạng thái Dead.
+        Enemy::onPlayerContact(player);
         return;
     }
 
-    Enemy::onPlayerContact(player);
+    const Direction slideDirection = awayFromPlayer(player, *this);
+    kick(slideDirection);
+
+    // Tách shell khỏi hộp player ngay trong frame đá: còn chồng thì frame sau
+    // đọc thành cú chạm ngang với shell đang chạy và trừ máu oan.
+    const Rectangle playerBounds = player.getBounds();
+    placeBesideWall(
+        (slideDirection == Direction::Right)
+            ? playerBounds.x + playerBounds.width
+            : playerBounds.x - width);
 }
 
+// Dẫm từ trên: Walking thu vào mai, ShellSliding dừng lại, Shell đứng yên giữ
+// nguyên (player chỉ bật lên, phần bật do CollisionSystem lo).
 void Koopa::onStomped(Player& player) {
-    if (state == EnemyState::Shell) {
-        kick(awayFromPlayer(player, *this));
+    (void)player;
+    if (!alive || state == EnemyState::Dead || state == EnemyState::Shell) {
         return;
     }
 
