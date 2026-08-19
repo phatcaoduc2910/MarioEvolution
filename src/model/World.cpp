@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <stdexcept>
 #include <utility>
 
@@ -17,6 +18,7 @@ constexpr double kIntegratedFixedStepSeconds = 0.011;
 constexpr double kLevelDurationSeconds = 600.0;
 constexpr int kStartingLives = 3;
 constexpr int kTimeBonusPerSecond = 10;
+constexpr std::size_t kMaxPendingVisualEvents = 64;
 }
 
 World::World()
@@ -62,6 +64,7 @@ void World::loadLevel(const LevelData& level) {
     actors.clear();
     objects.clear();
     items.clear();
+    visualEvents.clear();
     // Spawn chỉ đọc từ marker 'P' của LevelData; map thiếu marker giữ chỗ
     // đứng mặc định cũ.
     player = Player(100.0, 550.0 - Player::kSmallHeight);
@@ -165,6 +168,23 @@ void World::collectCoin(int points) {
     remainingCoins = std::max(0, remainingCoins - 1);
 }
 
+void World::emitVisualEvent(VisualEventType type, double x, double y,
+                            Direction direction) {
+    if (visualEvents.size() >= kMaxPendingVisualEvents) {
+        return;
+    }
+
+    visualEvents.push_back({type, x, y, direction});
+}
+
+const std::vector<VisualEvent>& World::getVisualEvents() const {
+    return visualEvents;
+}
+
+void World::clearVisualEvents() {
+    visualEvents.clear();
+}
+
 bool World::shootFireball() {
     std::unique_ptr<Fireball> fireball = player.shootFireball();
     if (fireball == nullptr) {
@@ -238,7 +258,7 @@ void World::update(double dtSeconds, double respawnX) {
         safePlayerY = player.getY();
     }
 
-    if (!gameOver && !levelComplete && dtSeconds > 0.0) {
+    if (!gameOver && !levelComplete && dtSeconds > 0.0 && player.isAlive()) {
         timeRemainingSeconds = std::max(
             0.0, timeRemainingSeconds - dtSeconds);
         if (timeRemainingSeconds <= 0.0) {
@@ -251,10 +271,13 @@ void World::update(double dtSeconds, double respawnX) {
     }
 
     player.update(dtSeconds);
+    if (!player.isAlive()) {
+        player.moveY(dtSeconds);
+    }
 
     for (auto& actor : actors) {
+        actor->update(dtSeconds);
         if (actor->isAlive()) {
-            actor->update(dtSeconds);
             auto* fireball = dynamic_cast<Fireball*>(actor.get());
             if (fireball != nullptr && fireball->getY() > killPlaneY) {
                 fireball->destroy();
@@ -270,10 +293,11 @@ void World::update(double dtSeconds, double respawnX) {
         item->update(dtSeconds);
     }
 
-    if (player.getY() > killPlaneY) {
-        loseLife(safePlayerX, safePlayerY);
-    } else if (!player.isAlive() ||
-               player.getState() == PlayerState::Dead) {
+    if (!player.isAlive()) {
+        if (player.isDeathAnimationFinished()) {
+            loseLife(safePlayerX, safePlayerY);
+        }
+    } else if (player.getY() > killPlaneY) {
         loseLife(safePlayerX, safePlayerY);
     }
 
@@ -282,7 +306,7 @@ void World::update(double dtSeconds, double respawnX) {
             actors.begin(),
             actors.end(),
             [](const std::unique_ptr<Actor>& actor) {
-                return !actor->isAlive();
+                return actor->isRemovable();
             }),
         actors.end());
 

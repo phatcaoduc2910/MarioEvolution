@@ -18,11 +18,16 @@ public:
     virtual bool isDeadlyToEnemies() const;
     void reverseDirection();
 
+    bool isRemovable() const override;
+
     void update(double dtSeconds) override;
 
 protected:
+    void tickDeath(double dtSeconds);
+
     double walkingSpeed;
     EnemyState state;
+    double deathElapsedSeconds;
 };
 
 class Goomba : public Enemy {

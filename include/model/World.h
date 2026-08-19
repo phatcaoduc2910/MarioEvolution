@@ -28,6 +28,11 @@ public:
     void collectCoin(int points);
     bool shootFireball();
 
+    void emitVisualEvent(VisualEventType type, double x, double y,
+                         Direction direction = Direction::Right);
+    const std::vector<VisualEvent>& getVisualEvents() const;
+    void clearVisualEvents();
+
     int getScore() const;
     int getRemainingCoins() const;
     int getTimeRemaining() const;
@@ -47,6 +52,7 @@ private:
     std::vector<std::unique_ptr<Actor>> actors;
     std::vector<std::unique_ptr<StaticObject>> objects;
     std::vector<std::unique_ptr<Item>> items;
+    std::vector<VisualEvent> visualEvents;
     int score;
     int remainingCoins;
     int lives;

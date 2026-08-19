@@ -10,6 +10,7 @@ constexpr double kPiranhaHiddenSeconds = 1.8;
 constexpr double kPiranhaRisingSeconds = 0.45;
 constexpr double kPiranhaExposedSeconds = 1.6;
 constexpr double kPiranhaSinkingSeconds = 0.45;
+constexpr double kEnemyDeathDisplaySeconds = 0.5;
 
 Direction awayFromPlayer(const Player& player, const GameObject& enemy) {
     const double playerCenterX = player.getX() + player.getWidth() / 2.0;
@@ -64,7 +65,8 @@ double risenRatio(PiranhaPhase phase, double phaseElapsedSeconds) {
 Enemy::Enemy(double x, double y, int width, int height)
     : Actor(x, y, width, height),
       walkingSpeed(kWalkingSpeedPixelsPerSecond),
-      state(EnemyState::Walking) {}
+      state(EnemyState::Walking),
+      deathElapsedSeconds(0.0) {}
 
 void Enemy::patrol() {
     if (!alive || state == EnemyState::Dead) {
@@ -95,8 +97,17 @@ bool Enemy::isDeadlyToEnemies() const {
     return false;
 }
 
+bool Enemy::isRemovable() const {
+    return !alive && deathElapsedSeconds >= kEnemyDeathDisplaySeconds;
+}
+
+void Enemy::tickDeath(double dtSeconds) {
+    deathElapsedSeconds += dtSeconds;
+}
+
 void Enemy::update(double dtSeconds) {
     if (!alive) {
+        tickDeath(dtSeconds);
         return;
     }
 
@@ -105,10 +116,15 @@ void Enemy::update(double dtSeconds) {
 }
 
 void Enemy::die() {
+    if (!alive) {
+        return;
+    }
+
     state = EnemyState::Dead;
     alive = false;
     velocityX = 0.0;
     velocityY = 0.0;
+    deathElapsedSeconds = 0.0;
 }
 
 void Enemy::onPlayerContact(Player& player) {
@@ -225,6 +241,7 @@ PiranhaPhase PiranhaPlant::getPhase() const {
 
 void PiranhaPlant::update(double dtSeconds) {
     if (!alive) {
+        tickDeath(dtSeconds);
         return;
     }
 
