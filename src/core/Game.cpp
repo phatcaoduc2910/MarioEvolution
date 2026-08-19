@@ -1,5 +1,6 @@
 #include "core/Game.h"
 
+#include "model/Boss.h"
 #include "service/MapEditorService.h"
 #include "view/UiRenderer.h"
 
@@ -213,6 +214,7 @@ void Game::loadSelectedLevel() {
         levelPaths[selectedLevelIndex]);
     world = World();
     world.loadLevel(mapEditor->getLevel());
+    bossArena.reset();
 }
 
 void Game::selectLevel(int direction) {
@@ -258,6 +260,8 @@ void Game::activateStartMenuAction(StartMenuAction action) {
 void Game::startLevel() {
     world = World();
     world.loadLevel(mapEditor->getLevel());
+    // Retry phải dựng lại boss, hazard và timer từ đầu.
+    bossArena.reset();
     camera.reset();
     currentGameState = Playing;
     audioService->play("theme", true);
@@ -424,6 +428,7 @@ void Game::gameLoop() {
                 const int livesBeforeStep = world.getLives();
                 world.update(kFixedStepSeconds, camera.getX());
                 collisionSystem.update(world, kFixedStepSeconds);
+                bossArena.update(world, kFixedStepSeconds);
                 if (!world.isGameOver() &&
                     world.getLives() < livesBeforeStep) {
                     camera.resetTo(
@@ -477,6 +482,11 @@ void Game::gameLoop() {
             hudRenderer.render(
                 renderer, world.getScore(), world.getRemainingCoins(),
                 world.getTimeRemaining(), world.getLives());
+            if (const GorillaBoss* boss = world.getBoss()) {
+                hudRenderer.renderBossHealth(
+                    renderer, boss->getCurrentHp(), boss->getMaxHp(),
+                    boss->getPhase());
+            }
             break;
         }
         case Editing:{
