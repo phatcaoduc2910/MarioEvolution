@@ -46,6 +46,43 @@ COLLISION_TEST_APP = $(OBJDIR)/tests/CollisionTest.exe
 COLLISION_TEST_SRC = tests/collision_test.cpp \
 	src/controller/CollisionSystem.cpp \
 	src/model/Actor.cpp \
+	src/model/Boss.cpp \
+	src/model/Brick.cpp \
+	src/model/Enemy.cpp \
+	src/model/Fireball.cpp \
+	src/model/Flag.cpp \
+	src/model/GameObject.cpp \
+	src/model/Item.cpp \
+	src/model/LevelData.cpp \
+	src/model/Player.cpp \
+	src/model/StaticObject.cpp \
+	src/model/World.cpp
+
+BOSS_TEST_APP = $(OBJDIR)/tests/BossTest.exe
+BOSS_TEST_SRC = tests/boss_test.cpp \
+	src/controller/BossArenaController.cpp \
+	src/controller/CollisionSystem.cpp \
+	src/service/LevelCodec.cpp \
+	src/model/Actor.cpp \
+	src/model/Boss.cpp \
+	src/model/Brick.cpp \
+	src/model/Enemy.cpp \
+	src/model/Fireball.cpp \
+	src/model/Flag.cpp \
+	src/model/GameObject.cpp \
+	src/model/Item.cpp \
+	src/model/LevelData.cpp \
+	src/model/Player.cpp \
+	src/model/StaticObject.cpp \
+	src/model/World.cpp
+
+BOSS_ACCEPTANCE_APP = $(OBJDIR)/tests/BossAcceptance.exe
+BOSS_ACCEPTANCE_SRC = tests/boss_acceptance_test.cpp \
+	src/controller/BossArenaController.cpp \
+	src/controller/CollisionSystem.cpp \
+	src/service/LevelCodec.cpp \
+	src/model/Actor.cpp \
+	src/model/Boss.cpp \
 	src/model/Brick.cpp \
 	src/model/Enemy.cpp \
 	src/model/Fireball.cpp \
@@ -59,11 +96,13 @@ COLLISION_TEST_SRC = tests/collision_test.cpp \
 
 ANIMATION_TEST_APP = $(OBJDIR)/tests/AnimationTest.exe
 ANIMATION_TEST_SRC = tests/animation_test.cpp \
+	src/view/ActorRenderer.cpp \
 	src/view/SpriteAnimation.cpp \
 	src/view/EffectManager.cpp \
 	src/view/AssetRenderer.cpp \
 	src/view/TextureManager.cpp \
 	src/model/Actor.cpp \
+	src/model/Boss.cpp \
 	src/model/Brick.cpp \
 	src/model/Enemy.cpp \
 	src/model/Fireball.cpp \
@@ -87,7 +126,7 @@ PLAYER_MOVEMENT_TEST_SRC = tests/player_movement_test.cpp \
 
 .PHONY: all create run map-editor run-map-editor \
 	test test-level-codec test-camera test-collision \
-	test-player-movement test-animation \
+	test-player-movement test-animation test-boss test-boss-acceptance \
 	test-tile-catalog test-map-editor clean
 
 all: create
@@ -112,7 +151,7 @@ run-map-editor: create
 	PATH="$(MSYS2_PREFIX)/bin:$$PATH" ./$(APP)
 
 test: test-level-codec test-tile-catalog test-map-editor test-camera \
-	test-collision test-player-movement test-animation
+	test-collision test-player-movement test-animation test-boss
 
 test-level-codec: $(LEVEL_CODEC_TEST_APP)
 	./$(LEVEL_CODEC_TEST_APP)
@@ -163,6 +202,22 @@ test-animation: $(ANIMATION_TEST_APP)
 $(ANIMATION_TEST_APP): $(ANIMATION_TEST_SRC)
 	mkdir -p "$(@D)"
 	$(CXX) $(CXXFLAGS) $(ANIMATION_TEST_SRC) $(LDFLAGS) $(LDLIBS) -o $@
+
+test-boss: $(BOSS_TEST_APP)
+	./$(BOSS_TEST_APP)
+
+$(BOSS_TEST_APP): $(BOSS_TEST_SRC)
+	mkdir -p "$(@D)"
+	$(CXX) $(CXXFLAGS) $(BOSS_TEST_SRC) $(LDFLAGS) $(LDLIBS) -o $@
+
+# Acceptance: bot chỉ dùng input người chơi để hạ boss trên boss_arena.map.
+# Không nằm trong `make test` vì nó là bài kiểm tra tuning, chạy khi chỉnh số.
+test-boss-acceptance: $(BOSS_ACCEPTANCE_APP)
+	./$(BOSS_ACCEPTANCE_APP)
+
+$(BOSS_ACCEPTANCE_APP): $(BOSS_ACCEPTANCE_SRC)
+	mkdir -p "$(@D)"
+	$(CXX) $(CXXFLAGS) $(BOSS_ACCEPTANCE_SRC) $(LDFLAGS) $(LDLIBS) -o $@
 
 clean:
 	@echo "Đang dọn dep..."

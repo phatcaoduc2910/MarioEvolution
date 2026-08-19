@@ -2,17 +2,24 @@
 #include "model/Fireball.h"
 #include "model/Player.h"
 #include "model/World.h"
+#include "view/ActorRenderer.h"
+#include "view/BossAnimations.h"
 #include "view/EffectManager.h"
 #include "view/PlayerAnimationState.h"
 #include "view/SpriteAnimation.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <fstream>
 #include <iostream>
+#include <string>
 
 namespace {
 constexpr double kStepSeconds = 0.011;
 constexpr int kFrameMs = 16;
+constexpr std::size_t kBossFrameCount = 33;
+constexpr int kBossThrowFrameMs = 90;
 
 void testLoopAnimationKeepsCycling() {
     SpriteAnimation animation({"a", "b", "c"}, 100);
@@ -235,22 +242,40 @@ void testGoombaSquishLingersThenIsRemoved() {
 }
 
 void testKoopaWalkShellSlideTransitions() {
-    Player player(0.0, 0.0);
+    // Player dat sat canh trai Koopa de cu cham ngang la that, khong phai goi khan.
+    Player player(80.0, 100.0);
     Koopa koopa(100.0, 100.0, KoopaColor::Green);
 
     assert(koopa.isAlive());
     assert(!koopa.isShell());
     const double walkBottom = koopa.getY() + koopa.getHeight();
 
+    // WALKING + dam -> SHELL_IDLE, day mai giu nguyen cao do.
     koopa.onStomped(player);
     assert(koopa.isShell());
     assert(!koopa.isSlidingShell());
     assert(koopa.getHeight() == Koopa::kShellHeight);
     assert(koopa.getY() + koopa.getHeight() == walkBottom);
 
+    // SHELL_IDLE + dam -> shell giu nguyen; chi player bat len.
     koopa.onStomped(player);
+    assert(koopa.isShell());
+    assert(!koopa.isSlidingShell());
+    assert(!koopa.isDeadlyToEnemies());
+
+    // SHELL_IDLE + cham ngang -> SHELL_MOVING, chay ra xa va roi khoi hop player.
+    koopa.onPlayerContact(player);
     assert(koopa.isSlidingShell());
     assert(koopa.isDeadlyToEnemies());
+    assert(koopa.getDirection() == Direction::Right);
+    assert(koopa.getX() >= player.getBounds().x + player.getBounds().width);
+
+    // SHELL_MOVING + dam -> dung lai thanh SHELL_IDLE.
+    koopa.onStomped(player);
+    assert(koopa.isShell());
+    assert(!koopa.isSlidingShell());
+    assert(!koopa.isDeadlyToEnemies());
+    assert(koopa.getVelocityX() == 0.0);
 }
 
 void testEffectManagerDropsFinishedEffects() {
@@ -282,6 +307,60 @@ void testEffectManagerDropsFinishedEffects() {
     effects.clear();
     assert(effects.activeCount() == 0);
 }
+
+void testBossFrameIdsMatchAssetFiles() {
+    const BossAction actions[] = {
+        BossAction::Idle,   BossAction::WindUpThrow, BossAction::Throw,
+        BossAction::Recover, BossAction::Charge,     BossAction::GroundSlam,
+        BossAction::Hurt,   BossAction::Enraged,     BossAction::Dodge,
+        BossAction::Death
+    };
+
+    std::size_t frameCount = 0;
+    for (BossAction action : actions) {
+        const SpriteAnimation animation = makeBossAnimation(action);
+        assert(!animation.getFrameIds().empty());
+
+        for (const std::string& frameId : animation.getFrameIds()) {
+            // "boss.throw.windup.1" -> "throw_windup_1.png"
+            std::string name = frameId.substr(std::string("boss.").size());
+            std::replace(name.begin(), name.end(), '.', '_');
+
+            std::ifstream asset("assets/enemies/boss_gorilla/" + name + ".png",
+                                std::ios::binary);
+            assert(asset.good());
+            ++frameCount;
+        }
+    }
+    assert(frameCount == kBossFrameCount);
+}
+
+void testBossIdleLoopsAndDeathHoldsLastFrame() {
+    SpriteAnimation idle = makeBossAnimation(BossAction::Idle);
+    idle.update(idle.getTotalDurationMs());
+    assert(!idle.isFinished());
+    assert(idle.getCurrentFrameId() == "boss.idle.1");
+
+    SpriteAnimation death = makeBossAnimation(BossAction::Death);
+    death.update(death.getTotalDurationMs());
+    assert(death.isFinished());
+    assert(death.getCurrentFrameId() == "boss.death.3");
+}
+
+void testBossHookRestartsActionAfterChange() {
+    ActorRenderer renderer;
+
+    renderer.updateBoss(BossAction::Throw, kBossThrowFrameMs);
+    assert(!renderer.isBossAnimationFinished());
+    renderer.updateBoss(BossAction::Throw, kBossThrowFrameMs);
+    assert(renderer.isBossAnimationFinished());
+
+    // Đổi action rồi quay lại phải chạy lại từ đầu chứ không kẹt ở finished.
+    renderer.updateBoss(BossAction::Recover, 0);
+    assert(!renderer.isBossAnimationFinished());
+    renderer.updateBoss(BossAction::Throw, 0);
+    assert(!renderer.isBossAnimationFinished());
+}
 }
 
 int main() {
@@ -297,6 +376,9 @@ int main() {
     testGoombaSquishLingersThenIsRemoved();
     testKoopaWalkShellSlideTransitions();
     testEffectManagerDropsFinishedEffects();
+    testBossFrameIdsMatchAssetFiles();
+    testBossIdleLoopsAndDeathHoldsLastFrame();
+    testBossHookRestartsActionAfterChange();
 
     std::cout << "Animation and effect lifecycle passed\n";
     return 0;
