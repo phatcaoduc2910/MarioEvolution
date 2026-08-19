@@ -16,6 +16,8 @@ public:
     virtual bool isStompable() const;
     virtual bool shouldTurnAtEdge() const;
     virtual bool isDeadlyToEnemies() const;
+    // Boss miễn nhiễm fireball nên luật này phải hỏi từng enemy.
+    virtual bool takesFireballDamage() const;
     void reverseDirection();
 
     bool isRemovable() const override;
@@ -52,6 +54,9 @@ public:
 
     void hideInShell();
     void kick(Direction slideDirection);
+    // Koopa bị boss ném hoặc rơi từ trên: giữ nguyên quỹ đạo tới khi chạm đất.
+    void throwWith(double throwVelocityX, double throwVelocityY);
+    bool isAirborne() const;
 
     void patrol() override;
     void onPlayerContact(Player& player) override;
@@ -61,6 +66,7 @@ public:
 
 private:
     KoopaColor color;
+    bool thrown;
 };
 
 class PiranhaPlant : public Enemy {
@@ -71,6 +77,9 @@ public:
     PiranhaPlant(double x, double mouthY);
 
     PiranhaPhase getPhase() const;
+    // Hazard của boss arena: mọc đúng một vòng rồi tự dọn.
+    void activateOnce();
+    bool isOneShot() const;
 
     void update(double dtSeconds) override;
     void applyGravity(double dtSeconds) override;
@@ -85,4 +94,6 @@ private:
     PiranhaPhase phase;
     double phaseElapsedSeconds;
     double mouthY;
+    bool oneShot;
+    bool hasRisen;
 };

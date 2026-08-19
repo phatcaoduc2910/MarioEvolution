@@ -97,6 +97,10 @@ bool Enemy::isDeadlyToEnemies() const {
     return false;
 }
 
+bool Enemy::takesFireballDamage() const {
+    return true;
+}
+
 bool Enemy::isRemovable() const {
     return !alive && deathElapsedSeconds >= kEnemyDeathDisplaySeconds;
 }
@@ -148,7 +152,8 @@ void Goomba::die() {
 
 Koopa::Koopa(double x, double y, KoopaColor color)
     : Enemy(x, y, kWalkWidth, kWalkHeight),
-      color(color) {
+      color(color),
+      thrown(false) {
     direction = Direction::Left;
 }
 
@@ -178,6 +183,24 @@ void Koopa::hideInShell() {
     velocityX = 0.0;
 }
 
+// Koopa do boss ném hoặc thả từ trên: quỹ đạo giữ nguyên tới khi chạm đất,
+// sau đó nó quay lại là một Koopa bình thường để Mario đạp thành mai.
+void Koopa::throwWith(double throwVelocityX, double throwVelocityY) {
+    if (!alive || state == EnemyState::Dead) {
+        return;
+    }
+
+    thrown = true;
+    onGround = false;
+    velocityX = throwVelocityX;
+    velocityY = throwVelocityY;
+    direction = (throwVelocityX < 0.0) ? Direction::Left : Direction::Right;
+}
+
+bool Koopa::isAirborne() const {
+    return thrown;
+}
+
 void Koopa::kick(Direction slideDirection) {
     if (!alive || state == EnemyState::Dead) {
         return;
@@ -190,6 +213,14 @@ void Koopa::kick(Direction slideDirection) {
 void Koopa::patrol() {
     if (!alive || state == EnemyState::Dead) {
         return;
+    }
+
+    if (thrown) {
+        if (!onGround) {
+            // Giữ vận tốc ngang của cú ném, patrol thường sẽ ghi đè mất.
+            return;
+        }
+        thrown = false;
     }
 
     if (state == EnemyState::Shell) {
@@ -246,10 +277,25 @@ PiranhaPlant::PiranhaPlant(double x, double mouthY)
     : Enemy(x, mouthY, kPlantWidth, 0),
       phase(PiranhaPhase::Hidden),
       phaseElapsedSeconds(0.0),
-      mouthY(mouthY) {}
+      mouthY(mouthY),
+      oneShot(false),
+      hasRisen(false) {}
 
 PiranhaPhase PiranhaPlant::getPhase() const {
     return phase;
+}
+
+// Arena bật hazard: cây chạy Hidden (warning) -> Rising -> Exposed -> Sinking
+// đúng một vòng rồi tự chết để scheduler không phải dọn tay.
+void PiranhaPlant::activateOnce() {
+    oneShot = true;
+    hasRisen = false;
+    phase = PiranhaPhase::Hidden;
+    phaseElapsedSeconds = 0.0;
+}
+
+bool PiranhaPlant::isOneShot() const {
+    return oneShot;
 }
 
 void PiranhaPlant::update(double dtSeconds) {
@@ -262,9 +308,16 @@ void PiranhaPlant::update(double dtSeconds) {
     while (phaseElapsedSeconds >= phaseDurationSeconds(phase)) {
         phaseElapsedSeconds -= phaseDurationSeconds(phase);
         phase = nextPhase(phase);
+        if (phase == PiranhaPhase::Rising) {
+            hasRisen = true;
+        }
     }
 
     applyRisenHeight();
+
+    if (oneShot && hasRisen && phase == PiranhaPhase::Hidden) {
+        die();
+    }
 }
 
 void PiranhaPlant::applyGravity(double) {}
