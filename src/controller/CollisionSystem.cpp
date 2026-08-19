@@ -39,6 +39,26 @@ bool isStomp(const Player& player, const Enemy& enemy) {
            verticalPenetration >= 0.0 &&
            verticalPenetration <= 14.0;
 }
+
+void emitAtBottomCenter(World& world, VisualEventType type,
+                        const GameObject& object, Direction direction) {
+    const Rectangle bounds = object.getBounds();
+    world.emitVisualEvent(
+        type,
+        bounds.x + bounds.width / 2.0,
+        bounds.y + bounds.height,
+        direction);
+}
+
+void emitAtCenter(World& world, VisualEventType type,
+                  const GameObject& object, Direction direction) {
+    const Rectangle bounds = object.getBounds();
+    world.emitVisualEvent(
+        type,
+        bounds.x + bounds.width / 2.0,
+        bounds.y + bounds.height / 2.0,
+        direction);
+}
 }
 
 bool CollisionSystem::check(
@@ -75,6 +95,8 @@ void CollisionSystem::stepActor(
 
     auto* fireball = dynamic_cast<Fireball*>(&actor);
     if (fireball != nullptr && blockedByWall) {
+        emitAtCenter(world, VisualEventType::FireballImpact, *fireball,
+                     fireball->getDirection());
         fireball->destroy();
         return;
     }
@@ -198,7 +220,12 @@ void CollisionSystem::hitBrickFromBelow(
         return;
     }
 
+    const bool wasIntact = !brick->isOpened();
     brick->hitBy(player);
+    if (wasIntact && brick->canBeBroken() && brick->isOpened()) {
+        emitAtCenter(world, VisualEventType::BrickBroken, *brick,
+                     player.getDirection());
+    }
 
     if (auto* specialBrick = dynamic_cast<SpecialBrick*>(brick)) {
         std::unique_ptr<Item> item = specialBrick->releaseItem();
@@ -213,6 +240,18 @@ void CollisionSystem::hitBrickFromBelow(
 void CollisionSystem::resolveInteractions(World& world) const {
     Player& player = world.getPlayer();
 
+    if (player.isAlive()) {
+        resolvePlayerInteractions(world, player);
+    }
+
+    resolveFireballHits(world);
+    resolveEnemyHits(world);
+}
+
+void CollisionSystem::resolvePlayerInteractions(
+    World& world,
+    Player& player
+) const {
     // A2/A6: Flag là vùng kích hoạt nên chỉ xét ở đây, không nằm trong resolve trục.
     for (const auto& object : world.getObjects()) {
         auto* flag = dynamic_cast<Flag*>(object.get());
@@ -245,17 +284,26 @@ void CollisionSystem::resolveInteractions(World& world) const {
             continue;
         }
 
-        if (isStomp(player, *enemy) && enemy->isStompable()) {
+        auto* koopa = dynamic_cast<Koopa*>(enemy);
+        const bool wasShellIdle = koopa != nullptr && koopa->isShell();
+        const bool stomped = isStomp(player, *enemy) && enemy->isStompable();
+
+        if (stomped) {
             enemy->onStomped(player);
             player.bounceAfterStomp();
             world.addScore(kEnemyDefeatScore);
         } else {
             enemy->onPlayerContact(player);
         }
-    }
 
-    resolveFireballHits(world);
-    resolveEnemyHits(world);
+        if (wasShellIdle && koopa->isSlidingShell()) {
+            emitAtBottomCenter(world, VisualEventType::ShellKicked, *enemy,
+                               enemy->getDirection());
+        } else if (stomped) {
+            emitAtBottomCenter(world, VisualEventType::EnemyStomped, *enemy,
+                               enemy->getDirection());
+        }
+    }
 }
 
 void CollisionSystem::resolveFireballHits(World& world) const {
@@ -274,6 +322,8 @@ void CollisionSystem::resolveFireballHits(World& world) const {
                 continue;
             }
 
+            emitAtCenter(world, VisualEventType::FireballImpact, *fireball,
+                         fireball->getDirection());
             enemy->die();
             fireball->destroy();
             world.addScore(kEnemyDefeatScore);
@@ -302,6 +352,8 @@ void CollisionSystem::resolveEnemyHits(World& world) const {
                 continue;
             }
 
+            emitAtCenter(world, VisualEventType::ShellImpact, *victim,
+                         shell->getDirection());
             victim->die();
             world.addScore(kEnemyDefeatScore);
         }
