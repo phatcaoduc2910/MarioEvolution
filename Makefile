@@ -57,6 +57,24 @@ COLLISION_TEST_SRC = tests/collision_test.cpp \
 	src/model/StaticObject.cpp \
 	src/model/World.cpp
 
+ANIMATION_TEST_APP = $(OBJDIR)/tests/AnimationTest.exe
+ANIMATION_TEST_SRC = tests/animation_test.cpp \
+	src/view/SpriteAnimation.cpp \
+	src/view/EffectManager.cpp \
+	src/view/AssetRenderer.cpp \
+	src/view/TextureManager.cpp \
+	src/model/Actor.cpp \
+	src/model/Brick.cpp \
+	src/model/Enemy.cpp \
+	src/model/Fireball.cpp \
+	src/model/Flag.cpp \
+	src/model/GameObject.cpp \
+	src/model/Item.cpp \
+	src/model/LevelData.cpp \
+	src/model/Player.cpp \
+	src/model/StaticObject.cpp \
+	src/model/World.cpp
+
 PLAYER_MOVEMENT_TEST_APP = $(OBJDIR)/tests/PlayerMovementTest.exe
 PLAYER_MOVEMENT_TEST_SRC = tests/player_movement_test.cpp \
 	src/model/Player.cpp \
@@ -69,7 +87,7 @@ PLAYER_MOVEMENT_TEST_SRC = tests/player_movement_test.cpp \
 
 .PHONY: all create run map-editor run-map-editor \
 	test test-level-codec test-camera test-collision \
-	test-player-movement \
+	test-player-movement test-animation \
 	test-tile-catalog test-map-editor clean
 
 all: create
@@ -94,7 +112,7 @@ run-map-editor: create
 	PATH="$(MSYS2_PREFIX)/bin:$$PATH" ./$(APP)
 
 test: test-level-codec test-tile-catalog test-map-editor test-camera \
-	test-collision test-player-movement
+	test-collision test-player-movement test-animation
 
 test-level-codec: $(LEVEL_CODEC_TEST_APP)
 	./$(LEVEL_CODEC_TEST_APP)
@@ -138,6 +156,13 @@ $(PLAYER_MOVEMENT_TEST_APP): $(PLAYER_MOVEMENT_TEST_SRC)
 	mkdir -p "$(@D)"
 	$(CXX) $(CXXFLAGS) $(PLAYER_MOVEMENT_TEST_SRC) \
 		$(LDFLAGS) $(LDLIBS) -o $@
+
+test-animation: $(ANIMATION_TEST_APP)
+	./$(ANIMATION_TEST_APP)
+
+$(ANIMATION_TEST_APP): $(ANIMATION_TEST_SRC)
+	mkdir -p "$(@D)"
+	$(CXX) $(CXXFLAGS) $(ANIMATION_TEST_SRC) $(LDFLAGS) $(LDLIBS) -o $@
 
 clean:
 	@echo "Đang dọn dep..."

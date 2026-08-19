@@ -361,7 +361,13 @@ void testLifeLossPreservesLevelState() {
     const double playerY = world.getPlayer().getY();
     constexpr double cameraLeftX = 256.0;
     world.getPlayer().takeDamage();
+    assert(!world.getPlayer().isAlive());
     world.update(0.0, cameraLeftX);
+    assert(world.getLives() == 3);
+
+    for (int index = 0; index < 400 && world.getLives() == 3; ++index) {
+        world.update(kStepSeconds, cameraLeftX);
+    }
     assert(!world.isGameOver());
     assert(world.getLives() == 2);
     assert(world.getPlayer().isAlive());
@@ -431,6 +437,12 @@ void testFireballDefeatsEnemy() {
     assert(world.getScore() == 100);
 
     world.update(0.0);
+    assert(world.getActors().size() == 1);
+    assert(!world.getActors().front()->isAlive());
+
+    for (int index = 0; index < 200 && !world.getActors().empty(); ++index) {
+        world.update(kStepSeconds);
+    }
     assert(world.getActors().empty());
 }
 
@@ -466,7 +478,14 @@ void testCoinScoreAndTimeBonusApplyOnce() {
     World livesWorld;
     for (int expectedLives = 2; expectedLives >= 0; --expectedLives) {
         livesWorld.getPlayer().takeDamage();
-        livesWorld.update(0.0);
+        assert(!livesWorld.getPlayer().isAlive());
+
+        const int livesBeforeDeath = livesWorld.getLives();
+        for (int index = 0;
+             index < 400 && livesWorld.getLives() == livesBeforeDeath;
+             ++index) {
+            livesWorld.update(kStepSeconds);
+        }
         assert(livesWorld.getLives() == expectedLives);
         assert(livesWorld.isGameOver() == (expectedLives == 0));
         if (expectedLives > 0) {
@@ -723,10 +742,17 @@ void testStompSurvivesAxisResolve() {
     Player& player = world.getPlayer();
     step(world, collisionSystem, 40);
 
-    assert(world.getActors().empty());
+    assert(world.getActors().size() == 1);
+    assert(!world.getActors().front()->isAlive());
     assert(world.getScore() == 100);
     assert(player.isAlive());
     assert(player.getState() == PlayerState::Small);
+
+    for (int index = 0; index < 200 && !world.getActors().empty(); ++index) {
+        step(world, collisionSystem, 1);
+    }
+    assert(world.getActors().empty());
+    assert(world.getScore() == 100);
 }
 
 void testEnemyTurnsAtWall() {
@@ -867,6 +893,10 @@ void testPiranhaCycleNotStompable() {
     assert(fullyExposed);
     assert(plant->getPhase() == PiranhaPhase::Exposed);
     assert(plant->isAlive());
+
+    for (int index = 0; index < 400 && world.getLives() == 3; ++index) {
+        step(world, collisionSystem, 1);
+    }
     assert(player.isAlive());
     assert(world.getLives() == 2);
     assert(world.getScore() == 0);
