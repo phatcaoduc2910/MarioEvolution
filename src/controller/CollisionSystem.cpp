@@ -1,6 +1,7 @@
 #include "controller/CollisionSystem.h"
 
 #include "model/Actor.h"
+#include "model/Boss.h"
 #include "model/Brick.h"
 #include "model/Enemy.h"
 #include "model/Fireball.h"
@@ -343,8 +344,14 @@ void CollisionSystem::resolveFireballHits(World& world) const {
 
             emitAtCenter(world, VisualEventType::FireballImpact, *fireball,
                          fireball->getDirection());
-            enemy->die();
             fireball->destroy();
+
+            // Boss miễn nhiễm fireball: quả cầu tắt nhưng không trừ máu.
+            if (!enemy->takesFireballDamage()) {
+                break;
+            }
+
+            enemy->die();
             world.addScore(kEnemyDefeatScore);
             break;
         }
@@ -368,6 +375,23 @@ void CollisionSystem::resolveEnemyHits(World& world) const {
             auto* victim = dynamic_cast<Enemy*>(target.get());
             if (victim == nullptr || !victim->isAlive() ||
                 victim->isDeadlyToEnemies() || !check(*shell, *victim)) {
+                continue;
+            }
+
+            // Boss chỉ nhận damage qua onShellHit: một shell tối đa một hit,
+            // shell bị né thì trượt tiếp chứ không biến mất.
+            if (auto* boss = dynamic_cast<GorillaBoss*>(victim)) {
+                auto* shellKoopa = dynamic_cast<Koopa*>(attacker.get());
+                if (shellKoopa == nullptr) {
+                    continue;
+                }
+
+                if (boss->onShellHit(*shellKoopa) == BossHitResult::Damaged) {
+                    emitAtCenter(world, VisualEventType::ShellImpact, *boss,
+                                 shell->getDirection());
+                    shellKoopa->die();
+                    world.addScore(kEnemyDefeatScore);
+                }
                 continue;
             }
 
