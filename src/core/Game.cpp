@@ -153,6 +153,8 @@ bool Game::start() {
     }
 
     audioService->load("jump", "assets/audio/sfx/jump.wav");
+    audioService->load("lose_life", "assets/audio/sfx/oh_no.wav");
+    audioService->load("item_pickup", "assets/audio/sfx/item-pick-up.wav");
     audioService->load("win", "assets/audio/sfx/goal.wav");
     audioService->load("gameover", "assets/audio/sfx/gameover.wav");
     audioService->load("theme", "assets/audio/music/theme.mp3");
@@ -415,8 +417,21 @@ void Game::gameLoop() {
                 if (inputHandler.isPressed(Key::Left)) --horizontalInput;
                 if (inputHandler.isPressed(Key::Right)) ++horizontalInput;
                 world.getPlayer().setMoveDirection(horizontalInput);
+                const int livesBeforeUpdate = world.getLives();
                 world.update(kFixedStepSeconds);
                 collisionSystem.update(world, kFixedStepSeconds);
+                const bool collectedItem = std::any_of(
+                    world.getItems().begin(), world.getItems().end(),
+                    [](const std::unique_ptr<Item>& item) {
+                        return item->isCollected();
+                    });
+                if (world.getLives() < livesBeforeUpdate &&
+                    !world.isGameOver()) {
+                    audioService->play("lose_life");
+                }
+                if (collectedItem) {
+                    audioService->play("item_pickup");
+                }
                 if (world.isLevelComplete()) {
                     currentGameState = LevelComplete;
                     audioService->pause("theme");
