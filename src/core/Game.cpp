@@ -447,7 +447,7 @@ void Game::gameLoop() {
             }
             worldRenderer.update(deltaMs);
             actorRenderer.updatePlayer(world.getPlayer(), deltaMs);
-            actorRenderer.updateEnemies(deltaMs);
+            actorRenderer.updateWorld(world, deltaMs);
 
             const LevelData& level = mapEditor->getLevel();
             const int worldWidth = level.getWidth() * level.getTileSize();
@@ -469,6 +469,8 @@ void Game::gameLoop() {
                 renderer, *textureManager, world, offsetX, offsetY);
             actorRenderer.renderEnemies(
                 renderer, *textureManager, world, offsetX, offsetY);
+            actorRenderer.renderEffects(
+                renderer, *textureManager, offsetX, offsetY);
             actorRenderer.renderPlayer(
                 renderer, *textureManager, world.getPlayer(), offsetX, offsetY);
             SDL_RenderSetScale(renderer, 1.0F, 1.0F);
@@ -482,7 +484,7 @@ void Game::gameLoop() {
             mapEditor->render(renderer, *textureManager);
 
             actorRenderer.updatePlayer(world.getPlayer(), deltaMs);
-            actorRenderer.updateEnemies(deltaMs);
+            actorRenderer.updateWorld(world, deltaMs);
             const SDL_Rect viewport = mapEditor->getMapViewport();
             SDL_RenderSetClipRect(renderer, &viewport);
             actorRenderer.renderEnemies(
@@ -516,6 +518,9 @@ void Game::gameLoop() {
                 camera.getOffsetX(), camera.getOffsetY());
             actorRenderer.renderEnemies(
                 renderer, *textureManager, world,
+                camera.getOffsetX(), camera.getOffsetY());
+            actorRenderer.renderEffects(
+                renderer, *textureManager,
                 camera.getOffsetX(), camera.getOffsetY());
             actorRenderer.renderPlayer(
                 renderer,
