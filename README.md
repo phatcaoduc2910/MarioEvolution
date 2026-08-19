@@ -34,9 +34,36 @@ M  MushroomBrick
 F  FlowerBrick
 o  Coin tự do
 g  Goomba
+k  Koopa xanh
+r  Koopa đỏ
+p  Piranha Plant
+P  Điểm spawn của Mario
+G  Boss gorilla
+s  Điểm mọc Piranha của boss arena
 !  Flag
 .  Ô trống
 ```
+
+## Boss battle
+
+`assets/maps/boss_arena.map` là arena của boss gorilla. Boss có 6 HP và chỉ
+nhận damage từ mai rùa đang trượt (`ShellSliding`): boss ném Koopa, Mario đạp
+Koopa thành mai rồi đá ngược lại. Stomp thẳng vào boss và fireball không trừ
+máu, mỗi mai rùa chỉ gây tối đa một damage.
+
+- Phase 1 (HP 6-4): boss chỉ ném Koopa, không né.
+- Phase 2 (HP 3-2): Enraged, thêm Charge và Ground Slam, mỗi đòn có telegraph
+  và recovery.
+- Phase 3 (HP 1): arena bật hazard - Piranha mọc tại các điểm `s` và Koopa rơi
+  từ trên xuống; boss né shell với xác suất 55%, tối đa hai lần liên tiếp.
+- HP 0: hazard dừng, arena dọn Koopa/Piranha rồi chuyển Level Complete sau khi
+  death animation chạy xong.
+
+Thanh HP boss nằm giữa mép trên màn hình và đổi màu khi vào Enraged/Last HP.
+
+`make test-boss` chạy unit test của boss/arena. `make test-boss-acceptance`
+chạy một bot chỉ dùng input người chơi để hạ boss trên arena; chạy lại nó sau
+khi chỉnh các thông số tuning trong `BossArenaController` hoặc `Boss`.
 
 ## Controls
 
