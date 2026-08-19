@@ -1,7 +1,7 @@
 #include "view/TileCatalog.h"
 
 namespace {
-constexpr std::array<TileDefinition, 12> kTileDefinitions{{
+constexpr std::array<TileDefinition, 14> kTileDefinitions{{
     {kEmptyTileId, kEmptyTileId, kManualTileMask,
      nullptr, "EMPTY", false},
     {kStandardBrickTileId, kStandardBrickTileId, kManualTileMask,
@@ -26,11 +26,16 @@ constexpr std::array<TileDefinition, 12> kTileDefinitions{{
     {kFlagTileId, kFlagTileId, kManualTileMask,
      "flag.1", "FLAG", true},
     {kPlayerSpawnTileId, kPlayerSpawnTileId, kManualTileMask,
-     "mario.small.walk.1", "SPAWN", true}
+     "mario.small.walk.1", "SPAWN", true},
+    // Boss arena: 'G' tạo boss, 's' chỉ ghi điểm mọc Piranha cho scheduler.
+    {kBossSpawnTileId, kBossSpawnTileId, kManualTileMask,
+     "boss.idle.1", "BOSS", true},
+    {kPiranhaSpawnPointTileId, kPiranhaSpawnPointTileId, kManualTileMask,
+     "piranha.plant.1", "PIRANHA SPOT", true}
 }};
 }
 
-const std::array<TileDefinition, 12>& tileDefinitions() {
+const std::array<TileDefinition, 14>& tileDefinitions() {
     return kTileDefinitions;
 }
 

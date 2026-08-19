@@ -22,5 +22,5 @@ struct TileDefinition {
     bool paletteVisible;
 };
 
-const std::array<TileDefinition, 12>& tileDefinitions();
+const std::array<TileDefinition, 14>& tileDefinitions();
 const TileDefinition* findTileDefinition(TileId tileId);

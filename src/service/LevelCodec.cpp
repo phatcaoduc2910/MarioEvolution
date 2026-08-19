@@ -22,6 +22,8 @@ TileId decodeTile(char symbol) {
         case 'r': return kKoopaRedTileId;
         case 'p': return kPiranhaTileId;
         case 'P': return kPlayerSpawnTileId;
+        case 'G': return kBossSpawnTileId;
+        case 's': return kPiranhaSpawnPointTileId;
         case '!': return kFlagTileId;
         default:
             throw std::runtime_error(
@@ -43,6 +45,8 @@ char encodeTile(TileId tileId) {
         case kKoopaRedTileId: return 'r';
         case kPiranhaTileId: return 'p';
         case kPlayerSpawnTileId: return 'P';
+        case kBossSpawnTileId: return 'G';
+        case kPiranhaSpawnPointTileId: return 's';
         case kFlagTileId: return '!';
         default:
             throw std::runtime_error(
