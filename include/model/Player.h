@@ -27,6 +27,9 @@ public:
     PlayerState getState() const;
     bool isAlive() const override;
     bool isInvincible() const;
+    bool isDeathAnimationFinished() const;
+    bool isThrowing() const;
+    int getMoveDirection() const;
 
     Rectangle getBounds() const override;
     Rectangle getFeetBounds() const;
@@ -40,7 +43,7 @@ public:
     void takeDamage();
     void reviveAt(double reviveX, double reviveY);
     void captureFlag(Flag& flag);
-    std::unique_ptr<Fireball> shootFireball() const;
+    std::unique_ptr<Fireball> shootFireball();
 
     void update(double dtSeconds) override;
     void render() override;
@@ -52,4 +55,6 @@ private:
     PlayerState state;
     int moveDirection;
     double invincibilityRemainingSeconds;
+    double deathElapsedSeconds;
+    double throwRemainingSeconds;
 };

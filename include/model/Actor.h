@@ -8,10 +8,12 @@ public:
     ~Actor() override = default;
 
     virtual bool isAlive() const;
+    virtual bool isRemovable() const;
     bool isOnGround() const;
     Direction getDirection() const;
     double getVelocityX() const;
     double getVelocityY() const;
+    double getLandingImpactSpeed() const;
 
     virtual void applyGravity(double dtSeconds);
 
@@ -29,4 +31,6 @@ protected:
     Direction direction;
     bool alive;
     bool onGround;
+    double landingImpactSpeed;
+    bool groundedBeforeStep;
 };

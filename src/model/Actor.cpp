@@ -13,11 +13,18 @@ Actor::Actor(double x, double y, int width, int height)
       velocityY(0.0),
       direction(Direction::Right),
       alive(true),
-      onGround(false) {}
+      onGround(false),
+      landingImpactSpeed(0.0),
+      groundedBeforeStep(false) {}
 
 
 bool Actor::isAlive() const {
     return alive;
+}
+
+
+bool Actor::isRemovable() const {
+    return !isAlive();
 }
 
 
@@ -40,6 +47,11 @@ double Actor::getVelocityY() const {
     return velocityY;
 }
 
+
+double Actor::getLandingImpactSpeed() const {
+    return landingImpactSpeed;
+}
+
 void Actor::applyGravity(double dtSeconds) {
     velocityY = std::min(
         velocityY + kGravityPixelsPerSecondSquared * dtSeconds,
@@ -59,6 +71,7 @@ void Actor::moveX(double dtSeconds) {
 void Actor::moveY(double dtSeconds) {
     // Rời chỗ theo trục dọc là mất tiếp đất; chỉ resolve trục Y đặt lại onGround.
     y += velocityY * dtSeconds;
+    groundedBeforeStep = onGround;
     onGround = false;
 }
 
@@ -69,6 +82,9 @@ void Actor::placeBesideWall(double colliderX) {
 
 void Actor::placeOnGround(double colliderY) {
     y += colliderY - getBounds().y;
+    if (!groundedBeforeStep) {
+        landingImpactSpeed = velocityY;
+    }
     velocityY = 0.0;
     onGround = true;
 }

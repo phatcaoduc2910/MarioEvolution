@@ -61,6 +61,21 @@ enum class PiranhaPhase {
     Sinking
 };
 
+enum class VisualEventType {
+    EnemyStomped,
+    ShellKicked,
+    ShellImpact,
+    FireballImpact,
+    BrickBroken
+};
+
+struct VisualEvent {
+    VisualEventType type;
+    double x;
+    double y;
+    Direction direction;
+};
+
 enum class ItemType {
     Coin,
     Mushroom,
