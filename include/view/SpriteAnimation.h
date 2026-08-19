@@ -13,6 +13,7 @@ public:
     bool isFinished() const;
     int getTotalDurationMs() const;
     const std::string& getCurrentFrameId() const;
+    const std::vector<std::string>& getFrameIds() const;
 
 private:
     std::vector<std::string> frameIds;

@@ -49,6 +49,10 @@ int SpriteAnimation::getTotalDurationMs() const {
     return static_cast<int>(frameIds.size()) * frameDurationMs;
 }
 
+const std::vector<std::string>& SpriteAnimation::getFrameIds() const {
+    return frameIds;
+}
+
 const std::string& SpriteAnimation::getCurrentFrameId() const {
     static const std::string empty;
     if (currentFrame >= frameIds.size()) {

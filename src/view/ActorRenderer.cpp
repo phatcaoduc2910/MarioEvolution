@@ -1,4 +1,5 @@
 #include "view/ActorRenderer.h"
+#include "model/Boss.h"
 #include "model/Enemy.h"
 #include "model/Fireball.h"
 #include "model/Player.h"
@@ -10,6 +11,7 @@
 namespace {
 constexpr int kPlayerRenderScale = 1;
 constexpr int kEnemyRenderScale = 1;
+constexpr int kBossRenderScale = 1;
 constexpr Uint32 kDamageBlinkIntervalMs = 100;
 constexpr const char* kGoombaDeathTextureId = "goomba.death";
 
@@ -94,7 +96,19 @@ ActorRenderer::ActorRenderer()
       koopaWalkAnimation({"walk.1", "walk.2"}, 160),
       koopaShellAnimation({"shell.1", "shell.2", "shell.3", "shell.4"}, 80),
       piranhaAnimation({"piranha.plant.1", "piranha.plant.2"}, 260),
+      bossIdleAnimation(makeBossAnimation(BossAction::Idle)),
+      bossThrowWindUpAnimation(
+          makeBossAnimation(BossAction::WindUpThrow)),
+      bossThrowAnimation(makeBossAnimation(BossAction::Throw)),
+      bossRecoverAnimation(makeBossAnimation(BossAction::Recover)),
+      bossChargeAnimation(makeBossAnimation(BossAction::Charge)),
+      bossSlamAnimation(makeBossAnimation(BossAction::GroundSlam)),
+      bossHurtAnimation(makeBossAnimation(BossAction::Hurt)),
+      bossEnragedAnimation(makeBossAnimation(BossAction::Enraged)),
+      bossDodgeAnimation(makeBossAnimation(BossAction::Dodge)),
+      bossDeathAnimation(makeBossAnimation(BossAction::Death)),
       currentState(PlayerAnimationState::Idle),
+      bossAction(BossAction::Idle),
       lastPowerState(PlayerState::Small),
       wasOnGround(false),
       wasAlive(true),
@@ -125,6 +139,37 @@ SpriteAnimation& ActorRenderer::animationFor(PlayerAnimationState state) {
         default:
             return idleAnimation;
     }
+}
+
+SpriteAnimation& ActorRenderer::bossAnimationFor(BossAction action) {
+    switch (action) {
+        case BossAction::WindUpThrow:
+            return bossThrowWindUpAnimation;
+        case BossAction::Throw:
+            return bossThrowAnimation;
+        case BossAction::Recover:
+            return bossRecoverAnimation;
+        case BossAction::Charge:
+            return bossChargeAnimation;
+        case BossAction::GroundSlam:
+            return bossSlamAnimation;
+        case BossAction::Hurt:
+            return bossHurtAnimation;
+        case BossAction::Enraged:
+            return bossEnragedAnimation;
+        case BossAction::Dodge:
+            return bossDodgeAnimation;
+        case BossAction::Death:
+            return bossDeathAnimation;
+        case BossAction::Idle:
+        default:
+            return bossIdleAnimation;
+    }
+}
+
+const SpriteAnimation& ActorRenderer::bossAnimationFor(
+    BossAction action) const {
+    return const_cast<ActorRenderer*>(this)->bossAnimationFor(action);
 }
 
 std::string ActorRenderer::variantPrefix(PlayerState state) {
@@ -213,6 +258,19 @@ void ActorRenderer::updatePlayer(const Player& player, int deltaMs) {
     animationFor(currentState).update(deltaMs);
 }
 
+void ActorRenderer::updateBoss(BossAction action, int deltaMs) {
+    if (action != bossAction) {
+        bossAction = action;
+        bossAnimationFor(bossAction).reset();
+    }
+
+    bossAnimationFor(bossAction).update(deltaMs);
+}
+
+bool ActorRenderer::isBossAnimationFinished() const {
+    return bossAnimationFor(bossAction).isFinished();
+}
+
 void ActorRenderer::applyVisualEvent(const VisualEvent& event) {
     switch (event.type) {
         case VisualEventType::ShellKicked: {
@@ -228,12 +286,20 @@ void ActorRenderer::applyVisualEvent(const VisualEvent& event) {
             break;
         case VisualEventType::ShellImpact:
         case VisualEventType::FireballImpact:
+        case VisualEventType::BossSlamImpact:
             effects.spawnImpact(event.x, event.y);
+            break;
+        case VisualEventType::BossDodge:
+            effects.spawnSmoke(event.x, event.y);
             break;
     }
 }
 
 void ActorRenderer::updateWorld(World& world, int deltaMs) {
+    if (const GorillaBoss* boss = world.getBoss()) {
+        updateBoss(boss->getAction(), deltaMs);
+    }
+
     goombaAnimation.update(deltaMs);
     koopaWalkAnimation.update(deltaMs);
     koopaShellAnimation.update(deltaMs);
@@ -326,8 +392,39 @@ void ActorRenderer::renderEnemies(SDL_Renderer* renderer,
         } else if (const auto* plant =
                        dynamic_cast<const PiranhaPlant*>(actor.get())) {
             renderPiranha(renderer, textures, *plant, offsetX, offsetY);
+        } else if (const auto* boss =
+                       dynamic_cast<const GorillaBoss*>(actor.get())) {
+            renderBoss(renderer, textures, *boss, offsetX, offsetY);
         }
     }
+}
+
+void ActorRenderer::renderBoss(SDL_Renderer* renderer,
+                               const TextureManager& textures,
+                               const GorillaBoss& boss,
+                               int offsetX,
+                               int offsetY) {
+    if (renderer == nullptr) {
+        return;
+    }
+
+    SDL_Texture* texture =
+        textures.getTexture(bossAnimationFor(bossAction).getCurrentFrameId());
+    if (texture == nullptr) {
+        return;
+    }
+
+    SDL_Rect destination{};
+    if (!anchoredDestination(texture, boss, kBossRenderScale,
+                             offsetX, offsetY, destination)) {
+        return;
+    }
+
+    // Sprite sheet vẽ boss quay phải nên chỉ lật khi boss nhìn trái.
+    const SDL_RendererFlip flip = boss.getDirection() == Direction::Left
+                                      ? SDL_FLIP_HORIZONTAL
+                                      : SDL_FLIP_NONE;
+    assetRenderer.render(renderer, texture, nullptr, &destination, flip);
 }
 
 void ActorRenderer::renderEffects(SDL_Renderer* renderer,
