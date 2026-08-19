@@ -5,10 +5,16 @@
 namespace {
 constexpr double kGravityPixelsPerSecondSquared = 1620.0;
 constexpr double kMaxFallSpeedPixelsPerSecond = 720.0;
+
+std::uint32_t nextActorId() {
+    static std::uint32_t counter = 0;
+    return ++counter;
+}
 }
 
 Actor::Actor(double x, double y, int width, int height)
     : GameObject(x, y, width, height),
+      id(nextActorId()),
       velocityX(0.0),
       velocityY(0.0),
       direction(Direction::Right),
@@ -16,6 +22,11 @@ Actor::Actor(double x, double y, int width, int height)
       onGround(false),
       landingImpactSpeed(0.0),
       groundedBeforeStep(false) {}
+
+
+std::uint32_t Actor::getId() const {
+    return id;
+}
 
 
 bool Actor::isAlive() const {
