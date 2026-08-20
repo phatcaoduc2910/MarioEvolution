@@ -1,6 +1,14 @@
 # MarioEvolution
 
-Dự án bài tập lớn môn Lập trình nâng cao (INT2215) do nhóm 9 thực hiện
+MarioEvolution là game platform 2D lấy cảm hứng từ Super Mario, được nhóm 9
+phát triển cho bài tập lớn môn Lập trình nâng cao (INT2215). Người chơi điều
+khiển Mario vượt chướng ngại vật, thu thập vật phẩm, chiến đấu với kẻ địch và
+hoàn thành các màn chơi, bao gồm một boss arena nhiều giai đoạn.
+
+Phạm vi dự án gồm game chơi đơn trên máy tính, hệ thống menu và trạng thái
+game, vật lý và va chạm, camera, đồ họa và âm thanh, bản đồ lưu cục bộ cùng
+map editor tích hợp. Dự án không bao gồm chế độ nhiều người chơi hoặc dịch vụ
+trực tuyến.
 
 ## Thành viên nhóm
 
@@ -13,15 +21,68 @@ Dự án bài tập lớn môn Lập trình nâng cao (INT2215) do nhóm 9 thự
 Nhóm phối hợp tích hợp các module, hoàn thiện tài nguyên, kiểm thử và cân chỉnh
 gameplay trên các màn chơi thường lẫn boss arena.
 
+## Chức năng đã hoàn thành
+
+- Menu chính, chọn map, tạm dừng, chơi lại, game over và màn hình hoàn thành.
+- Điều khiển Mario, nhảy, va chạm, đạp kẻ địch, bắn fireball, thu thập coin và
+  vật phẩm, phá hoặc kích hoạt các loại brick.
+- Goomba, Koopa, Piranha Plant, boss gorilla nhiều giai đoạn và cơ chế chiến
+  đấu bằng mai rùa.
+- Camera theo người chơi, HUD, điểm số, timer, mạng, respawn và lưu điểm khi
+  chơi lại màn.
+- Texture, sprite animation, hiệu ứng, background parallax, âm thanh và điều
+  chỉnh âm lượng.
+- Đọc và chọn map từ file, cùng map editor hỗ trợ tạo, sửa, đổi kích thước,
+  lưu và mở lại bản đồ.
+- Các bài test cho level codec, tile catalog, map editor, camera, collision,
+  chuyển động người chơi, animation và boss battle.
+
 ## Báo cáo và video demo
 
 [Xem báo cáo PDF và video demo trên Google Drive](https://drive.google.com/drive/folders/1ZvscRZjQHWjBlYDBgAc-RJaW6vBpal37?usp=drive_link)
 
-## Build
+## Công nghệ và yêu cầu cài đặt
 
-Toàn bộ game và test dùng Makefile tại thư mục gốc:
+- Ngôn ngữ: C++17.
+- Môi trường mục tiêu: Windows với MSYS2 UCRT64.
+- Công cụ build: GNU Make, GCC/G++ và pkg-config.
+- Thư viện: SDL2, SDL2_image và SDL2_mixer.
 
-```powershell
+Cài [MSYS2](https://www.msys2.org/), mở terminal **MSYS2 UCRT64** rồi chạy:
+
+```bash
+pacman -Syu
+pacman -S --needed make mingw-w64-ucrt-x86_64-gcc \
+  mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-SDL2 \
+  mingw-w64-ucrt-x86_64-SDL2_image mingw-w64-ucrt-x86_64-SDL2_mixer
+```
+
+## Cấu trúc dự án
+
+```text
+MarioEvolution/
+|-- src/       Mã nguồn triển khai
+|-- include/   Header theo từng module
+|-- assets/    Texture, âm thanh và bản đồ
+|-- tests/     Các bài test tự động
+|-- builds/    Object file và chương trình test sau khi build
+|-- Makefile   Cấu hình build, chạy và test
+`-- README.md  Tài liệu dự án
+```
+
+Các module trong `src/` và `include/`:
+
+- `core`: game loop, trạng thái game và các kiểu dữ liệu dùng chung.
+- `controller`: xử lý input, va chạm và điều khiển boss arena.
+- `model`: player, enemy, boss, vật phẩm, đối tượng game và world.
+- `service`: âm thanh, đọc/ghi level và nghiệp vụ map editor.
+- `view`: camera, renderer, UI, HUD, màn hình, texture và animation.
+
+## Build và chạy
+
+Từ thư mục gốc của dự án trong terminal MSYS2 UCRT64, dùng các lệnh:
+
+```bash
 make create
 make run
 make test
@@ -29,7 +90,6 @@ make run-map-editor
 make clean
 ```
 
-Project dùng C++17 trên MSYS2 UCRT64 với SDL2, SDL2_image và SDL2_mixer.
 `make create` tạo `MarioEvolution.exe`; `make run` build nếu cần rồi chạy game.
 
 ## Assets
