@@ -10,12 +10,9 @@ Dự án bài tập lớn môn Lập trình nâng cao (INT2215) do nhóm 9 thự
 | **Nguyễn Đức Toàn (24020327)** | Phát triển model và world, level codec/map editor, hệ thống texture/animation/effect; xây dựng enemy, boss gorilla, boss arena và các bài test gameplay/boss. |
 | **Nguyễn Thanh Trung (24020336)** | Phát triển màn hình menu/pause/kết quả, âm thanh và điều khiển âm lượng; hoàn thiện HUD, background/parallax, giao diện gameplay và hỗ trợ logic brick/item/flag. |
 
-Nhóm phối hợp tích hợp các module, hoàn thiện tài nguyên, kiểm thử và cân chỉnh
-gameplay trên các màn chơi thường lẫn boss arena.
-
 ## Báo cáo và video demo
 
-[Xem báo cáo PDF và video demo trên Google Drive](https://drive.google.com/drive/folders/1ZvscRZjQHWjBlYDBgAc-RJaW6vBpal37?usp=drive_link)
+[Link](https://drive.google.com/drive/folders/1ZvscRZjQHWjBlYDBgAc-RJaW6vBpal37?usp=drive_link)
 
 ## Build
 
