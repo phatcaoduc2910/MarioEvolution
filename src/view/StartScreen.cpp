@@ -31,6 +31,7 @@ namespace{
         int centerY;
     };
 
+    // Tính vị trí các thành phần của menu bắt đầu.
     bool getLayout(SDL_Renderer* renderer, MenuLayout& layout) {
         int screenWidth = 0;
         int screenHeight = 0;
@@ -134,6 +135,7 @@ void StartScreen::render(SDL_Renderer* renderer,
     );
 }
 
+// Di chuyển lựa chọn trong menu theo hướng chỉ định.
 void StartScreen::moveSelection(int direction) {
     constexpr int kActionCount = 3;
     int index = 0;
@@ -149,6 +151,7 @@ StartMenuAction StartScreen::getSelectedAction() const {
     return selectedAction;
 }
 
+// Xác định lựa chọn menu tại vị trí con trỏ.
 StartMenuAction StartScreen::actionAt(SDL_Renderer* renderer,
                                       int x, int y) const {
     MenuLayout layout;
@@ -159,6 +162,7 @@ StartMenuAction StartScreen::actionAt(SDL_Renderer* renderer,
     return StartMenuAction::None;
 }
 
+// Xác định hướng chuyển màn tại vị trí con trỏ.
 int StartScreen::levelDirectionAt(SDL_Renderer* renderer, int x, int y) const {
     MenuLayout layout;
     if (!getLayout(renderer, layout)) return 0;

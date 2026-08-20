@@ -273,6 +273,7 @@ void World::addScore(int points) {
     score += points;
 }
 
+// Cộng điểm và giảm số coin còn lại khi nhặt coin.
 void World::collectCoin(int points) {
     addScore(points);
     remainingCoins = std::max(0, remainingCoins - 1);
@@ -377,6 +378,7 @@ void World::updateBoss() {
     }
 }
 
+// Trừ một mạng và hồi sinh người chơi.
 void World::loseLife(double reviveX, double reviveY) {
     if (gameOver || levelComplete) {
         return;

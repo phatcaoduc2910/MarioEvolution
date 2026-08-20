@@ -36,6 +36,7 @@ void Brick::hitBy(Player& player){
     }
 }
 
+// Cập nhật hiệu ứng gạch nảy sau khi bị đập.
 void Brick::update(double dtSeconds) {
     if (!bumping || dtSeconds <= 0.0) {
         return;
@@ -83,6 +84,7 @@ void Brick::markBroken() {
     solid = false;
 }
 
+// Bắt đầu hiệu ứng gạch nảy.
 void Brick::startBump() {
     if (!bumping) {
         bumping = true;

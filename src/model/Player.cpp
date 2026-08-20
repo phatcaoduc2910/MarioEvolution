@@ -172,6 +172,7 @@ void Player::takeDamage() {
     throwRemainingSeconds = 0.0;
 }
 
+// Hồi sinh người chơi tại vị trí an toàn.
 void Player::reviveAt(double reviveX, double reviveY) {
     x = reviveX;
     y = reviveY;

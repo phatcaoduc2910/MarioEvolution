@@ -36,6 +36,7 @@ const std::unordered_map<char, Glyph> kFont = {
     {'+', {0, 4, 4, 31, 4, 4, 0}},        {':', {0, 4, 0, 0, 4, 0, 0}}
 };
 
+// Tìm mẫu pixel của ký tự cần vẽ.
 const Glyph& findGlyph(char rawCharacter) {
     const char character = static_cast<char>(
         std::toupper(static_cast<unsigned char>(rawCharacter))
@@ -55,6 +56,7 @@ void UiRenderer::fillRect(SDL_Renderer* renderer, const SDL_Rect& rect,
     SDL_RenderFillRect(renderer, &rect);
 }
 
+// Vẽ chuỗi ký tự bằng font pixel.
 void UiRenderer::drawText(SDL_Renderer* renderer, std::string_view text,
                           int x, int y, int scale, SDL_Color color) {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);

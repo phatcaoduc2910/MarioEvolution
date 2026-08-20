@@ -21,6 +21,7 @@ void Flag::onCapture(Player& player) {
     showGameOverMessage();
 }
 
+// Ghi nhận hoàn thành màn chơi.
 void Flag::showGameOverMessage() {
     SDL_Log("Level completed!");
 }
