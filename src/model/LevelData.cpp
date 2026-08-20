@@ -7,9 +7,7 @@
 LevelData::LevelData(int width, int height, int tileSize)
     : width(width),
       height(height),
-      tileSize(tileSize),
-      spawnColumn(0),
-      spawnRow(0) {
+      tileSize(tileSize) {
     if (width <= 0 || height <= 0 || tileSize <= 0) {
         throw std::invalid_argument(
             "Độ dài và kích thước yêu cầu là số dương."
@@ -33,14 +31,6 @@ int LevelData::getHeight() const {
 
 int LevelData::getTileSize() const {
     return tileSize;
-}
-
-int LevelData::getSpawnColumn() const {
-    return spawnColumn;
-}
-
-int LevelData::getSpawnRow() const {
-    return spawnRow;
 }
 
 const std::vector<TileId>& LevelData::getTiles() const {
@@ -67,16 +57,33 @@ TileId LevelData::getTile(int column, int row) const {
 }
 
 void LevelData::setTile(int column, int row, TileId tileId) {
-    tiles[toIndex(column, row)] = tileId;
-}
+    const std::size_t index = toIndex(column, row);
 
-void LevelData::setPlayerSpawn(int column, int row) {
-    if (!isInside(column, row)) {
-        throw std::out_of_range("Người chơi đang sinh ra ở ngoài map.");
+    // Marker mới thay marker cũ: spawn luôn suy ra từ đúng một ô 'P'.
+    if (tileId == kPlayerSpawnTileId) {
+        int oldColumn = 0;
+        int oldRow = 0;
+        if (findPlayerSpawn(oldColumn, oldRow)) {
+            tiles[toIndex(oldColumn, oldRow)] = kEmptyTileId;
+        }
     }
 
-    spawnColumn = column;
-    spawnRow = row;
+    tiles[index] = tileId;
+}
+
+bool LevelData::findPlayerSpawn(int& column, int& row) const {
+    const auto stride = static_cast<std::size_t>(width);
+    for (std::size_t index = 0; index < tiles.size(); ++index) {
+        if (tiles[index] != kPlayerSpawnTileId) {
+            continue;
+        }
+
+        column = static_cast<int>(index % stride);
+        row = static_cast<int>(index / stride);
+        return true;
+    }
+
+    return false;
 }
 
 void LevelData::resize(int newWidth, int newHeight) {
@@ -101,7 +108,5 @@ void LevelData::resize(int newWidth, int newHeight) {
 
     width = newWidth;
     height = newHeight;
-    spawnColumn = std::min(spawnColumn, width - 1);
-    spawnRow = std::min(spawnRow, height - 1);
     tiles = std::move(resized);
 }

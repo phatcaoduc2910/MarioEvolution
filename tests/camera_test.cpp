@@ -25,6 +25,15 @@ int main() {
     assert(camera.getX() == 800);
     assert(camera.getY() == 600);
 
+    camera.resetTo(416);
+    GameObject atRespawn(416.0, 600.0, 32, 48);
+    camera.follow(atRespawn, 1600, 1200);
+    assert(camera.getX() == 416);
+    assert(atRespawn.getX() + camera.getOffsetX() == 0.0);
+
+    camera.follow(nearStart, 1600, 1200);
+    assert(camera.getX() == 416);
+
     camera.reset();
     assert(camera.getX() == 0);
     assert(camera.getY() == 0);

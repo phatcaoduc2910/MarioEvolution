@@ -6,14 +6,20 @@
 
 class SpriteAnimation {
 public:
-    SpriteAnimation(std::vector<std::string> frameIds, int frameDurationMs);
+    SpriteAnimation(std::vector<std::string> frameIds, int frameDurationMs,
+                    bool loop = true);
     void update(int deltaMs);
     void reset();
+    bool isFinished() const;
+    int getTotalDurationMs() const;
     const std::string& getCurrentFrameId() const;
+    const std::vector<std::string>& getFrameIds() const;
 
 private:
     std::vector<std::string> frameIds;
     int frameDurationMs;
     int elapsedMs;
     std::size_t currentFrame;
+    bool loop;
+    bool finished;
 };

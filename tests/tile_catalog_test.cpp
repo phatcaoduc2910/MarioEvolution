@@ -6,7 +6,7 @@
 #include <iostream>
 
 int main() {
-    std::array<bool, 12> seenTileIds{};
+    std::array<bool, 14> seenTileIds{};
     std::size_t paletteTileCount = 0;
 
     for (const TileDefinition& definition : tileDefinitions()) {
@@ -26,14 +26,15 @@ int main() {
         }
     }
 
-    assert(paletteTileCount == 11);
+    assert(paletteTileCount == 13);
     // Brush spawn Goomba phải nằm trong bảng chọn của editor.
     const TileDefinition* goomba = findTileDefinition(kGoombaTileId);
     assert(goomba != nullptr && goomba->paletteVisible);
 
     for (const TileId actorTileId :
          {kKoopaGreenTileId, kKoopaRedTileId, kPiranhaTileId,
-          kFlagTileId, kPlayerSpawnTileId}) {
+          kFlagTileId, kPlayerSpawnTileId, kBossSpawnTileId,
+          kPiranhaSpawnPointTileId}) {
         const TileDefinition* definition = findTileDefinition(actorTileId);
         assert(definition != nullptr && definition->paletteVisible);
         assert(definition->textureId != nullptr);

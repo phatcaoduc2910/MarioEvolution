@@ -1,25 +1,33 @@
 #include "model/Fireball.h"
 
 namespace {
-    constexpr double kFireballSpeedPixelsPerSecond = 420.0;
-    constexpr int kFireballSize = 16;
+constexpr double kFireballSpeedPixelsPerSecond = 420.0;
+constexpr double kBounceVelocityPixelsPerSecond = -320.0;
 }
 
 Fireball::Fireball(double x, double y, Direction dir)
-    :  Actor(x, y, kFireballSize, kFireballSize) {
-        direction = dir;
-        velocityX = (dir == Direction::Left)
-                        ? -kFireballSpeedPixelsPerSecond
-                        : kFireballSpeedPixelsPerSecond;
-        velocityY = 0.0;
-    }
+    : Actor(x, y, kSize, kSize), hasBounced(false) {
+    direction = dir;
+    velocityX = (dir == Direction::Left)
+                    ? -kFireballSpeedPixelsPerSecond
+                    : kFireballSpeedPixelsPerSecond;
+    velocityY = 0.0;
+}
 
 void Fireball::update(double dtSeconds) {
     if (!alive) { return; }
     applyGravity(dtSeconds);
-    // TODO: Fireball chưa nằm trong World nên tự đi, chưa qua CollisionSystem - model/World.
-    moveX(dtSeconds);
-    moveY(dtSeconds);
+}
+
+void Fireball::bounce() {
+    if (hasBounced) {
+        destroy();
+        return;
+    }
+
+    hasBounced = true;
+    velocityY = kBounceVelocityPixelsPerSecond;
+    onGround = false;
 }
 
 void Fireball::destroy() {

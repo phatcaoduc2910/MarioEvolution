@@ -1,5 +1,6 @@
 #include "core/Game.h"
 
+#include "model/Boss.h"
 #include "service/MapEditorService.h"
 #include "view/UiRenderer.h"
 
@@ -11,7 +12,7 @@
 #include <string_view>
 
 namespace {
-constexpr const char* kLevelPath = "assets/maps/level_depth.map";
+constexpr const char* kLevelPath = "assets/maps/normal_1.map";
 constexpr const char* kMapDirectory = "assets/maps";
 constexpr int kMapWidth = 25;
 constexpr int kMapHeight = 19;
@@ -156,6 +157,7 @@ bool Game::start() {
     audioService->load("jump", "assets/audio/sfx/jump.wav");
     audioService->load("lose_life", "assets/audio/sfx/oh_no.wav");
     audioService->load("item_pickup", "assets/audio/sfx/item-pick-up.wav");
+    audioService->load("fireball", "assets/audio/sfx/fireball.wav");
     audioService->load("win", "assets/audio/sfx/goal.wav");
     audioService->load("gameover", "assets/audio/sfx/gameover.wav");
     audioService->load("theme", "assets/audio/music/theme.mp3");
@@ -215,6 +217,7 @@ void Game::loadSelectedLevel() {
         levelPaths[selectedLevelIndex]);
     world = World();
     world.loadLevel(mapEditor->getLevel());
+    bossArena.reset();
 }
 
 void Game::selectLevel(int direction) {
@@ -260,6 +263,8 @@ void Game::activateStartMenuAction(StartMenuAction action) {
 void Game::startLevel() {
     world = World();
     world.loadLevel(mapEditor->getLevel());
+    // Retry phải dựng lại boss, hazard và timer từ đầu.
+    bossArena.reset();
     camera.reset();
     gameplayBackgroundOffset = 0.0;
     currentGameState = Playing;
@@ -334,6 +339,11 @@ void Game::gameLoop() {
                     if(inputHandler.isPressed(Key::Esc)) {
                         inputHandler.release(Key::Esc);
                         pause();
+                    } else if (event.type == SDL_KEYDOWN &&
+                               key == Key::Fire) {
+                        if (world.shootFireball()) {
+                            audioService->play("fireball");
+                        }
                     } else if (inputHandler.isPressed(Key::Jump)) {
                         Player& player = world.getPlayer();
                         const bool canJump = player.isAlive() && player.isOnGround();
@@ -420,16 +430,19 @@ void Game::gameLoop() {
                 if (inputHandler.isPressed(Key::Right)) ++horizontalInput;
                 world.getPlayer().setMoveDirection(horizontalInput);
                 const double playerXBeforeStep = world.getPlayer().getX();
-                const int livesBeforeUpdate = world.getLives();
-                world.update(kFixedStepSeconds);
+                const int livesBeforeStep = world.getLives();
+                world.update(kFixedStepSeconds, camera.getX());
                 collisionSystem.update(world, kFixedStepSeconds);
+                bossArena.update(world, kFixedStepSeconds);
                 const bool collectedItem = std::any_of(
                     world.getItems().begin(), world.getItems().end(),
                     [](const std::unique_ptr<Item>& item) {
                         return item->isCollected();
                     });
-                if (world.getLives() < livesBeforeUpdate &&
-                    !world.isGameOver()) {
+                if (!world.isGameOver() &&
+                    world.getLives() < livesBeforeStep) {
+                    camera.resetTo(
+                        static_cast<int>(world.getPlayer().getX()));
                     audioService->play("lose_life");
                 } else {
                     gameplayBackgroundOffset +=
@@ -457,7 +470,7 @@ void Game::gameLoop() {
             }
             worldRenderer.update(deltaMs);
             actorRenderer.updatePlayer(world.getPlayer(), deltaMs);
-            actorRenderer.updateEnemies(deltaMs);
+            actorRenderer.updateWorld(world, deltaMs);
 
             const LevelData& level = mapEditor->getLevel();
             const int worldWidth = level.getWidth() * level.getTileSize();
@@ -480,12 +493,19 @@ void Game::gameLoop() {
                 renderer, *textureManager, world, offsetX, offsetY);
             actorRenderer.renderEnemies(
                 renderer, *textureManager, world, offsetX, offsetY);
+            actorRenderer.renderEffects(
+                renderer, *textureManager, offsetX, offsetY);
             actorRenderer.renderPlayer(
                 renderer, *textureManager, world.getPlayer(), offsetX, offsetY);
             SDL_RenderSetScale(renderer, 1.0F, 1.0F);
             hudRenderer.render(
                 renderer, world.getScore(), world.getRemainingCoins(),
                 world.getTimeRemaining(), world.getLives());
+            if (const GorillaBoss* boss = world.getBoss()) {
+                hudRenderer.renderBossHealth(
+                    renderer, boss->getCurrentHp(), boss->getMaxHp(),
+                    boss->getPhase());
+            }
             break;
         }
         case Editing:{
@@ -493,7 +513,7 @@ void Game::gameLoop() {
             mapEditor->render(renderer, *textureManager);
 
             actorRenderer.updatePlayer(world.getPlayer(), deltaMs);
-            actorRenderer.updateEnemies(deltaMs);
+            actorRenderer.updateWorld(world, deltaMs);
             const SDL_Rect viewport = mapEditor->getMapViewport();
             SDL_RenderSetClipRect(renderer, &viewport);
             actorRenderer.renderEnemies(
@@ -528,6 +548,9 @@ void Game::gameLoop() {
                 camera.getOffsetX(), camera.getOffsetY());
             actorRenderer.renderEnemies(
                 renderer, *textureManager, world,
+                camera.getOffsetX(), camera.getOffsetY());
+            actorRenderer.renderEffects(
+                renderer, *textureManager,
                 camera.getOffsetX(), camera.getOffsetY());
             actorRenderer.renderPlayer(
                 renderer,

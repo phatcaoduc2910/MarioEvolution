@@ -1,6 +1,7 @@
 #include "controller/CollisionSystem.h"
 #include "model/Brick.h"
 #include "model/Enemy.h"
+#include "model/Fireball.h"
 #include "model/LevelData.h"
 #include "model/Player.h"
 #include "model/World.h"
@@ -319,6 +320,14 @@ void testPlayerSpawnMarker() {
     assert(player.getY() + player.getHeight() == 7.0 * kTileSize);
     assert(!world.isGameOver());
 
+    // Marker thứ hai dời spawn thay vì tạo thêm chỗ spawn.
+    level.setTile(2, 6, kPlayerSpawnTileId);
+    assert(level.getTile(6, 6) == kEmptyTileId);
+    world.loadLevel(level);
+    assert(world.getPlayer().getX() == 2.0 * kTileSize);
+    assert(world.getPlayer().getY() + world.getPlayer().getHeight() ==
+           7.0 * kTileSize);
+
     World withoutMarker;
     LevelData plain(10, 8, kTileSize);
     for (int column = 0; column < 10; ++column) {
@@ -349,14 +358,20 @@ void testLifeLossPreservesLevelState() {
 
     const Actor* enemy = world.getActors().front().get();
     const double enemyX = enemy->getX();
-    const double playerX = world.getPlayer().getX();
     const double playerY = world.getPlayer().getY();
+    constexpr double cameraLeftX = 256.0;
     world.getPlayer().takeDamage();
-    world.update(0.0);
+    assert(!world.getPlayer().isAlive());
+    world.update(0.0, cameraLeftX);
+    assert(world.getLives() == 3);
+
+    for (int index = 0; index < 400 && world.getLives() == 3; ++index) {
+        world.update(kStepSeconds, cameraLeftX);
+    }
     assert(!world.isGameOver());
     assert(world.getLives() == 2);
     assert(world.getPlayer().isAlive());
-    assert(world.getPlayer().getX() == playerX);
+    assert(world.getPlayer().getX() == cameraLeftX);
     assert(world.getPlayer().getY() == playerY);
     assert(world.getScore() == 200);
     assert(world.getRemainingCoins() == 1);
@@ -369,13 +384,66 @@ void testLifeLossPreservesLevelState() {
     assert(world.getLives() == 2);
 
     World fallWorld;
-    const double safeX = fallWorld.getPlayer().getX();
     const double safeY = fallWorld.getPlayer().getY();
     fallWorld.getPlayer().reviveAt(400.0, 1000.0);
-    fallWorld.update(0.0);
+    fallWorld.update(0.0, cameraLeftX);
     assert(fallWorld.getLives() == 2);
-    assert(fallWorld.getPlayer().getX() == safeX);
+    assert(fallWorld.getPlayer().getX() == cameraLeftX);
     assert(fallWorld.getPlayer().getY() == safeY);
+}
+
+void testFireballRequiresFirePowerAndBouncesOnce() {
+    World world;
+    CollisionSystem collisionSystem;
+    addGround(world, 0, 30);
+
+    assert(!world.shootFireball());
+    world.getPlayer().upgradeToFire();
+    assert(world.shootFireball());
+    assert(world.getActors().size() == 1);
+
+    int upwardTransitions = 0;
+    double previousVelocityY = 0.0;
+    for (int index = 0;
+         index < 400 && !world.getActors().empty();
+         ++index) {
+        world.update(kStepSeconds);
+        collisionSystem.update(world, kStepSeconds);
+
+        if (!world.getActors().empty()) {
+            const auto* fireball =
+                dynamic_cast<const Fireball*>(world.getActors().front().get());
+            assert(fireball != nullptr);
+            if (previousVelocityY >= 0.0 && fireball->getVelocityY() < 0.0) {
+                ++upwardTransitions;
+            }
+            previousVelocityY = fireball->getVelocityY();
+        }
+    }
+
+    assert(upwardTransitions == 1);
+    assert(world.getActors().empty());
+}
+
+void testFireballDefeatsEnemy() {
+    World world;
+    CollisionSystem collisionSystem;
+    world.addActor(std::make_unique<Fireball>(
+        300.0, 544.0, Direction::Right));
+    world.addActor(std::make_unique<Goomba>(318.0, 544.0));
+
+    world.update(kStepSeconds);
+    collisionSystem.update(world, kStepSeconds);
+    assert(world.getScore() == 100);
+
+    world.update(0.0);
+    assert(world.getActors().size() == 1);
+    assert(!world.getActors().front()->isAlive());
+
+    for (int index = 0; index < 200 && !world.getActors().empty(); ++index) {
+        world.update(kStepSeconds);
+    }
+    assert(world.getActors().empty());
 }
 
 void testCoinScoreAndTimeBonusApplyOnce() {
@@ -410,7 +478,14 @@ void testCoinScoreAndTimeBonusApplyOnce() {
     World livesWorld;
     for (int expectedLives = 2; expectedLives >= 0; --expectedLives) {
         livesWorld.getPlayer().takeDamage();
-        livesWorld.update(0.0);
+        assert(!livesWorld.getPlayer().isAlive());
+
+        const int livesBeforeDeath = livesWorld.getLives();
+        for (int index = 0;
+             index < 400 && livesWorld.getLives() == livesBeforeDeath;
+             ++index) {
+            livesWorld.update(kStepSeconds);
+        }
         assert(livesWorld.getLives() == expectedLives);
         assert(livesWorld.isGameOver() == (expectedLives == 0));
         if (expectedLives > 0) {
@@ -667,10 +742,17 @@ void testStompSurvivesAxisResolve() {
     Player& player = world.getPlayer();
     step(world, collisionSystem, 40);
 
-    assert(world.getActors().empty());
+    assert(world.getActors().size() == 1);
+    assert(!world.getActors().front()->isAlive());
     assert(world.getScore() == 100);
     assert(player.isAlive());
     assert(player.getState() == PlayerState::Small);
+
+    for (int index = 0; index < 200 && !world.getActors().empty(); ++index) {
+        step(world, collisionSystem, 1);
+    }
+    assert(world.getActors().empty());
+    assert(world.getScore() == 100);
 }
 
 void testEnemyTurnsAtWall() {
@@ -735,6 +817,10 @@ void testKoopaStompBecomesShell() {
     assert(!koopa->isDeadlyToEnemies());
     assert(world.getScore() == 100);
     assert(world.getPlayer().getState() == PlayerState::Small);
+    // Cu dam bat player len va khong kem damage (invincibility van tat).
+    assert(world.getPlayer().isAlive());
+    assert(world.getPlayer().getVelocityY() < 0.0);
+    assert(!world.getPlayer().isInvincible());
 }
 
 void testKoopaShellSlidesAndKillsEnemy() {
@@ -774,6 +860,232 @@ void testKoopaShellSlidesAndKillsEnemy() {
     assert(koopa->getDirection() == Direction::Left);
 }
 
+// Dung san tinh huong chung: Mario roi tu diem spawn xuong Koopa di bo ngay
+// duoi chan va dam no thanh shell dung yen.
+Koopa& stompWalkingKoopa(World& world, CollisionSystem& collisionSystem) {
+    addLowGround(world, 0, 14);
+
+    auto koopaOwner = std::make_unique<Koopa>(
+        kSpawnX, 640.0 - Koopa::kWalkHeight, KoopaColor::Green);
+    Koopa& koopa = *koopaOwner;
+    world.addActor(std::move(koopaOwner));
+
+    for (int index = 0; index < 60 && !koopa.isShell(); ++index) {
+        step(world, collisionSystem, 1);
+    }
+
+    assert(koopa.isShell());
+    return koopa;
+}
+
+// Regression cho bug: bat len roi roi lai dung shell dung yen thi chi bat
+// tiep, khong da shell va tuyet doi khong mat mang.
+void testStompOnIdleShellBouncesWithoutDamage() {
+    World world;
+    CollisionSystem collisionSystem;
+    Koopa& koopa = stompWalkingKoopa(world, collisionSystem);
+    Player& player = world.getPlayer();
+
+    const int livesAfterStomp = world.getLives();
+    const int scoreAfterStomp = world.getScore();
+    int bounces = 0;
+
+    for (int index = 0; index < 400; ++index) {
+        const double fallingBefore = player.getVelocityY();
+        step(world, collisionSystem, 1);
+        if (fallingBefore > 0.0 && player.getVelocityY() < 0.0) {
+            ++bounces;
+        }
+
+        assert(koopa.isShell());
+        assert(!koopa.isSlidingShell());
+        assert(player.isAlive());
+        assert(player.getState() == PlayerState::Small);
+        // Khong co invincibility che: day phai la ket qua cua collision logic.
+        assert(!player.isInvincible());
+        assert(world.getLives() == livesAfterStomp);
+        assert(world.getScore() == scoreAfterStomp);
+    }
+
+    assert(bounces >= 2);
+}
+
+void testSideContactKicksIdleShell() {
+    World world;
+    CollisionSystem collisionSystem;
+    addLowGround(world, 0, 20);
+
+    auto koopaOwner = std::make_unique<Koopa>(
+        320.0, 640.0 - Koopa::kWalkHeight, KoopaColor::Green);
+    Koopa& koopa = *koopaOwner;
+    world.addActor(std::move(koopaOwner));
+
+    Player& player = world.getPlayer();
+    step(world, collisionSystem, 40);
+    assert(player.isOnGround());
+
+    koopa.hideInShell();
+    assert(koopa.isShell());
+
+    bool kicked = false;
+    for (int index = 0; index < 400 && !kicked; ++index) {
+        stepHolding(world, collisionSystem, 1, 1);
+        kicked = koopa.isSlidingShell();
+    }
+
+    assert(kicked);
+    assert(koopa.getDirection() == Direction::Right);
+    assert(player.isAlive());
+    assert(player.getState() == PlayerState::Small);
+    assert(!player.isInvincible());
+    // Shell phai nam ngoai hop player ngay trong frame bi da.
+    assert(koopa.getX() >=
+           player.getBounds().x + player.getBounds().width);
+
+    // Shell chay nhanh hon Mario nen khong quay lai gay damage ngay sau do.
+    for (int index = 0; index < 120; ++index) {
+        step(world, collisionSystem, 1);
+        assert(player.isAlive());
+        assert(player.getState() == PlayerState::Small);
+        assert(!player.isInvincible());
+    }
+}
+
+void testSideContactWithSlidingShellDamages() {
+    World world;
+    CollisionSystem collisionSystem;
+    addLowGround(world, 0, 20);
+
+    auto koopaOwner = std::make_unique<Koopa>(
+        448.0, 640.0 - Koopa::kWalkHeight, KoopaColor::Green);
+    Koopa& koopa = *koopaOwner;
+    world.addActor(std::move(koopaOwner));
+
+    Player& player = world.getPlayer();
+    step(world, collisionSystem, 40);
+    assert(player.isOnGround());
+    player.grow();
+    assert(player.getState() == PlayerState::Big);
+
+    koopa.hideInShell();
+    koopa.kick(Direction::Left);
+    assert(koopa.isSlidingShell());
+
+    bool damaged = false;
+    for (int index = 0; index < 300 && !damaged; ++index) {
+        step(world, collisionSystem, 1);
+        damaged = player.getState() == PlayerState::Small;
+    }
+
+    assert(damaged);
+    assert(player.isAlive());
+    assert(koopa.isSlidingShell());
+}
+
+void testStompStopsSlidingShell() {
+    World world;
+    CollisionSystem collisionSystem;
+    Koopa& koopa = stompWalkingKoopa(world, collisionSystem);
+    Player& player = world.getPlayer();
+
+    // Da shell ngay truoc frame Mario cham lai, de cu dam roi trung shell dang
+    // chay chu khong phai shell dung yen.
+    const double shellTop = koopa.getY();
+    bool kicked = false;
+    for (int index = 0; index < 200 && !kicked; ++index) {
+        step(world, collisionSystem, 1);
+
+        const Rectangle bounds = player.getBounds();
+        if (player.getVelocityY() > 0.0 &&
+            bounds.y + bounds.height >= shellTop - 6.0) {
+            koopa.kick(Direction::Right);
+            kicked = true;
+        }
+    }
+
+    assert(kicked);
+    assert(koopa.isSlidingShell());
+
+    const int scoreBeforeStomp = world.getScore();
+    bool stopped = false;
+    for (int index = 0; index < 4 && !stopped; ++index) {
+        step(world, collisionSystem, 1);
+        stopped = koopa.isShell();
+    }
+
+    assert(stopped);
+    assert(koopa.getVelocityX() == 0.0);
+    assert(!koopa.isDeadlyToEnemies());
+    assert(player.getVelocityY() < 0.0);
+    assert(player.isAlive());
+    assert(player.getState() == PlayerState::Small);
+    assert(!player.isInvincible());
+    assert(world.getScore() == scoreBeforeStomp + 100);
+}
+
+// Goomba giu nguyen luat cu: dam thi chet (testStompSurvivesAxisResolve),
+// cham ngang thi Mario mat mau.
+void testGoombaSideContactStillDamages() {
+    World world;
+    CollisionSystem collisionSystem;
+    addGround(world, 0, 12);
+    world.addActor(std::make_unique<Goomba>(256.0, 544.0));
+
+    Player& player = world.getPlayer();
+    step(world, collisionSystem, 40);
+    assert(player.isOnGround());
+    player.grow();
+    assert(player.getState() == PlayerState::Big);
+
+    bool damaged = false;
+    for (int index = 0; index < 400 && !damaged; ++index) {
+        stepHolding(world, collisionSystem, 1, 1);
+        damaged = player.getState() == PlayerState::Small;
+    }
+
+    assert(damaged);
+    assert(player.isAlive());
+    assert(world.getActors().front()->isAlive());
+    assert(world.getScore() == 0);
+}
+
+// Mot cap va cham chi duoc resolve thanh dung mot ket cuc gameplay: cu dam
+// khong di kem damage o chinh frame do lan cac frame con chong hop sau do.
+void testStompResolvesToSingleOutcomePerFrame() {
+    World world;
+    CollisionSystem collisionSystem;
+    addLowGround(world, 0, 14);
+
+    auto koopaOwner = std::make_unique<Koopa>(
+        kSpawnX, 640.0 - Koopa::kWalkHeight, KoopaColor::Green);
+    Koopa& koopa = *koopaOwner;
+    world.addActor(std::move(koopaOwner));
+
+    Player& player = world.getPlayer();
+    step(world, collisionSystem, 10);
+    player.grow();
+    assert(player.getState() == PlayerState::Big);
+
+    bool becameShell = false;
+    for (int index = 0; index < 200 && !becameShell; ++index) {
+        step(world, collisionSystem, 1);
+        becameShell = koopa.isShell();
+    }
+
+    assert(becameShell);
+    assert(player.getState() == PlayerState::Big);
+    assert(!player.isInvincible());
+    assert(player.getVelocityY() < 0.0);
+    assert(world.getScore() == 100);
+
+    for (int index = 0; index < 300; ++index) {
+        step(world, collisionSystem, 1);
+        assert(koopa.isShell());
+        assert(player.getState() == PlayerState::Big);
+        assert(!player.isInvincible());
+    }
+}
+
 void testPiranhaCycleNotStompable() {
     World world;
     CollisionSystem collisionSystem;
@@ -811,6 +1123,10 @@ void testPiranhaCycleNotStompable() {
     assert(fullyExposed);
     assert(plant->getPhase() == PiranhaPhase::Exposed);
     assert(plant->isAlive());
+
+    for (int index = 0; index < 400 && world.getLives() == 3; ++index) {
+        step(world, collisionSystem, 1);
+    }
     assert(player.isAlive());
     assert(world.getLives() == 2);
     assert(world.getScore() == 0);
@@ -929,6 +1245,8 @@ int main() {
     testFallBesideBlock();
     testPlayerSpawnMarker();
     testLifeLossPreservesLevelState();
+    testFireballRequiresFirePowerAndBouncesOnce();
+    testFireballDefeatsEnemy();
     testCoinScoreAndTimeBonusApplyOnce();
     testPlayerHitboxTracksState();
     testStandsOnPlatformEdgeThenFalls();
@@ -941,6 +1259,12 @@ int main() {
     testEnemyWallAndEdgeSameFrame();
     testKoopaStompBecomesShell();
     testKoopaShellSlidesAndKillsEnemy();
+    testStompOnIdleShellBouncesWithoutDamage();
+    testSideContactKicksIdleShell();
+    testSideContactWithSlidingShellDamages();
+    testStompStopsSlidingShell();
+    testGoombaSideContactStillDamages();
+    testStompResolvesToSingleOutcomePerFrame();
     testRedKoopaTurnsAtEdgeGreenDoesNot();
     testPiranhaCycleNotStompable();
 

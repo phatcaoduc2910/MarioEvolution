@@ -22,6 +22,8 @@ TileId decodeTile(char symbol) {
         case 'r': return kKoopaRedTileId;
         case 'p': return kPiranhaTileId;
         case 'P': return kPlayerSpawnTileId;
+        case 'G': return kBossSpawnTileId;
+        case 's': return kPiranhaSpawnPointTileId;
         case '!': return kFlagTileId;
         default:
             throw std::runtime_error(
@@ -43,6 +45,8 @@ char encodeTile(TileId tileId) {
         case kKoopaRedTileId: return 'r';
         case kPiranhaTileId: return 'p';
         case kPlayerSpawnTileId: return 'P';
+        case kBossSpawnTileId: return 'G';
+        case kPiranhaSpawnPointTileId: return 's';
         case kFlagTileId: return '!';
         default:
             throw std::runtime_error(
@@ -87,7 +91,7 @@ LevelData LevelCodec::load(const std::string& path, int tileSize) {
         tileSize
     );
 
-    bool spawnRecorded = false;
+    bool spawnFound = false;
     for (std::size_t row = 0; row < rows.size(); ++row) {
         if (rows[row].size() != width) {
             throw std::runtime_error("Level rows have different widths: " + path);
@@ -95,17 +99,22 @@ LevelData LevelCodec::load(const std::string& path, int tileSize) {
 
         for (std::size_t column = 0; column < width; ++column) {
             const TileId tileId = decodeTile(rows[row][column]);
+
+            // Map chỉ được có một marker 'P'; file thừa marker là map hỏng.
+            if (tileId == kPlayerSpawnTileId) {
+                if (spawnFound) {
+                    throw std::runtime_error(
+                        "Level defines more than one 'P' spawn marker: " + path
+                    );
+                }
+                spawnFound = true;
+            }
+
             level.setTile(
                 static_cast<int>(column),
                 static_cast<int>(row),
                 tileId
             );
-
-            if (tileId == kPlayerSpawnTileId && !spawnRecorded) {
-                level.setPlayerSpawn(
-                    static_cast<int>(column), static_cast<int>(row));
-                spawnRecorded = true;
-            }
         }
     }
 

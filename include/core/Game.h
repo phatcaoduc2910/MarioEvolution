@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SDL2/SDL.h"
+#include "controller/BossArenaController.h"
 #include "controller/CollisionSystem.h"
 #include "controller/InputHandler.h"
 #include "model/World.h"
@@ -53,6 +54,7 @@ private:
     std::unique_ptr<MapEditorService> mapEditor;
     InputHandler inputHandler;
     CollisionSystem collisionSystem;
+    BossArenaController bossArena;
     Camera camera{
         static_cast<int>(WINDOW_WIDTH / CAMERA_ZOOM),
         static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM),

@@ -1,8 +1,10 @@
 #include "controller/CollisionSystem.h"
 
 #include "model/Actor.h"
+#include "model/Boss.h"
 #include "model/Brick.h"
 #include "model/Enemy.h"
+#include "model/Fireball.h"
 #include "model/Flag.h"
 #include "model/GameObject.h"
 #include "model/Item.h"
@@ -24,19 +26,43 @@ bool overlaps(const Rectangle& a, const Rectangle& b) {
            a.y + a.height > b.y;
 }
 
-bool isStomp(const Player& player, const Enemy& enemy) {
-    if (player.getVelocityY() <= 0.0) {
+// A4: Stomp là đang rơi VÀ frame trước đáy player còn ở trên đỉnh enemy.
+// Quãng moveY đi trong frame này đúng bằng velocityY * dt (velocityY > 0 nghĩa
+// là resolveY chưa kẹp actor lại), nên trừ ra là có đáy của frame trước; không
+// cần lưu thêm previousBounds.
+bool isStomp(const Player& player, const Enemy& enemy, double dtSeconds) {
+    const double fallSpeed = player.getVelocityY();
+    if (fallSpeed <= 0.0) {
         return false;
     }
 
     const Rectangle playerBounds = player.getBounds();
     const Rectangle enemyBounds = enemy.getBounds();
-    const double playerBottom = playerBounds.y + playerBounds.height;
-    const double verticalPenetration = playerBottom - enemyBounds.y;
+    const double previousPlayerBottom =
+        playerBounds.y + playerBounds.height - fallSpeed * dtSeconds;
 
     return playerBounds.y < enemyBounds.y &&
-           verticalPenetration >= 0.0 &&
-           verticalPenetration <= 14.0;
+           previousPlayerBottom <= enemyBounds.y;
+}
+
+void emitAtBottomCenter(World& world, VisualEventType type,
+                        const GameObject& object, Direction direction) {
+    const Rectangle bounds = object.getBounds();
+    world.emitVisualEvent(
+        type,
+        bounds.x + bounds.width / 2.0,
+        bounds.y + bounds.height,
+        direction);
+}
+
+void emitAtCenter(World& world, VisualEventType type,
+                  const GameObject& object, Direction direction) {
+    const Rectangle bounds = object.getBounds();
+    world.emitVisualEvent(
+        type,
+        bounds.x + bounds.width / 2.0,
+        bounds.y + bounds.height / 2.0,
+        direction);
 }
 }
 
@@ -59,7 +85,7 @@ void CollisionSystem::update(World& world, double dtSeconds) {
         }
     }
 
-    resolveInteractions(world);
+    resolveInteractions(world, dtSeconds);
 }
 
 // Bước cố định 11 ms cho tốc độ rơi tối đa ra 7.92 px, nhỏ hơn ô 32 px nên
@@ -72,8 +98,20 @@ void CollisionSystem::stepActor(
     actor.moveX(dtSeconds);
     const bool blockedByWall = resolveX(actor, world);
 
+    auto* fireball = dynamic_cast<Fireball*>(&actor);
+    if (fireball != nullptr && blockedByWall) {
+        emitAtCenter(world, VisualEventType::FireballImpact, *fireball,
+                     fireball->getDirection());
+        fireball->destroy();
+        return;
+    }
+
     actor.moveY(dtSeconds);
     resolveY(actor, world);
+
+    if (fireball != nullptr) {
+        return;
+    }
 
     auto* enemy = dynamic_cast<Enemy*>(&actor);
     if (enemy == nullptr) {
@@ -158,6 +196,11 @@ void CollisionSystem::resolveY(Actor& actor, World& world) const {
 
         if (movingY > 0.0) {
             actor.placeOnGround(objectBounds.y - actorBounds.height);
+            auto* fireball = dynamic_cast<Fireball*>(&actor);
+            if (fireball != nullptr) {
+                fireball->bounce();
+                return;
+            }
             continue;
         }
 
@@ -182,7 +225,12 @@ void CollisionSystem::hitBrickFromBelow(
         return;
     }
 
+    const bool wasIntact = !brick->isOpened();
     brick->hitBy(player);
+    if (wasIntact && brick->canBeBroken() && brick->isOpened()) {
+        emitAtCenter(world, VisualEventType::BrickBroken, *brick,
+                     player.getDirection());
+    }
 
     if (auto* specialBrick = dynamic_cast<SpecialBrick*>(brick)) {
         std::unique_ptr<Item> item = specialBrick->releaseItem();
@@ -194,9 +242,25 @@ void CollisionSystem::hitBrickFromBelow(
 
 }
 
-void CollisionSystem::resolveInteractions(World& world) const {
+void CollisionSystem::resolveInteractions(
+    World& world,
+    double dtSeconds
+) const {
     Player& player = world.getPlayer();
 
+    if (player.isAlive()) {
+        resolvePlayerInteractions(world, player, dtSeconds);
+    }
+
+    resolveFireballHits(world);
+    resolveEnemyHits(world);
+}
+
+void CollisionSystem::resolvePlayerInteractions(
+    World& world,
+    Player& player,
+    double dtSeconds
+) const {
     // A2/A6: Flag là vùng kích hoạt nên chỉ xét ở đây, không nằm trong resolve trục.
     for (const auto& object : world.getObjects()) {
         auto* flag = dynamic_cast<Flag*>(object.get());
@@ -229,16 +293,69 @@ void CollisionSystem::resolveInteractions(World& world) const {
             continue;
         }
 
-        if (isStomp(player, *enemy) && enemy->isStompable()) {
+        auto* koopa = dynamic_cast<Koopa*>(enemy);
+        const bool wasShellIdle = koopa != nullptr && koopa->isShell();
+        // Đọc đỉnh enemy trước khi onStomped đổi kích thước (Koopa thu vào
+        // mai tụt đỉnh xuống 16 px), để đặt lại player đúng mặt vừa dẫm trúng.
+        const double enemyTop = enemy->getBounds().y;
+        const bool stomped =
+            isStomp(player, *enemy, dtSeconds) && enemy->isStompable();
+
+        if (stomped) {
             enemy->onStomped(player);
+            // Tách player khỏi vùng chồng ngay trong frame stomp: cú bật chỉ
+            // nhấc ~4 px mỗi frame, còn chồng thì frame sau bị đọc thành cú
+            // chạm ngang và trừ máu oan.
+            player.placeOnGround(enemyTop - player.getBounds().height);
             player.bounceAfterStomp();
-            world.addScore(kEnemyDefeatScore);
+            // Shell đứng yên không bị hạ gục nên không cộng điểm lặp lại.
+            if (!wasShellIdle) {
+                world.addScore(kEnemyDefeatScore);
+            }
         } else {
             enemy->onPlayerContact(player);
         }
-    }
 
-    resolveEnemyHits(world);
+        if (wasShellIdle && koopa->isSlidingShell()) {
+            emitAtBottomCenter(world, VisualEventType::ShellKicked, *enemy,
+                               enemy->getDirection());
+        } else if (stomped && !wasShellIdle) {
+            emitAtBottomCenter(world, VisualEventType::EnemyStomped, *enemy,
+                               enemy->getDirection());
+        }
+    }
+}
+
+void CollisionSystem::resolveFireballHits(World& world) const {
+    const auto& actors = world.getActors();
+
+    for (const auto& projectile : actors) {
+        auto* fireball = dynamic_cast<Fireball*>(projectile.get());
+        if (fireball == nullptr || !fireball->isAlive()) {
+            continue;
+        }
+
+        for (const auto& target : actors) {
+            auto* enemy = dynamic_cast<Enemy*>(target.get());
+            if (enemy == nullptr || !enemy->isAlive() ||
+                !check(*fireball, *enemy)) {
+                continue;
+            }
+
+            emitAtCenter(world, VisualEventType::FireballImpact, *fireball,
+                         fireball->getDirection());
+            fireball->destroy();
+
+            // Boss miễn nhiễm fireball: quả cầu tắt nhưng không trừ máu.
+            if (!enemy->takesFireballDamage()) {
+                break;
+            }
+
+            enemy->die();
+            world.addScore(kEnemyDefeatScore);
+            break;
+        }
+    }
 }
 
 void CollisionSystem::resolveEnemyHits(World& world) const {
@@ -261,6 +378,25 @@ void CollisionSystem::resolveEnemyHits(World& world) const {
                 continue;
             }
 
+            // Boss chỉ nhận damage qua onShellHit: một shell tối đa một hit,
+            // shell bị né thì trượt tiếp chứ không biến mất.
+            if (auto* boss = dynamic_cast<GorillaBoss*>(victim)) {
+                auto* shellKoopa = dynamic_cast<Koopa*>(attacker.get());
+                if (shellKoopa == nullptr) {
+                    continue;
+                }
+
+                if (boss->onShellHit(*shellKoopa) == BossHitResult::Damaged) {
+                    emitAtCenter(world, VisualEventType::ShellImpact, *boss,
+                                 shell->getDirection());
+                    shellKoopa->die();
+                    world.addScore(kEnemyDefeatScore);
+                }
+                continue;
+            }
+
+            emitAtCenter(world, VisualEventType::ShellImpact, *victim,
+                         shell->getDirection());
             victim->die();
             world.addScore(kEnemyDefeatScore);
         }

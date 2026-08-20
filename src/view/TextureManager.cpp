@@ -109,6 +109,53 @@ bool TextureManager::enemyTextureLoad() {
     return success;
 }
 
+bool TextureManager::bossTextureLoad() {
+    const std::string bossPath = "assets/enemies/boss_gorilla/";
+    bool success = true;
+    // Idle
+    success &= preload("boss.idle.1", bossPath + "idle_1.png");
+    success &= preload("boss.idle.2", bossPath + "idle_2.png");
+    success &= preload("boss.idle.3", bossPath + "idle_3.png");
+    // Ném Koopa
+    success &= preload("boss.throw.windup.1", bossPath + "throw_windup_1.png");
+    success &= preload("boss.throw.windup.2", bossPath + "throw_windup_2.png");
+    success &= preload("boss.throw.1", bossPath + "throw_1.png");
+    success &= preload("boss.throw.2", bossPath + "throw_2.png");
+    success &= preload("boss.recover.1", bossPath + "recover_1.png");
+    success &= preload("boss.recover.2", bossPath + "recover_2.png");
+    // Charge
+    success &= preload("boss.charge.1", bossPath + "charge_1.png");
+    success &= preload("boss.charge.2", bossPath + "charge_2.png");
+    success &= preload("boss.charge.3", bossPath + "charge_3.png");
+    success &= preload("boss.charge.4", bossPath + "charge_4.png");
+    // Ground slam
+    success &= preload("boss.slam.1", bossPath + "slam_1.png");
+    success &= preload("boss.slam.2", bossPath + "slam_2.png");
+    success &= preload("boss.slam.3", bossPath + "slam_3.png");
+    success &= preload("boss.slam.4", bossPath + "slam_4.png");
+    success &= preload("boss.slam.5", bossPath + "slam_5.png");
+    // Hurt
+    success &= preload("boss.hurt.1", bossPath + "hurt_1.png");
+    success &= preload("boss.hurt.2", bossPath + "hurt_2.png");
+    // Enraged
+    success &= preload("boss.enraged.1", bossPath + "enraged_1.png");
+    success &= preload("boss.enraged.2", bossPath + "enraged_2.png");
+    success &= preload("boss.enraged.3", bossPath + "enraged_3.png");
+    success &= preload("boss.enraged.4", bossPath + "enraged_4.png");
+    // Dodge
+    success &= preload("boss.dodge.1", bossPath + "dodge_1.png");
+    success &= preload("boss.dodge.2", bossPath + "dodge_2.png");
+    success &= preload("boss.dodge.3", bossPath + "dodge_3.png");
+    success &= preload("boss.dodge.4", bossPath + "dodge_4.png");
+    success &= preload("boss.dodge.5", bossPath + "dodge_5.png");
+    success &= preload("boss.dodge.6", bossPath + "dodge_6.png");
+    // Death
+    success &= preload("boss.death.1", bossPath + "death_1.png");
+    success &= preload("boss.death.2", bossPath + "death_2.png");
+    success &= preload("boss.death.3", bossPath + "death_3.png");
+    return success;
+}
+
 bool TextureManager::itemTextureLoad() {
     const std::string itemPath = "assets/items/";
     bool success = true;
@@ -250,6 +297,7 @@ bool TextureManager::gameTextureLoad() {
     success &= playerTextureLoad();
     success &= effectTextureLoad();
     success &= enemyTextureLoad();
+    success &= bossTextureLoad();
     success &= itemTextureLoad();
     success &= flagTextureLoad();
     success &= tileTextureLoad();

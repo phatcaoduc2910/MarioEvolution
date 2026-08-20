@@ -1,4 +1,5 @@
 #include "model/Player.h"
+#include "model/Fireball.h"
 #include "model/Flag.h"
 #include "model/Item.h"
 
@@ -13,13 +14,28 @@ constexpr double kAccelerationPixelsPerSecondSquared = 1200.0;
 constexpr double kDecelerationPixelsPerSecondSquared = 800.0;
 constexpr double kInvincibilityDurationSeconds = 1.5;
 constexpr double kTimerEpsilonSeconds = 1e-9;
+constexpr double kDeathHopVelocityPixelsPerSecond = -420.0;
+constexpr double kDeathSequenceSeconds = 1.2;
+constexpr double kThrowAnimationSeconds = 0.24;
+
+double tickDown(double remainingSeconds, double dtSeconds) {
+    if (remainingSeconds <= 0.0) {
+        return 0.0;
+    }
+    if (dtSeconds >= remainingSeconds - kTimerEpsilonSeconds) {
+        return 0.0;
+    }
+    return remainingSeconds - dtSeconds;
+}
 }
 
 Player::Player(double x, double y)
     : Actor(x, y, kBodyWidth, kSmallHeight),
       state(PlayerState::Small),
       moveDirection(0),
-      invincibilityRemainingSeconds(0.0) {
+      invincibilityRemainingSeconds(0.0),
+      deathElapsedSeconds(0.0),
+      throwRemainingSeconds(0.0) {
     SDL_Log("Player created at x=%.2f, y=%.2f", x, y);
 }
 
@@ -46,6 +62,18 @@ bool Player::isAlive() const {
 
 bool Player::isInvincible() const {
     return invincibilityRemainingSeconds > 0.0;
+}
+
+bool Player::isDeathAnimationFinished() const {
+    return !isAlive() && deathElapsedSeconds >= kDeathSequenceSeconds;
+}
+
+bool Player::isThrowing() const {
+    return throwRemainingSeconds > 0.0;
+}
+
+int Player::getMoveDirection() const {
+    return moveDirection;
 }
 
 Rectangle Player::getBounds() const {
@@ -132,10 +160,16 @@ void Player::takeDamage() {
     } else {
         state = PlayerState::Dead;
         invincibilityRemainingSeconds = 0.0;
+        throwRemainingSeconds = 0.0;
         moveDirection = 0;
         velocityX = 0.0;
-        velocityY = 0.0;
+        velocityY = kDeathHopVelocityPixelsPerSecond;
+        deathElapsedSeconds = 0.0;
+        onGround = false;
+        return;
     }
+
+    throwRemainingSeconds = 0.0;
 }
 
 void Player::reviveAt(double reviveX, double reviveY) {
@@ -147,6 +181,8 @@ void Player::reviveAt(double reviveX, double reviveY) {
     velocityX = 0.0;
     velocityY = 0.0;
     onGround = false;
+    deathElapsedSeconds = 0.0;
+    throwRemainingSeconds = 0.0;
     startInvincibility();
 }
 
@@ -163,23 +199,31 @@ void Player::captureFlag(Flag& flag) {
     flag.onCapture(*this);
 }
 
-void Player::shootFireball() {
-    // TODO: nối Fireball vào World rồi mới bật phím bắn.
+std::unique_ptr<Fireball> Player::shootFireball() {
+    if (!isAlive() || state != PlayerState::Fire) {
+        return nullptr;
+    }
+
+    throwRemainingSeconds = kThrowAnimationSeconds;
+
+    const double fireballX = direction == Direction::Left
+                                 ? x - Fireball::kSize
+                                 : x + width;
+    const double fireballY = y + (height - Fireball::kSize) / 2.0;
+    return std::make_unique<Fireball>(fireballX, fireballY, direction);
 }
 
 void Player::update(double dtSeconds) {
     if (!isAlive()) {
+        deathElapsedSeconds += dtSeconds;
+        velocityX = 0.0;
+        applyGravity(dtSeconds);
         return;
     }
 
-    if (invincibilityRemainingSeconds > 0.0) {
-        if (dtSeconds >=
-            invincibilityRemainingSeconds - kTimerEpsilonSeconds) {
-            invincibilityRemainingSeconds = 0.0;
-        } else {
-            invincibilityRemainingSeconds -= dtSeconds;
-        }
-    }
+    invincibilityRemainingSeconds =
+        tickDown(invincibilityRemainingSeconds, dtSeconds);
+    throwRemainingSeconds = tickDown(throwRemainingSeconds, dtSeconds);
 
     // moveDirection chỉ là ý định; ở đây đổi thành vận tốc, còn dời vị trí
     // theo từng trục là việc của CollisionSystem qua moveX/moveY.

@@ -16,6 +16,9 @@ inline constexpr TileId kKoopaGreenTileId = 8;
 inline constexpr TileId kKoopaRedTileId = 9;
 inline constexpr TileId kPiranhaTileId = 10;
 inline constexpr TileId kPlayerSpawnTileId = 11;
+inline constexpr TileId kBossSpawnTileId = 12;
+// Điểm mọc Piranha của boss arena: chỉ ghi vị trí, hazard do arena bật ở Phase 3.
+inline constexpr TileId kPiranhaSpawnPointTileId = 13;
 
 struct Rectangle {
     double x;
@@ -59,6 +62,57 @@ enum class PiranhaPhase {
     Rising,
     Exposed,
     Sinking
+};
+
+enum class VisualEventType {
+    EnemyStomped,
+    ShellKicked,
+    ShellImpact,
+    FireballImpact,
+    BrickBroken,
+    BossSlamImpact,
+    BossDodge
+};
+
+// Boss gorilla: HP 6-4 Phase1, 3-2 Phase2 (Enraged), 1 Phase3, 0 Dead.
+enum class BossPhase {
+    Phase1,
+    Phase2,
+    Phase3,
+    Dead
+};
+
+enum class BossAction {
+    Idle,
+    WindUpThrow,
+    Throw,
+    Recover,
+    Charge,
+    GroundSlam,
+    Hurt,
+    Enraged,
+    Dodge,
+    Death
+};
+
+// Mọi đòn của boss đều đi Prepare (telegraph) -> Active -> Recover.
+enum class BossAttackStage {
+    Prepare,
+    Active,
+    Recover
+};
+
+enum class BossHitResult {
+    Ignored,
+    Dodged,
+    Damaged
+};
+
+struct VisualEvent {
+    VisualEventType type;
+    double x;
+    double y;
+    Direction direction;
 };
 
 enum class ItemType {

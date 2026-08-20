@@ -100,6 +100,13 @@ std::string mapName(const std::string& path) {
     return std::filesystem::path(path).stem().string();
 }
 
+// Map thiếu marker 'P' vẫn lưu được nhưng phải báo cho người vẽ map biết.
+const char* saveStatus(const LevelData& level) {
+    int column = 0;
+    int row = 0;
+    return level.findPlayerSpawn(column, row) ? "MAP SAVED" : "SAVED NO SPAWN";
+}
+
 bool contains(const SDL_Rect& rectangle, int x, int y) {
     return x >= rectangle.x && x < rectangle.x + rectangle.w &&
            y >= rectangle.y && y < rectangle.y + rectangle.h;
@@ -716,7 +723,7 @@ void MapEditorService::saveLevelAs() {
         dirty = false;
         namingMap = false;
         pendingDiscardTarget.clear();
-        statusMessage = "MAP SAVED";
+        statusMessage = saveStatus(level);
         SDL_StopTextInput();
         refreshSavedMaps();
         std::cout << "Saved map: " << mapPath << '\n';
@@ -752,7 +759,7 @@ void MapEditorService::saveLevel() {
         LevelCodec::save(level, mapPath);
         dirty = false;
         pendingDiscardTarget.clear();
-        statusMessage = "MAP SAVED";
+        statusMessage = saveStatus(level);
         refreshSavedMaps();
         std::cout << "Saved map: " << mapPath << '\n';
     } catch (const std::exception& error) {
