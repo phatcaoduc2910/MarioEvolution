@@ -64,6 +64,7 @@ private:
     SDL_Renderer* renderer{nullptr};
     Uint32 lastFrameTicks{0};
     double menuBackgroundOffset{0.0};
+    double gameplayBackgroundOffset{0.0};
     std::vector<std::string> levelPaths;
     std::size_t selectedLevelIndex{0};
     GameState currentGameState{StartMenu};

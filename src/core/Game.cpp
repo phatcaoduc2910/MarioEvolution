@@ -24,6 +24,7 @@ constexpr SDL_Color kAudioOffColor{166, 65, 65, 235};
 constexpr SDL_Color kMenuButtonColor{69, 88, 120, 245};
 constexpr SDL_Color kAudioTextColor{255, 255, 255, 255};
 constexpr double kMenuBackgroundPixelsPerMs = 0.02;
+constexpr double kGameplayBackgroundParallax = 0.08;
 
 struct PauseMenuLayout {
     SDL_Rect music;
@@ -260,6 +261,7 @@ void Game::startLevel() {
     world = World();
     world.loadLevel(mapEditor->getLevel());
     camera.reset();
+    gameplayBackgroundOffset = 0.0;
     currentGameState = Playing;
     audioService->play("theme", true);
 }
@@ -417,6 +419,7 @@ void Game::gameLoop() {
                 if (inputHandler.isPressed(Key::Left)) --horizontalInput;
                 if (inputHandler.isPressed(Key::Right)) ++horizontalInput;
                 world.getPlayer().setMoveDirection(horizontalInput);
+                const double playerXBeforeStep = world.getPlayer().getX();
                 const int livesBeforeUpdate = world.getLives();
                 world.update(kFixedStepSeconds);
                 collisionSystem.update(world, kFixedStepSeconds);
@@ -428,6 +431,10 @@ void Game::gameLoop() {
                 if (world.getLives() < livesBeforeUpdate &&
                     !world.isGameOver()) {
                     audioService->play("lose_life");
+                } else {
+                    gameplayBackgroundOffset +=
+                        (world.getPlayer().getX() - playerXBeforeStep) *
+                        kGameplayBackgroundParallax;
                 }
                 if (collectedItem) {
                     audioService->play("item_pickup");
@@ -463,11 +470,12 @@ void Game::gameLoop() {
                 renderer,
                 static_cast<float>(CAMERA_ZOOM),
                 static_cast<float>(CAMERA_ZOOM));
-            worldRenderer.renderBackground(
+            worldRenderer.renderScrollingBackground(
                 renderer,
                 *textureManager,
                 static_cast<int>(WINDOW_WIDTH / CAMERA_ZOOM),
-                static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM));
+                static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM),
+                static_cast<int>(gameplayBackgroundOffset));
             worldRenderer.render(
                 renderer, *textureManager, world, offsetX, offsetY);
             actorRenderer.renderEnemies(
@@ -509,11 +517,12 @@ void Game::gameLoop() {
                 renderer,
                 static_cast<float>(CAMERA_ZOOM),
                 static_cast<float>(CAMERA_ZOOM));
-            worldRenderer.renderBackground(
+            worldRenderer.renderScrollingBackground(
                 renderer,
                 *textureManager,
                 static_cast<int>(WINDOW_WIDTH / CAMERA_ZOOM),
-                static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM));
+                static_cast<int>(WINDOW_HEIGHT / CAMERA_ZOOM),
+                static_cast<int>(gameplayBackgroundOffset));
             worldRenderer.render(
                 renderer, *textureManager, world,
                 camera.getOffsetX(), camera.getOffsetY());
