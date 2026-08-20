@@ -13,6 +13,10 @@ Dự án bài tập lớn môn Lập trình nâng cao (INT2215) do nhóm 9 thự
 Nhóm phối hợp tích hợp các module, hoàn thiện tài nguyên, kiểm thử và cân chỉnh
 gameplay trên các màn chơi thường lẫn boss arena.
 
+## Báo cáo và video demo
+
+[Xem báo cáo PDF và video demo trên Google Drive](https://drive.google.com/drive/folders/1ZvscRZjQHWjBlYDBgAc-RJaW6vBpal37?usp=drive_link)
+
 ## Build
 
 Toàn bộ game và test dùng Makefile tại thư mục gốc:
