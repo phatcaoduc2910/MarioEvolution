@@ -12,20 +12,25 @@ Camera::Camera(int viewportWidth, int viewportHeight, int edgePadding)
       x(0),
       y(0) {}
 
+// Cho cam theo player theo 2 trục và giữ viewport
 void Camera::follow(const GameObject& target, int worldWidth, int worldHeight) {
     const int targetCenterX =
         static_cast<int>(target.getX() + target.getWidth() / 2.0);
     const int targetCenterY =
         static_cast<int>(target.getY() + target.getHeight() / 2.0);
+
     const int desiredX = targetCenterX - viewportWidth / 2;
     const int desiredY = targetCenterY - viewportHeight / 2;
+
     const int scrollableX = std::max(0, worldWidth - viewportWidth);
     const int scrollableY = std::max(0, worldHeight - viewportHeight);
+
     const int mapMinX = std::min(edgePadding, scrollableX / 2);
     const int minY = std::min(edgePadding, scrollableY);
     const int maxX = std::max(mapMinX, scrollableX - edgePadding);
     const int maxY = scrollableY;
     const int minX = std::clamp(minimumX, mapMinX, maxX);
+    
     x = std::clamp(desiredX, minX, maxX);
     y = std::clamp(desiredY, minY, maxY);
 }

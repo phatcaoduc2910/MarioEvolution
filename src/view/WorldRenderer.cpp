@@ -14,6 +14,7 @@ namespace {
     constexpr const char* BACKGROUND_TEXTURE_ID = "background.game";
     constexpr const char* MUSHROOM_TEXTURE_ID = "ui.hud.life";
 
+    //Di chuyển mọi vật thể ngược chiều camera
     SDL_Rect destination(const GameObject& object, int offsetX, int offsetY) {
         return {
             static_cast<int>(object.getX()) + offsetX,

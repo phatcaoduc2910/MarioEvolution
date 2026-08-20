@@ -295,6 +295,7 @@ void World::clearVisualEvents() {
     visualEvents.clear();
 }
 
+// Chuyển fireball vào actor để thêm di chuyển và tương tác
 bool World::shootFireball() {
     std::unique_ptr<Fireball> fireball = player.shootFireball();
     if (fireball == nullptr) {
@@ -391,7 +392,9 @@ void World::update() {
     update(kIntegratedFixedStepSeconds);
 }
 
+
 void World::update(double dtSeconds) {
+    // Xét respawnX dựa trên vị trí Mario chạm đất gần nhất
     const double respawnX =
         player.isAlive() && player.isOnGround() &&
                 player.getY() <= killPlaneY
@@ -431,6 +434,7 @@ void World::update(double dtSeconds, double respawnX) {
     for (auto& actor : actors) {
         actor->update(dtSeconds);
         if (actor->isAlive()) {
+            // Huỷ fireball khi rơi xuống dưới kill plane  
             auto* fireball = dynamic_cast<Fireball*>(actor.get());
             if (fireball != nullptr && fireball->getY() > killPlaneY) {
                 fireball->destroy();

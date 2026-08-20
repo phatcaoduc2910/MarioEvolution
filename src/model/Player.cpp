@@ -96,8 +96,9 @@ Rectangle Player::getFeetBounds() const {
     };
 }
 
+
 void Player::jump() {
-    // A1: Trạng thái chạm đất, không phải vận tốc dọc, quyết định quyền nhảy.
+    // Xử lý lỗi nhảy 2 lần trên không
     if (!isAlive() || !isOnGround()) {
         return;
     }
@@ -107,7 +108,6 @@ void Player::jump() {
 }
 
 void Player::bounceAfterStomp() {
-    // A4: Cú stomp tạo lực bật ngắn hơn một lần nhảy thường.
     if (!isAlive()) {
         return;
     }
@@ -122,7 +122,7 @@ void Player::setMoveDirection(int direction) {
         velocityX = 0.0;
         return;
     }
-
+    // Quy ước hướng di chuyển là -1 0 1 
     moveDirection = std::clamp(direction, -1, 1);
 }
 void Player::collect(Item& item) {
@@ -199,11 +199,12 @@ void Player::captureFlag(Flag& flag) {
     flag.onCapture(*this);
 }
 
+
 std::unique_ptr<Fireball> Player::shootFireball() {
     if (!isAlive() || state != PlayerState::Fire) {
         return nullptr;
     }
-
+    // Giới hạn thời gian ném fireball  
     throwRemainingSeconds = kThrowAnimationSeconds;
 
     const double fireballX = direction == Direction::Left
@@ -225,8 +226,7 @@ void Player::update(double dtSeconds) {
         tickDown(invincibilityRemainingSeconds, dtSeconds);
     throwRemainingSeconds = tickDown(throwRemainingSeconds, dtSeconds);
 
-    // moveDirection chỉ là ý định; ở đây đổi thành vận tốc, còn dời vị trí
-    // theo từng trục là việc của CollisionSystem qua moveX/moveY.
+    // Đổi sang di chuyển có gia tốc thay vì đặt vận tốc trực tiếp
     const double targetVelocityX =
         moveDirection * kMoveSpeedPixelsPerSecond;
     const double changeRate = moveDirection == 0

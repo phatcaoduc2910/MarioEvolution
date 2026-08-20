@@ -26,10 +26,7 @@ bool overlaps(const Rectangle& a, const Rectangle& b) {
            a.y + a.height > b.y;
 }
 
-// A4: Stomp là đang rơi VÀ frame trước đáy player còn ở trên đỉnh enemy.
-// Quãng moveY đi trong frame này đúng bằng velocityY * dt (velocityY > 0 nghĩa
-// là resolveY chưa kẹp actor lại), nên trừ ra là có đáy của frame trước; không
-// cần lưu thêm previousBounds.
+// Kiểm tra xem có phải giẫm lên enemy hay không  
 bool isStomp(const Player& player, const Enemy& enemy, double dtSeconds) {
     const double fallSpeed = player.getVelocityY();
     if (fallSpeed <= 0.0) {
@@ -66,6 +63,7 @@ void emitAtCenter(World& world, VisualEventType type,
 }
 }
 
+// Xét collision chung cho GameObject và Actor
 bool CollisionSystem::check(
     const Actor& actor,
     const GameObject& object
@@ -88,8 +86,6 @@ void CollisionSystem::update(World& world, double dtSeconds) {
     resolveInteractions(world, dtSeconds);
 }
 
-// Bước cố định 11 ms cho tốc độ rơi tối đa ra 7.92 px, nhỏ hơn ô 32 px nên
-// không cần quét đường đi: actor không thể nhảy qua block giữa hai frame.
 void CollisionSystem::stepActor(
     Actor& actor,
     World& world,
@@ -98,6 +94,7 @@ void CollisionSystem::stepActor(
     actor.moveX(dtSeconds);
     const bool blockedByWall = resolveX(actor, world);
 
+    // Nếu fireball chạm tường thì huỷ
     auto* fireball = dynamic_cast<Fireball*>(&actor);
     if (fireball != nullptr && blockedByWall) {
         emitAtCenter(world, VisualEventType::FireballImpact, *fireball,
@@ -153,7 +150,6 @@ bool CollisionSystem::hasGroundAhead(
 }
 
 bool CollisionSystem::resolveX(Actor& actor, const World& world) const {
-    // Hướng đi đọc một lần: cú tách đầu tiên xoá velocityX của các cú sau.
     const double movingX = actor.getVelocityX();
     if (movingX == 0.0) {
         return false;
@@ -196,6 +192,7 @@ void CollisionSystem::resolveY(Actor& actor, World& world) const {
 
         if (movingY > 0.0) {
             actor.placeOnGround(objectBounds.y - actorBounds.height);
+            //Cho fireball nảy khi chạm nền.
             auto* fireball = dynamic_cast<Fireball*>(&actor);
             if (fireball != nullptr) {
                 fireball->bounce();
@@ -205,8 +202,7 @@ void CollisionSystem::resolveY(Actor& actor, World& world) const {
         }
 
         actor.placeUnderCeiling(objectBounds.y + objectBounds.height);
-
-        // A2: Đập gạch chính là cú chạm trần, không phải phép so tâm hai hộp.
+        // Chỉ xử lý brick khi đập ở dưới
         auto* player = dynamic_cast<Player*>(&actor);
         if (player != nullptr && !bumped) {
             hitBrickFromBelow(*player, *object, world);
@@ -261,7 +257,6 @@ void CollisionSystem::resolvePlayerInteractions(
     Player& player,
     double dtSeconds
 ) const {
-    // A2/A6: Flag là vùng kích hoạt nên chỉ xét ở đây, không nằm trong resolve trục.
     for (const auto& object : world.getObjects()) {
         auto* flag = dynamic_cast<Flag*>(object.get());
         if (flag == nullptr || flag->isCaptured() || !check(player, *flag)) {
@@ -272,7 +267,6 @@ void CollisionSystem::resolvePlayerInteractions(
         world.markLevelComplete();
     }
 
-    // A3: Trạng thái collected ngăn áp dụng hiệu ứng và cộng điểm nhiều lần.
     for (const auto& item : world.getItems()) {
         if (item->isCollected() || !check(player, *item)) {
             continue;
@@ -285,7 +279,7 @@ void CollisionSystem::resolvePlayerInteractions(
         }
     }
 
-    // A4: Va chạm Enemy là xử lý gameplay, không phải resolve vật cản rắn.
+    // Xử lý cộng điểm khi stomp Enemy và xử lý va chạm với Enemy.
     for (const auto& actor : world.getActors()) {
         auto* enemy = dynamic_cast<Enemy*>(actor.get());
         if (enemy == nullptr || !enemy->isAlive() ||
@@ -295,20 +289,14 @@ void CollisionSystem::resolvePlayerInteractions(
 
         auto* koopa = dynamic_cast<Koopa*>(enemy);
         const bool wasShellIdle = koopa != nullptr && koopa->isShell();
-        // Đọc đỉnh enemy trước khi onStomped đổi kích thước (Koopa thu vào
-        // mai tụt đỉnh xuống 16 px), để đặt lại player đúng mặt vừa dẫm trúng.
         const double enemyTop = enemy->getBounds().y;
         const bool stomped =
             isStomp(player, *enemy, dtSeconds) && enemy->isStompable();
 
         if (stomped) {
             enemy->onStomped(player);
-            // Tách player khỏi vùng chồng ngay trong frame stomp: cú bật chỉ
-            // nhấc ~4 px mỗi frame, còn chồng thì frame sau bị đọc thành cú
-            // chạm ngang và trừ máu oan.
             player.placeOnGround(enemyTop - player.getBounds().height);
             player.bounceAfterStomp();
-            // Shell đứng yên không bị hạ gục nên không cộng điểm lặp lại.
             if (!wasShellIdle) {
                 world.addScore(kEnemyDefeatScore);
             }
@@ -326,6 +314,7 @@ void CollisionSystem::resolvePlayerInteractions(
     }
 }
 
+// Xử lý bắn fireball vào enemy
 void CollisionSystem::resolveFireballHits(World& world) const {
     const auto& actors = world.getActors();
 
@@ -346,7 +335,6 @@ void CollisionSystem::resolveFireballHits(World& world) const {
                          fireball->getDirection());
             fireball->destroy();
 
-            // Boss miễn nhiễm fireball: quả cầu tắt nhưng không trừ máu.
             if (!enemy->takesFireballDamage()) {
                 break;
             }
@@ -378,8 +366,6 @@ void CollisionSystem::resolveEnemyHits(World& world) const {
                 continue;
             }
 
-            // Boss chỉ nhận damage qua onShellHit: một shell tối đa một hit,
-            // shell bị né thì trượt tiếp chứ không biến mất.
             if (auto* boss = dynamic_cast<GorillaBoss*>(victim)) {
                 auto* shellKoopa = dynamic_cast<Koopa*>(attacker.get());
                 if (shellKoopa == nullptr) {

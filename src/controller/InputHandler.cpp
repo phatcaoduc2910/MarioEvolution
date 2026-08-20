@@ -13,7 +13,6 @@ void InputHandler::release(Key key) {
     pressedKeys.erase(key);
 }
 
-//Gán key cho input
 Key InputHandler::mapKey(SDL_Keycode keycode) const {
     switch (keycode) {
         case SDLK_LEFT:

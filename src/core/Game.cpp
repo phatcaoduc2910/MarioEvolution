@@ -110,7 +110,6 @@ Game::~Game() {
     IMG_Quit();
     SDL_Quit();
 }
-//Khởi tạo giá trị ban đầu của game
 bool Game::start() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("SDL initialization failed: %s", SDL_GetError());
@@ -271,7 +270,7 @@ void Game::startLevel() {
     audioService->play("theme", true);
 }
 
-// Xử lý vòng lặp game
+
 void Game::gameLoop() {
     SDL_Event event;
 
@@ -390,7 +389,7 @@ void Game::gameLoop() {
                 }
             }
         }
-
+    // Sử dụng steps để game không phụ thuộc vào FPS
     constexpr int kFixedStepMs = 11;
     constexpr double kFixedStepSeconds = kFixedStepMs / 1000.0;
     static int accumulatorMs = 0;
