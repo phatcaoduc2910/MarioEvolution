@@ -1,114 +1,32 @@
 # MarioEvolution
 
+Dự án bài tập lớn môn Lập trình nâng cao (INT2215) do nhóm 9 thực hiện
+
 ## Thành viên nhóm
 
 | Thành viên | Phần việc chính |
 | --- | --- |
-| **Cao Đức Phát** | Xây dựng khung `Game`, game loop theo trạng thái và fixed timestep; xử lý input, di chuyển Player, collision, stomp/flag; phát triển camera, viewport, respawn và luồng bắn fireball. |
-| **Nguyễn Đức Toàn** | Phát triển model và world, level codec/map editor, hệ thống texture/animation/effect; xây dựng enemy, boss gorilla, boss arena và các bài test gameplay/boss. |
-| **Nguyễn Thanh Trung** | Phát triển màn hình menu/pause/kết quả, âm thanh và điều khiển âm lượng; hoàn thiện HUD, background/parallax, giao diện gameplay và hỗ trợ logic brick/item/flag. |
+| **Cao Đức Phát (24020264)** | Xây dựng khung `Game`, game loop theo trạng thái và fixed timestep; xử lý input, di chuyển Player, collision, stomp/flag; phát triển camera, viewport, respawn và luồng bắn fireball. |
+| **Nguyễn Đức Toàn (24020327)** | Phát triển model và world, level codec/map editor, hệ thống texture/animation/effect; xây dựng enemy, boss gorilla, boss arena và các bài test gameplay/boss. |
+| **Nguyễn Thanh Trung (24020336)** | Phát triển màn hình menu/pause/kết quả, âm thanh và điều khiển âm lượng; hoàn thiện HUD, background/parallax, giao diện gameplay và hỗ trợ logic brick/item/flag. |
 
-## Giới thiệu
+Nhóm phối hợp tích hợp các module, hoàn thiện tài nguyên, kiểm thử và cân chỉnh
+gameplay trên các màn chơi thường lẫn boss arena.
 
-MarioEvolution là game platformer 2D lấy cảm hứng từ Mario, được xây dựng để
-minh họa kiến trúc game theo hướng đối tượng bằng C++ và SDL2. Người chơi điều
-khiển Mario vượt chướng ngại vật, thu thập vật phẩm, chiến đấu với kẻ địch và
-hoàn thành màn chơi bằng cách chạm cờ hoặc đánh bại boss.
+## Build
 
-Phạm vi hệ thống gồm gameplay chạy cục bộ trên desktop, quản lý màn chơi,
-camera, va chạm, hoạt ảnh, âm thanh, giao diện, map editor và kiểm thử tự động.
-Dự án không bao gồm multiplayer, kết nối mạng hoặc lưu tiến trình người chơi.
-
-## Công nghệ và môi trường
-
-- Ngôn ngữ: C++17.
-- Thư viện: SDL2, SDL2_image và SDL2_mixer.
-- Build: GNU Make, `g++`, `pkg-config`; executable được liên kết tĩnh.
-- Môi trường mục tiêu: Windows 10/11 với MSYS2 UCRT64.
-- Tài nguyên: PNG cho hình ảnh, WAV/MP3 cho âm thanh và định dạng `.map` riêng
-  cho màn chơi.
-
-### Cài đặt
-
-1. Cài [MSYS2](https://www.msys2.org/) vào đường dẫn mặc định
-   `C:\msys64`.
-2. Mở terminal **MSYS2 UCRT64** và cài các gói cần thiết:
-
-```bash
-pacman -Syu
-pacman -S --needed make mingw-w64-ucrt-x86_64-gcc \
-  mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-SDL2 \
-  mingw-w64-ucrt-x86_64-SDL2_image mingw-w64-ucrt-x86_64-SDL2_mixer
-```
-
-3. Mở terminal tại thư mục gốc của repository. Không di chuyển thư mục
-   `assets/` vì game nạp tài nguyên bằng đường dẫn tương đối.
-
-## Cấu trúc dự án
-
-```text
-MarioEvolution/
-├── assets/                 Hình ảnh, âm thanh và các file map
-├── include/                Header C++
-│   ├── controller/         Input, collision và điều phối boss arena
-│   ├── core/               Kiểu dữ liệu chung và lớp Game
-│   ├── model/              Player, enemy, item, world và level data
-│   ├── service/            Audio, level codec và map editor
-│   └── view/               Camera, animation, texture và renderer
-├── src/                    Phần cài đặt tương ứng với include/
-├── tests/                  Unit test và boss acceptance test
-├── Makefile                Lệnh build, chạy và kiểm thử
-└── README.md               Tài liệu dự án
-```
-
-Các module chính:
-
-- `core`: khởi tạo SDL và điều khiển game loop theo `GameState`.
-- `model`: lưu trạng thái và luật gameplay, không phụ thuộc vào giao diện.
-- `controller`: xử lý input, va chạm và lịch hoạt động của boss arena.
-- `view`: tải texture, cập nhật animation và render thế giới lên viewport.
-- `service`: âm thanh, đọc/ghi map và các thao tác của map editor.
-
-## Build và chạy
-
-Toàn bộ game và test dùng `Makefile` tại thư mục gốc:
+Toàn bộ game và test dùng Makefile tại thư mục gốc:
 
 ```powershell
 make create
 make run
 make test
-make test-boss-acceptance
 make run-map-editor
 make clean
 ```
 
-- `make create`: build `MarioEvolution.exe`.
-- `make run`: build nếu cần rồi chạy game.
-- `make test`: chạy toàn bộ unit test thông thường.
-- `make test-boss-acceptance`: chạy bot kiểm tra khả năng hoàn thành boss arena.
-- `make run-map-editor`: chạy game; chọn `MAP EDITOR` tại menu chính.
-- `make clean`: xóa executable và thư mục build.
-
-## Chức năng đã hoàn thành
-
-- Game loop theo trạng thái: menu, chơi, tạm dừng, map editor, hoàn thành màn
-  và game over.
-- Di chuyển, nhảy, trọng lực, va chạm theo hai trục, camera hai chiều và
-  viewport bám theo người chơi.
-- Ba trạng thái Mario: Small, Big và Fire; nhận sát thương, bất tử tạm thời,
-  mất mạng, respawn và bắn fireball.
-- Goomba, Koopa xanh/đỏ, mai rùa trượt và Piranha Plant với hành vi riêng.
-- Gạch thường, gạch vật phẩm, coin, mushroom, fire flower và cột cờ.
-- Điểm số, coin, bộ đếm thời gian, số mạng, HUD và màn hình kết quả.
-- Hoạt ảnh nhân vật/kẻ địch, hiệu ứng va chạm, âm thanh và nhạc nền.
-- Chọn map ở menu; đọc, ghi, tạo mới và thay đổi kích thước map trong editor.
-- Boss gorilla ba phase, đòn Charge/Ground Slam, né shell và hazard arena.
-- Unit test cho level codec, tile catalog, map editor, camera, collision,
-  chuyển động, animation và boss; có thêm boss acceptance test.
-
-## Báo cáo và video demo
-
-- Link: https://drive.google.com/drive/folders/1ZvscRZjQHWjBlYDBgAc-RJaW6vBpal37?usp=sharing
+Project dùng C++17 trên MSYS2 UCRT64 với SDL2, SDL2_image và SDL2_mixer.
+`make create` tạo `MarioEvolution.exe`; `make run` build nếu cần rồi chạy game.
 
 ## Assets
 
@@ -141,24 +59,18 @@ s  Điểm mọc Piranha của boss arena
 
 ## Boss battle
 
-`assets/maps/boss_arena.map` là arena của boss gorilla. Boss có 6 HP và chỉ
-nhận damage từ mai rùa đang trượt (`ShellSliding`): boss ném Koopa, Mario đạp
-Koopa thành mai rồi đá ngược lại. Stomp thẳng vào boss và fireball không trừ
-máu, mỗi mai rùa chỉ gây tối đa một damage.
+Boss có 6 máu và chỉ bị thương khi trúng một chiếc mai rùa đang trượt. Người chơi cần đạp
+Koopa để nó rút vào mai, sau đó đá chiếc mai về phía boss. Nhảy trực tiếp lên
+boss hoặc bắn fireball đều không làm boss mất máu; mỗi chiếc mai chỉ đánh
+trúng boss được một lần.
 
-- Phase 1 (HP 6-4): boss chỉ ném Koopa, không né.
-- Phase 2 (HP 3-2): Enraged, thêm Charge và Ground Slam, mỗi đòn có telegraph
-  và recovery.
-- Phase 3 (HP 1): arena bật hazard - Piranha mọc tại các điểm `s` và Koopa rơi
-  từ trên xuống; boss né shell với xác suất 55%, tối đa hai lần liên tiếp.
-- HP 0: hazard dừng, arena dọn Koopa/Piranha rồi chuyển Level Complete sau khi
-  death animation chạy xong.
-
-Thanh HP boss nằm giữa mép trên màn hình và đổi màu khi vào Enraged/Last HP.
-
-`make test-boss` chạy unit test của boss/arena. `make test-boss-acceptance`
-chạy một bot chỉ dùng input người chơi để hạ boss trên arena; chạy lại nó sau
-khi chỉnh các thông số tuning trong `BossArenaController` hoặc `Boss`.
+- Khi còn 6 đến 4 máu, boss chủ yếu ném Koopa và chưa biết né đòn.
+- Khi còn 3 đến 2 máu, boss nổi giận, có thể lao về phía Mario hoặc đập mạnh
+  xuống đất. Trước mỗi đòn đều có dấu hiệu để người chơi kịp tránh.
+- Khi chỉ còn 1 máu, Piranha Plant bắt đầu mọc lên và Koopa rơi từ trên cao
+  xuống. Boss có 55% khả năng né mai rùa, nhưng không né quá hai lần liên tiếp.
+- Khi hết máu, boss ngừng tấn công, các kẻ địch còn lại được dọn khỏi màn hình.
+  Màn chơi hoàn thành sau khi hoạt ảnh boss bị hạ kết thúc.
 
 ## Controls
 
