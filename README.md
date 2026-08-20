@@ -7,8 +7,7 @@ hoàn thành các màn chơi, bao gồm một boss arena nhiều giai đoạn.
 
 Phạm vi dự án gồm game chơi đơn trên máy tính, hệ thống menu và trạng thái
 game, vật lý và va chạm, camera, đồ họa và âm thanh, bản đồ lưu cục bộ cùng
-map editor tích hợp. Dự án không bao gồm chế độ nhiều người chơi hoặc dịch vụ
-trực tuyến.
+map editor tích hợp.
 
 ## Thành viên nhóm
 
@@ -17,9 +16,6 @@ trực tuyến.
 | **Cao Đức Phát (24020264)** | Xây dựng khung `Game`, game loop theo trạng thái và fixed timestep; xử lý input, di chuyển Player, collision, stomp/flag; phát triển camera, viewport, respawn và luồng bắn fireball. |
 | **Nguyễn Đức Toàn (24020327)** | Phát triển model và world, level codec/map editor, hệ thống texture/animation/effect; xây dựng enemy, boss gorilla, boss arena và các bài test gameplay/boss. |
 | **Nguyễn Thanh Trung (24020336)** | Phát triển màn hình menu/pause/kết quả, âm thanh và điều khiển âm lượng; hoàn thiện HUD, background/parallax, giao diện gameplay và hỗ trợ logic brick/item/flag. |
-
-Nhóm phối hợp tích hợp các module, hoàn thiện tài nguyên, kiểm thử và cân chỉnh
-gameplay trên các màn chơi thường lẫn boss arena.
 
 ## Chức năng đã hoàn thành
 
@@ -39,7 +35,7 @@ gameplay trên các màn chơi thường lẫn boss arena.
 
 ## Báo cáo và video demo
 
-[Xem báo cáo PDF và video demo trên Google Drive](https://drive.google.com/drive/folders/1ZvscRZjQHWjBlYDBgAc-RJaW6vBpal37?usp=drive_link)
+[Link báo cáo PDF và video demo](https://drive.google.com/drive/folders/1ZvscRZjQHWjBlYDBgAc-RJaW6vBpal37?usp=drive_link)
 
 ## Công nghệ và yêu cầu cài đặt
 
