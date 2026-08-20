@@ -77,6 +77,7 @@ void WorldRenderer::renderBackground(SDL_Renderer* renderer,
     assetRenderer.render(renderer, background, &source, &destination);
 }
 
+// Vẽ background lặp theo độ lệch ngang.
 void WorldRenderer::renderScrollingBackground(
         SDL_Renderer* renderer, const TextureManager& textures,
         int viewWidth, int viewHeight, int offsetX) {

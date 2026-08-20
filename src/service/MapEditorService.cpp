@@ -180,6 +180,7 @@ bool MapEditorService::isDirty() const {
     return dirty;
 }
 
+// Mở chế độ chỉnh sửa map.
 void MapEditorService::open() {
     editorEnabled = true;
     strokeActive = false;

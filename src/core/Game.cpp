@@ -34,6 +34,7 @@ struct PauseMenuLayout {
     SDL_Rect mainMenu;
 };
 
+// Tính vị trí các nút của menu tạm dừng.
 bool pauseMenuLayout(SDL_Renderer* renderer, PauseMenuLayout& layout) {
     int screenWidth = 0;
     int screenHeight = 0;
@@ -61,6 +62,7 @@ bool pauseMenuLayout(SDL_Renderer* renderer, PauseMenuLayout& layout) {
     return true;
 }
 
+// Vẽ nhãn cho một nút trong menu tạm dừng.
 void drawPauseButtonLabel(SDL_Renderer* renderer, const SDL_Rect& button,
                           std::string_view label) {
     constexpr int kTextScale = 2;
@@ -75,6 +77,7 @@ void drawPauseButtonLabel(SDL_Renderer* renderer, const SDL_Rect& button,
         kTextScale, kAudioTextColor);
 }
 
+// Vẽ các nút điều khiển âm thanh và quay lại menu.
 void renderPauseMenuControls(SDL_Renderer* renderer,
                              const AudioService& audio) {
     PauseMenuLayout layout;
@@ -180,12 +183,14 @@ bool Game::start() {
     return true;
 }
 
+// Chuyển game sang trạng thái tạm dừng.
 void Game::pause() {
     currentGameState = Paused;
     pauseScreen.render(renderer);
     audioService->pause("theme");
 }
 
+// Tiếp tục game và phát lại nhạc nền.
 void Game::resume() {
     currentGameState = Playing;
     // Tiếp tục nhạc nền khi quay lại gameplay.
@@ -217,6 +222,7 @@ void Game::discoverLevels() {
                                    std::distance(levelPaths.begin(), defaultLevel));
 }
 
+// Nạp màn chơi đang được chọn vào thế giới game.
 void Game::loadSelectedLevel() {
     if (levelPaths.empty()) return;
     mapEditor = std::make_unique<MapEditorService>(
@@ -227,6 +233,7 @@ void Game::loadSelectedLevel() {
     bossArena.reset();
 }
 
+// Chuyển lựa chọn giữa các màn chơi.
 void Game::selectLevel(int direction) {
     if (levelPaths.empty() || direction == 0) return;
     const auto count = static_cast<long long>(levelPaths.size());
@@ -236,6 +243,7 @@ void Game::selectLevel(int direction) {
     loadSelectedLevel();
 }
 
+// Đồng bộ màn đang chọn sau khi chỉnh sửa map.
 void Game::syncSelectedLevel(const std::string& mapPath) {
     const auto target = std::filesystem::path(mapPath).lexically_normal();
     discoverLevels();
